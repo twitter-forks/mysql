@@ -24,7 +24,7 @@
 
 # Add the datadir, basedir, plugin_dir to the bootstrap command
 let $MYSQLD_DATADIR= `select @@datadir`;
-let $MYSQL_BASEDIR= `select @@basedir`;
+let $TMP_BASEDIR= $MYSQLTEST_VARDIR/tmp;
 let $MYSQL_ERRMSG_BASEDIR=`select @@lc_messages_dir`;
 let $PLUGIN_DIR=`select @@plugin_dir`;
 
@@ -66,10 +66,10 @@ remove_file $MYSQL_TMP_DIR/mysqld.inc;
 # mysql version, so errmsg.sys will be copied to "basedir/share", we create
 # and remove this structure. 
 
---mkdir $MYSQLD_BASEDIR/share
---mkdir $MYSQLD_BASEDIR/share/mysql
---copy_file $MYSQL_ERRMSG_BASEDIR/english/errmsg.sys $MYSQLD_BASEDIR/share/errmsg.sys
---copy_file $MYSQL_ERRMSG_BASEDIR/english/errmsg.sys $MYSQLD_BASEDIR/share/mysql/errmsg.sys
+--mkdir $TMP_BASEDIR/share
+--mkdir $TMP_BASEDIR/share/mysql
+--copy_file $MYSQL_ERRMSG_BASEDIR/english/errmsg.sys $TMP_BASEDIR/share/errmsg.sys
+--copy_file $MYSQL_ERRMSG_BASEDIR/english/errmsg.sys $TMP_BASEDIR/share/mysql/errmsg.sys
 
 # The mysql_plugin tool now accepts --my-print-defaults which points to the
 # executable my_print_defaults.exe we can get this path from the variable
@@ -100,7 +100,7 @@ if ($PLUGIN_DIR == '')
 
 # Build client command for reuse.
 
-let $MYSQL_PLUGIN_CMD= $MYSQL_PLUGIN --datadir=$MYSQLD_DATADIR --basedir=$MYSQLD_BASEDIR --plugin-dir=$PLUGIN_DIR --mysqld=$MYSQLD_BASEDIR --my-print-defaults=$MYSQL_MY_PRINT_DEFAULTS_BASEDIR;
+let $MYSQL_PLUGIN_CMD= $MYSQL_PLUGIN --datadir=$MYSQLD_DATADIR --basedir=$TMP_BASEDIR --plugin-dir=$PLUGIN_DIR --mysqld=$MYSQLD_BASEDIR --my-print-defaults=$MYSQL_MY_PRINT_DEFAULTS_BASEDIR;
 
 --echo #
 --echo # Ensure the plugin isn't loaded.
@@ -311,8 +311,10 @@ EOF
 --remove_file $expect_file
 
 # Cleanup the share folder in the binary path.
---remove_file $MYSQLD_BASEDIR/share/errmsg.sys
---rmdir $MYSQLD_BASEDIR/share/mysql
---rmdir $MYSQLD_BASEDIR/share
+--remove_file $TMP_BASEDIR/share/errmsg.sys
+--remove_file $TMP_BASEDIR/share/mysql/errmsg.sys
+
+--rmdir $TMP_BASEDIR/share/mysql
+--rmdir $TMP_BASEDIR/share
 
 --enable_abort_on_error
