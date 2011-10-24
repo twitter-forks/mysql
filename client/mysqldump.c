@@ -4469,7 +4469,6 @@ static int do_show_slave_status(MYSQL *mysql_con)
       /* SHOW SLAVE STATUS reports nothing and --force is not enabled */
       my_printf_error(0, "Error: Slave not set up", MYF(0));
     }
-    mysql_free_result(slave);
     return 1;
   }
   else
