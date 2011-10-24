@@ -56,6 +56,7 @@ Win32
 RelWithDebInfo
 *~
 .*.swp
+CMakeCache.txt
 ./CMakeCache.txt
 ./MySql.ncb
 ./MySql.sln
