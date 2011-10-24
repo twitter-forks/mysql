@@ -8017,9 +8017,7 @@ void run_query(struct st_connection *cn, struct st_command *command, int flags)
 char *re_eprint(int err)
 {
   static char epbuf[100];
-  size_t len= my_regerror(REG_ITOA|err, (my_regex_t *)NULL,
-			  epbuf, sizeof(epbuf));
-  assert(len <= sizeof(epbuf));
+  my_regerror(REG_ITOA | err, NULL, epbuf, sizeof(epbuf));
   return(epbuf);
 }
 
