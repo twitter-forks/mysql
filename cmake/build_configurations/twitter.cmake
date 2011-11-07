@@ -14,6 +14,19 @@ INCLUDE(CheckLibraryExists)
 SET(COMPILATION_COMMENT "Twitter MySQL Server - ${CMAKE_BUILD_TYPE}")
 
 #
+# Feature set.
+#
+
+IF(FEATURE_SET)
+  STRING(TOLOWER ${FEATURE_SET} FEATURE_SET)
+  IF(FEATURE_SET STREQUAL "community")
+    SET(WITH_EMBEDDED_SERVER TRUE CACHE BOOL "Embedded MySQL Server Library")
+  ELSE()
+    MESSAGE(FATAL_ERROR "Unknown feature set.")
+  ENDIF()
+ENDIF()
+
+#
 # Compiler options.
 #
 
