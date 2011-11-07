@@ -39,7 +39,6 @@ SET(WITHOUT_PERFSCHEMA_STORAGE_ENGINE TRUE BOOL)
 # Use system libraries instead of bundled ones.
 #
 
-SET(WITH_SSL system CACHE STRING "Use system SSL")
 SET(WITH_ZLIB system CACHE STRING "Use system zlib")
 
 SET(WITH_LIBEDIT OFF CACHE BOOL "Disable bundled libedit")
