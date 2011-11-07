@@ -89,6 +89,9 @@ extern "C" {
 #include <conio.h>
 #else
 #include <readline/readline.h>
+#if HAVE_READLINE_HISTORY_H
+# include <readline/history.h>
+#endif
 #define HAVE_READLINE
 #define USE_POPEN
 #endif
@@ -1035,11 +1038,14 @@ typedef struct _hist_entry {
 } HIST_ENTRY; 
 #endif
 
+#if !defined(HAVE_READLINE_HISTORY_H)
 extern "C" int add_history(const char *command); /* From readline directory */
 extern "C" int read_history(const char *command);
 extern "C" int write_history(const char *command);
 extern "C" HIST_ENTRY *history_get(int num);
 extern "C" int history_length;
+#endif
+
 static int not_in_history(const char *line);
 static void initialize_readline (char *name);
 static void fix_history(String *final_command);

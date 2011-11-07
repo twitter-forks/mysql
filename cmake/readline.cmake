@@ -130,20 +130,29 @@ ENDMACRO()
 
 
 MACRO (MYSQL_FIND_SYSTEM_READLINE name)
-  
+  FIND_CURSES()
   FIND_PATH(${name}_INCLUDE_DIR readline/readline.h )
   FIND_LIBRARY(${name}_LIBRARY NAMES ${name})
   MARK_AS_ADVANCED(${name}_INCLUDE_DIR  ${name}_LIBRARY)
 
   INCLUDE(CheckCXXSourceCompiles)
-  SET(CMAKE_REQUIRES_LIBRARIES ${${name}_LIBRARY})
+  SET(CMAKE_REQUIRES_LIBRARIES ${${name}_LIBRARY} ${CURSES_LIBRARY})
+
+  CHECK_INCLUDE_FILES("stdio.h;readline/readline.h;readline/history.h"
+                      HAVE_READLINE_HISTORY_H)
+  IF(HAVE_READLINE_HISTORY_H)
+    LIST(APPEND CMAKE_REQUIRED_DEFINITIONS -DHAVE_READLINE_HISTORY_H)
+  ENDIF()
 
   IF(${name}_LIBRARY AND ${name}_INCLUDE_DIR)
     SET(SYSTEM_READLINE_FOUND 1)
-    SET(CMAKE_REQUIRED_LIBRARIES ${${name}_LIBRARY})
+    SET(CMAKE_REQUIRED_LIBRARIES ${${name}_LIBRARY} ${CURSES_LIBRARY})
     CHECK_CXX_SOURCE_COMPILES("
     #include <stdio.h>
     #include <readline/readline.h>
+    #if HAVE_READLINE_HISTORY_H
+    #include <readline/history.h>
+    #endif
     int main(int argc, char **argv)
     {
        HIST_ENTRY entry;
@@ -173,7 +182,7 @@ MACRO (MYSQL_FIND_SYSTEM_READLINE name)
     ${name}_USE_NEW_READLINE_INTERFACE)
     
     IF(${name}_USE_LIBEDIT_INTERFACE  OR ${name}_USE_NEW_READLINE_INTERFACE)
-      SET(READLINE_LIBRARY ${${name}_LIBRARY})
+      SET(READLINE_LIBRARY ${${name}_LIBRARY} ${CURSES_LIBRARY})
       SET(READLINE_INCLUDE_DIR ${${name}_INCLUDE_DIR})
       SET(HAVE_HIST_ENTRY ${${name}_HAVE_HIST_ENTRY})
       SET(USE_LIBEDIT_INTERFACE ${${name}_USE_LIBEDIT_INTERFACE})
