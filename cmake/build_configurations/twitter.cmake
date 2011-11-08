@@ -17,6 +17,8 @@ SET(COMPILATION_COMMENT "Twitter MySQL Server - ${CMAKE_BUILD_TYPE}")
 # Feature set.
 #
 
+SET(FEATURE_SET "community" CACHE STRING "Twitter MySQL feature set.")
+
 IF(FEATURE_SET)
   STRING(TOLOWER ${FEATURE_SET} FEATURE_SET)
   IF(FEATURE_SET STREQUAL "community")
