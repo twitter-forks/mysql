@@ -2616,7 +2616,7 @@ row_merge_build_indexes(
 
 	merge_files = mem_alloc(n_indexes * sizeof *merge_files);
 	block_size = 3 * sizeof *block;
-	block = os_mem_alloc_large(&block_size);
+	block = os_mem_alloc_large(&block_size, FALSE);
 
 	for (i = 0; i < n_indexes; i++) {
 
