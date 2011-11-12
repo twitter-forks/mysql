@@ -919,3 +919,59 @@
    fun:my_b_flush_io_cache
    fun:_Z8filesortP3THDP5TABLEP13st_sort_fieldjP10SQL_SELECTybPy
 }
+
+{
+   MyISAM / count_distinct
+   Memcheck:Param
+   pwrite64(buf)
+   obj:*/libpthread*.so
+   fun:my_pwrite
+   ...
+   fun:_mi_write_blob_record
+   fun:mi_write
+}
+
+{
+   MyISAM / fulltext
+   Memcheck:Param
+   write(buf)
+   obj:*/libpthread*.so
+   fun:my_write
+   fun:my_b_flush_io_cache
+   fun:end_io_cache
+   fun:mi_extra
+}
+
+{
+   MyISAM / sp
+   Memcheck:Param
+   write(buf)
+   obj:*/libpthread*.so
+   fun:my_write
+   fun:my_b_flush_io_cache
+   fun:mi_scan_init
+}
+
+{
+   MyISAM / gis-rtree / Addr8
+   Memcheck:Addr8
+   fun:rtree_page_mbr
+}
+
+{
+   MyISAM / gis-rtree / Addr4
+   Memcheck:Addr4
+   fun:rtree_page_mbr
+}
+
+{
+   MyISAM / gis-rtree / Cond
+   Memcheck:Cond
+   fun:rtree_page_mbr
+}
+
+{
+   MyISAM / gis-rtree / Value8
+   Memcheck:Value8
+   fun:rtree_page_mbr
+}
