@@ -1101,7 +1101,7 @@ sub command_line_setup {
              # Debugging
              'debug'                    => \$opt_debug,
              'debug-common'             => \$opt_debug_common,
-             'debug-server'             => \$opt_debug_server,
+             'debug-server!'            => \$opt_debug_server,
              'gdb'                      => \$opt_gdb,
              'client-gdb'               => \$opt_client_gdb,
              'manual-gdb'               => \$opt_manual_gdb,
