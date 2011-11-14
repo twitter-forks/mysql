@@ -1,11 +1,12 @@
 --source suite/randgen/include/setup_rqg.inc
 
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg-example.log;
+
 exec perl $RQG_HOME/gentest.pl
   --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
-  --logfile=$RQG_LOG_DIR/rqg-example.log
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --engine=$RQG_ENGINE
   --gendata=$RQG_HOME/conf/examples/example.zz
-  --grammar=$RQG_HOME/conf/examples/example.yy
-  > $RQG_STDOUT;
+  --grammar=$RQG_HOME/conf/examples/example.yy;
 
 --source suite/randgen/include/cleanup.inc

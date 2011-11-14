@@ -19,9 +19,3 @@ if (`SELECT '$RQG_LOG_DIR' = ''`)
 {
   let $RQG_LOG_DIR = $MYSQL_TMP_DIR;
 }
-
-# Where to (optionally) redirect RQG output to.
-if (`SELECT '$RQG_STDOUT' = ''`)
-{
-  let $RQG_STDOUT = '/dev/null';
-}
