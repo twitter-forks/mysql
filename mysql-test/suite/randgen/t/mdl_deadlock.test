@@ -1,0 +1,17 @@
+--source include/have_innodb.inc
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_mdl_deadlock.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --grammar=$RQG_HOME/conf/runtime/WL5004_sql.yy
+  --reporters=Deadlock,ErrorLog,Backtrace
+  --engine=InnoDB
+  --queries=1M
+  --threads=10
+  --duration=1200
+  --gendata;
+
+--source suite/randgen/include/cleanup.inc

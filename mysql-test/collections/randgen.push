@@ -1,1 +1,6 @@
-perl mysql-test-run.pl --timer --force --parallel=auto --comment=randgen --vardir=var-randgen --suite=randgen
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_info_schema --vardir=var-rqg_info_schema --no-check-testcases information_schema
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_mdl_deadlock --vardir=var-mdl_deadlock --no-check-testcases mdl_deadlock
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_mdl_stability --vardir=var-mdl_stability --no-check-testcases mdl_stability
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_mdl_stress --vardir=var-mdl_stress --no-check-testcases mdl_stress
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_partition_ddl --vardir=var-partition_ddl --no-check-testcases partition_ddl
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_partition_pruning --vardir=var-partition_pruning --no-check-testcases partition_pruning

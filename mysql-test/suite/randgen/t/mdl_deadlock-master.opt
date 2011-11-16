@@ -1,0 +1,3 @@
+--innodb-lock-wait-timeout=50
+--lock-wait-timeout=31536000
+--secure_file_priv=/tmp

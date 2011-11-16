@@ -1,0 +1,16 @@
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_partition_pruning.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --gendata=$RQG_HOME/conf/partitioning/partition_pruning.zz
+  --grammar=$RQG_HOME/conf/partitioning/partition_pruning.yy
+  --reporters=Deadlock,ErrorLog,Backtrace
+  --engine=$RQG_ENGINE
+  --queries=100K
+  --threads=1
+  --duration=300;
+
+--source suite/randgen/include/cleanup.inc
