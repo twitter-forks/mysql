@@ -1,0 +1,6 @@
+$SEMISYNC_MASTER_PLUGIN_OPT
+$SEMISYNC_MASTER_PLUGIN_LOAD
+--rpl_semi_sync_master_enabled=1
+--innodb-lock-wait-timeout=1
+--lock-wait-timeout=1
+--testcase-timeout=10

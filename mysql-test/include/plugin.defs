@@ -33,8 +33,8 @@ qa_auth_server     plugin/auth        PLUGIN_AUTH_SERVER    qa_auth_server
 qa_auth_client     plugin/auth        PLUGIN_AUTH_CLIENT    qa_auth_client
 udf_example        sql                UDF_EXAMPLE_LIB
 ha_example         storage/example    EXAMPLE_PLUGIN         EXAMPLE
-semisync_master    plugin/semisync    SEMISYNC_MASTER_PLUGIN
-semisync_slave     plugin/semisync    SEMISYNC_SLAVE_PLUGIN
+semisync_master    plugin/semisync    SEMISYNC_MASTER_PLUGIN rpl_semi_sync_master
+semisync_slave     plugin/semisync    SEMISYNC_SLAVE_PLUGIN  rpl_semi_sync_slave
 ha_archive         storage/archive    ARCHIVE_PLUGIN
 ha_blackhole       storage/blackhole  BLACKHOLE_PLUGIN
 ha_federated       storage/federated  FEDERATED_PLUGIN

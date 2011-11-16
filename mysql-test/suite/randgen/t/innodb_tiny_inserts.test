@@ -1,0 +1,16 @@
+--source include/have_innodb.inc
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_innodb_tiny_inserts.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --gendata=$RQG_HOME/conf/engines/tiny_inserts.zz
+  --grammar=$RQG_HOME/conf/engines/tiny_inserts.yy
+  --reporters=Deadlock,ErrorLog,Backtrace
+  --engine=InnoDB
+  --queries=10000000
+  --duration=600;
+
+--source suite/randgen/include/cleanup.inc

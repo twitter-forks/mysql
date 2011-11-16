@@ -1,0 +1,17 @@
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_engine_stress.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --gendata=$RQG_HOME/conf/engines/engine_stress.zz
+  --grammar=$RQG_HOME/conf/engines/engine_stress.yy
+  --reporters=Deadlock,ErrorLog,Backtrace
+  --engine=$RQG_ENGINE
+  --queries=1M
+  --rows=10000
+  --duration=1200
+  --thread=32;
+
+--source suite/randgen/include/cleanup.inc

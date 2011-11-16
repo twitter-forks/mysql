@@ -1,0 +1,8 @@
+--transaction-isolation=READ-COMMITTED
+--loose-lock-wait-timeout=1
+--loose-innodb-lock-wait-timeout=1
+--loose-innodb-flush-log-at-trx-commit=0
+--loose-innodb-thread-concurrency=16
+--loose-innodb-concurrency-tickets=250
+--loose-innodb-commit-concurrency=8
+--testcase-timeout=25

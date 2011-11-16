@@ -1,6 +1,13 @@
-perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_info_schema --vardir=var-rqg_info_schema --no-check-testcases information_schema
-perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_mdl_deadlock --vardir=var-mdl_deadlock --no-check-testcases mdl_deadlock
-perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_mdl_stability --vardir=var-mdl_stability --no-check-testcases mdl_stability
-perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_mdl_stress --vardir=var-mdl_stress --no-check-testcases mdl_stress
-perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_partition_ddl --vardir=var-partition_ddl --no-check-testcases partition_ddl
-perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_partition_pruning --vardir=var-partition_pruning --no-check-testcases partition_pruning
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_info_schema --vardir=var-rqg_info_schema --no-check-testcases information_schema
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_mdl_deadlock --vardir=var-mdl_deadlock --no-check-testcases mdl_deadlock
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_mdl_stability --vardir=var-mdl_stability --no-check-testcases mdl_stability
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_mdl_stress --vardir=var-mdl_stress --no-check-testcases mdl_stress
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_partition_ddl --vardir=var-partition_ddl --no-check-testcases partition_ddl
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_partition_pruning --vardir=var-partition_pruning --no-check-testcases partition_pruning
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_innodb_stress --vardir=var-innodb_stress --no-check-testcases innodb_stress
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_innodb_tiny_inserts --vardir=var-innodb_tiny_inserts --no-check-testcases innodb_tiny_inserts
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_engine_stress --vardir=var-engine_stress --no-check-testcases engine_stress
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_opt_range_access --vardir=var-opt_range_access --no-check-testcases opt_range_access
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_opt_subquery --vardir=var-opt_subquery --no-check-testcases opt_subquery
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --skip-combinations --comment=rqg_outer_join --vardir=var-outer_join --no-check-testcases outer_join
+perl mysql-test-run.pl --timer --force --parallel=auto --suite=randgen --comment=rqg_rpl_semi_sync --vardir=var-rpl_semi_sync --no-check-testcases rpl_semi_sync
