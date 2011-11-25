@@ -103,6 +103,9 @@ enum enum_filetype { FILETYPE_CSV, FILETYPE_XML };
 #define MODE_NO_ENGINE_SUBSTITUTION     (MODE_HIGH_NOT_PRECEDENCE*2)
 #define MODE_PAD_CHAR_TO_FULL_LENGTH    (ULL(1) << 31)
 
+/* Minimal object names in the result set metadata. */
+#define PROTO_MODE_MINIMAL_OBJECT_NAMES_IN_RSMD    (ULL(1) << 0)
+
 extern char internal_table_name[2];
 extern char empty_c_string[1];
 extern MYSQL_PLUGIN_IMPORT const char **errmesg;
@@ -506,6 +509,7 @@ typedef struct system_variables
 
   double long_query_time_double;
 
+  ulong protocol_mode;
 } SV;
 
 

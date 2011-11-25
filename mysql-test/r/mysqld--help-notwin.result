@@ -469,6 +469,9 @@ The following options may be given as the first argument:
  indexes
  --profiling-history-size=# 
  Limit of query profiling memory
+ --protocol-mode=name 
+ Syntax: protocol-mode=mode[,mode[,mode...]]. See the
+ manual for the complete list of valid protocol modes
  --query-alloc-block-size=# 
  Allocation block size for query parsing and execution
  --query-cache-limit=# 
@@ -891,6 +894,7 @@ port 3306
 port-open-timeout 0
 preload-buffer-size 32768
 profiling-history-size 15
+protocol-mode 
 query-alloc-block-size 8192
 query-cache-limit 1048576
 query-cache-min-res-unit 4096
