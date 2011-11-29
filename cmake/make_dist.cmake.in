@@ -124,8 +124,8 @@ CONFIGURE_FILE(${CMAKE_BINARY_DIR}/sql/sql_yacc.cc
    ${PACKAGE_DIR}/sql/sql_yacc.cc COPYONLY)
 
 # Copy spec files
-CONFIGURE_FILE(${CMAKE_BINARY_DIR}/support-files/mysql.${VERSION}.spec
-   ${PACKAGE_DIR}/support-files/mysql.${VERSION}.spec COPYONLY)
+CONFIGURE_FILE(${CMAKE_BINARY_DIR}/support-files/mysql-${VERSION}.spec
+   ${PACKAGE_DIR}/support-files/mysql-${VERSION}.spec COPYONLY)
 
 # Add documentation, if user has specified where to find them
 IF(MYSQL_DOCS_LOCATION)
