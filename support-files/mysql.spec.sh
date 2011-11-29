@@ -24,6 +24,9 @@
 %define mysql_vendor_2          Sun Microsystems, Inc.
 %define mysql_vendor            Oracle and/or its affiliates
 
+# Organization that distributes this package.
+%define package_vendor          Twitter, Inc.
+
 %define mysql_version   @VERSION@
 
 %define mysqld_user     mysql
@@ -254,8 +257,8 @@ Distribution:   %{distro_description}
 License:        Copyright (c) 2000, @MYSQL_COPYRIGHT_YEAR@, %{mysql_vendor}. All rights reserved. Under %{license_type} license as shown in the Description field.
 Source:         http://www.mysql.com/Downloads/MySQL-@MYSQL_BASE_VERSION@/%{src_dir}.tar.gz
 URL:            http://www.mysql.com/
-Packager:       MySQL Release Engineering <mysql-build@oss.oracle.com>
-Vendor:         %{mysql_vendor}
+Packager:       Twitter DBA Development team <dba-dev-team@twitter.com>
+Vendor:         %{package_vendor}
 Provides:       msqlormysql MySQL-server mysql
 BuildRequires:  %{distro_buildreq}
 
@@ -595,6 +598,7 @@ if [ $? -eq 0 -a -n "$installed" ]; then
   myoldvendor='%{mysql_old_vendor}'
   myvendor_2='%{mysql_vendor_2}'
   myvendor='%{mysql_vendor}'
+  mypkgvendor='%{package_vendor}'
   myversion='%{mysql_version}'
 
   old_family=`echo $version \
@@ -615,6 +619,15 @@ The current MySQL server package is provided by a different
 vendor ($vendor) than $myoldvendor, $myvendor_2, or $myvendor.
 Some files may be installed to different locations, including log
 files and the service startup script in %{_sysconfdir}/init.d/.
+"
+  fi
+
+  error_text=
+  if [ "$vendor" != "$mypkgvendor" ]; then
+    myvendor="$mypkgvendor"
+    error_text="$error_text
+The current MySQL server package is provided by a vendor ($vendor)
+other than $mypkgvendor
 "
   fi
 
