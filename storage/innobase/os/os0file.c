@@ -3187,7 +3187,8 @@ retry:
 		ut_print_timestamp(stderr);
 		fprintf(stderr,
 			"  InnoDB: Error: io_setup() failed"
-			" with EAGAIN after %d attempts.\n",
+			" with EAGAIN after %d attempts."
+			" Consider increasing aio-max-nr.\n",
 			OS_AIO_IO_SETUP_RETRY_ATTEMPTS);
 		break;
 
