@@ -1,0 +1,78 @@
+--source include/have_innodb.inc
+--source include/have_debug_sync.inc
+
+--echo #
+--echo # Test that the INNODB_LOCK_DEADLOCKS is incremented when a deadlock
+--echo # is detected.
+--echo #
+
+--echo
+--echo # Save initial value of the INNODB_LOCK_DEADLOCKS variable.
+--echo
+SELECT VARIABLE_VALUE INTO @deadlocks_1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_LOCK_DEADLOCKS';
+
+--echo
+--echo # Simulate a deadlock scenario.
+--echo
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT NOT NULL) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,2);
+
+connect (con1,localhost,root,,);
+connect (con2,localhost,root,,);
+
+--echo # Connection: con1
+connection con1;
+BEGIN;
+--echo # Take a shared lock on the existing record (1,2).
+SET DEBUG_SYNC='write_row_noreplace SIGNAL insert1 WAIT_FOR select1';
+send INSERT INTO t1 VALUES (1,3);
+
+--echo # Connection: default
+connection default;
+SET DEBUG_SYNC='now WAIT_FOR insert1';
+SELECT * FROM t1 LOCK IN SHARE MODE;
+--echo # Attempt to get an exclusive lock for the same record.
+send SELECT * FROM t1 FOR UPDATE;
+
+--echo # Connection: con2
+connection con2;
+--echo # Wait for lock attempt to be blocked.
+let $wait_condition=
+  SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.PROCESSLIST
+  WHERE STATE = 'Sending data' AND INFO = 'SELECT * FROM t1 FOR UPDATE';
+--source include/wait_condition.inc
+SET DEBUG_SYNC='now SIGNAL select1';
+
+--echo # Connection: con1
+connection con1;
+--error ER_DUP_ENTRY
+reap;
+--echo # Attempt to get an exclusive lock for the same record.
+INSERT INTO t1 VALUES (1,3) ON DUPLICATE KEY UPDATE b = b + 10;
+
+--echo # Connection: default
+connection default;
+--error ER_LOCK_DEADLOCK
+reap;
+
+--echo # Connection: con1
+connection con1;
+COMMIT;
+
+disconnect con1;
+disconnect con2;
+
+--echo # Connection: default
+connection default;
+
+--echo
+--echo # Check if INNODB_LOCK_DEADLOCKS was incremented.
+--echo
+
+SELECT VARIABLE_VALUE INTO @deadlocks_2 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_LOCK_DEADLOCKS';
+
+SELECT @deadlocks_1 < @deadlocks_2;
+
+DROP TABLE t1;

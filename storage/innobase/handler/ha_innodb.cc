@@ -650,6 +650,8 @@ static SHOW_VAR innodb_status_variables[]= {
   (char*) &export_vars.innodb_dblwr_writes,		  SHOW_LONG},
   {"have_atomic_builtins",
   (char*) &export_vars.innodb_have_atomic_builtins,	  SHOW_BOOL},
+  {"lock_deadlocks",
+  (char*) &export_vars.innodb_lock_deadlocks,		  SHOW_LONG},
   {"log_waits",
   (char*) &export_vars.innodb_log_waits,		  SHOW_LONG},
   {"log_write_requests",

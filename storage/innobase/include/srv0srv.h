@@ -221,6 +221,8 @@ extern ulong	srv_max_purge_lag;
 extern ulong	srv_replication_delay;
 /*-------------------------------------------*/
 
+extern ulint	srv_n_lock_deadlock_count;
+
 extern ulint	srv_n_rows_inserted;
 extern ulint	srv_n_rows_updated;
 extern ulint	srv_n_rows_deleted;
@@ -715,6 +717,7 @@ struct export_var_struct{
 	ulint innodb_dblwr_pages_written;	/*!< srv_dblwr_pages_written */
 	ulint innodb_dblwr_writes;		/*!< srv_dblwr_writes */
 	ibool innodb_have_atomic_builtins;	/*!< HAVE_ATOMIC_BUILTINS */
+	ulint innodb_lock_deadlocks;		/*!< srv_n_lock_deadlock_count */
 	ulint innodb_log_waits;			/*!< srv_log_waits */
 	ulint innodb_log_write_requests;	/*!< srv_log_write_requests */
 	ulint innodb_log_writes;		/*!< srv_log_writes */

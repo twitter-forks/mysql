@@ -430,6 +430,7 @@ UNIV_INTERN ulint		srv_n_lock_wait_count		= 0;
 UNIV_INTERN ulint		srv_n_lock_wait_current_count	= 0;
 UNIV_INTERN ib_int64_t	srv_n_lock_wait_time		= 0;
 UNIV_INTERN ulint		srv_n_lock_max_wait_time	= 0;
+UNIV_INTERN ulint		srv_n_lock_deadlock_count	= 0;
 
 UNIV_INTERN ulint		srv_truncated_status_writes	= 0;
 
@@ -2081,6 +2082,7 @@ srv_export_innodb_status(void)
 	} else {
 		export_vars.innodb_row_lock_time_avg = 0;
 	}
+	export_vars.innodb_lock_deadlocks = srv_n_lock_deadlock_count;
 	export_vars.innodb_row_lock_time_max
 		= srv_n_lock_max_wait_time / 1000;
 	export_vars.innodb_rows_read = srv_n_rows_read;

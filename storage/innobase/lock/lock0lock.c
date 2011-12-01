@@ -3292,6 +3292,11 @@ retry:
 
 	ret = lock_deadlock_recursive(trx, trx, lock, &cost, 0);
 
+	/* Increment counter if a deadlock was detected. */
+	if (ret) {
+		srv_n_lock_deadlock_count++;
+	}
+
 	switch (ret) {
 	case LOCK_VICTIM_IS_OTHER:
 		/* We chose some other trx as a victim: retry if there still
