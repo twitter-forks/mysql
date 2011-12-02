@@ -2090,6 +2090,10 @@ srv_export_innodb_status(void)
 	export_vars.innodb_rows_updated = srv_n_rows_updated;
 	export_vars.innodb_rows_deleted = srv_n_rows_deleted;
 	export_vars.innodb_truncated_status_writes = srv_truncated_status_writes;
+	export_vars.innodb_files_open = os_file_acct.n_open_files;
+	export_vars.innodb_files_opened = os_file_acct.n_open;
+	export_vars.innodb_files_closed = os_file_acct.n_close;
+	export_vars.innodb_files_flushed = os_file_acct.n_flush;
 
 	mutex_exit(&srv_innodb_monitor_mutex);
 }

@@ -302,6 +302,41 @@ UNIV_INTERN ulint	os_n_pending_writes = 0;
 /** Number of pending read operations */
 UNIV_INTERN ulint	os_n_pending_reads = 0;
 
+/** File operations accounting. */
+UNIV_INTERN os_file_accounting_t	os_file_acct = {0, 0, 0, 0};
+
+/**********************************************************************//**
+Open operation accounting. */
+UNIV_INLINE
+void
+os_file_account_open(void)
+/*===================*/
+{
+	os_atomic_increment_ulint(&os_file_acct.n_open_files, 1);
+	os_atomic_increment_ulint(&os_file_acct.n_open, 1);
+}
+
+/**********************************************************************//**
+Close operation accounting. */
+UNIV_INLINE
+void
+os_file_account_close(void)
+/*===================*/
+{
+	os_atomic_increment_ulint(&os_file_acct.n_open_files, -1);
+	os_atomic_increment_ulint(&os_file_acct.n_close, 1);
+}
+
+/**********************************************************************//**
+Flush operation accounting. */
+UNIV_INLINE
+void
+os_file_account_flush(void)
+/*===================*/
+{
+	os_atomic_increment_ulint(&os_file_acct.n_flush, 1);
+}
+
 #ifdef UNIV_DEBUG
 /**********************************************************************//**
 Validates the consistency the aio system some of the time.
@@ -1194,6 +1229,7 @@ try_again:
 #endif
 	} else {
 		*success = TRUE;
+		os_file_account_open();
 	}
 
 	return(file);
@@ -1308,6 +1344,7 @@ os_file_create_simple_no_error_handling_func(
 #endif
 	} else {
 		*success = TRUE;
+		os_file_account_open();
 	}
 
 	return(file);
@@ -1578,6 +1615,8 @@ try_again:
 
 	*success = TRUE;
 
+	os_file_account_open();
+
 	/* We disable OS caching (O_DIRECT) only on data files */
 	if (type != OS_LOG_FILE
 	    && srv_unix_file_flush_method == SRV_UNIX_O_DIRECT) {
@@ -1816,6 +1855,8 @@ os_file_close_func(
 
 		return(FALSE);
 	}
+
+	os_file_account_close();
 
 	return(TRUE);
 #endif
@@ -2157,6 +2198,7 @@ os_file_flush_func(
 #endif
 
 	if (ret == 0) {
+		os_file_account_flush();
 		return(TRUE);
 	}
 

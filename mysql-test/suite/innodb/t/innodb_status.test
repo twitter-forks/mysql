@@ -76,3 +76,44 @@ SELECT VARIABLE_VALUE INTO @deadlocks_2 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
 SELECT @deadlocks_1 < @deadlocks_2;
 
 DROP TABLE t1;
+
+--echo #
+--echo # MYSQL-25: Add new InnoDB status variables Innodb_files_{open,opened,closed}
+--echo #
+
+--echo # Close any open tables and reset status variable values.
+FLUSH STATUS;
+FLUSH TABLES;
+
+--echo # Create each new table using its own .ibd file.
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET GLOBAL innodb_file_per_table = ON;
+
+--echo # Record status values.
+SELECT VARIABLE_VALUE INTO @files_opened FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_FILES_OPENED';
+
+SELECT VARIABLE_VALUE INTO @files_closed FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_FILES_CLOSED';
+
+SELECT VARIABLE_VALUE INTO @files_open FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_FILES_OPEN';
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+
+--echo # Ensure that the counter of open files is incremented.
+SELECT 1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_FILES_OPEN' AND VARIABLE_VALUE > @files_open;
+
+DROP TABLE t1;
+FLUSH TABLES;
+
+--echo # Check if the open and close operations were accounted.
+SELECT 1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_FILES_OPENED' AND VARIABLE_VALUE > @files_opened;
+
+SELECT 1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_FILES_CLOSED' AND VARIABLE_VALUE > @files_closed;
+
+SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;

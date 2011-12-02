@@ -716,6 +716,10 @@ struct export_var_struct{
 	ulint innodb_buffer_pool_read_ahead_evicted;/*!< srv_read_ahead evicted*/
 	ulint innodb_dblwr_pages_written;	/*!< srv_dblwr_pages_written */
 	ulint innodb_dblwr_writes;		/*!< srv_dblwr_writes */
+	ulint innodb_files_open;		/*!< os_file_acct.n_open_files */
+	ulint innodb_files_opened;		/*!< os_file_acct.n_open */
+	ulint innodb_files_closed;		/*!< os_file_acct.n_close */
+	ulint innodb_files_flushed;		/*!< os_file_acct.n_flush */
 	ibool innodb_have_atomic_builtins;	/*!< HAVE_ATOMIC_BUILTINS */
 	ulint innodb_lock_deadlocks;		/*!< srv_n_lock_deadlock_count */
 	ulint innodb_log_waits;			/*!< srv_log_waits */

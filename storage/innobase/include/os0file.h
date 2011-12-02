@@ -63,6 +63,24 @@ extern ulint	os_n_pending_reads;
 /** Number of pending write operations */
 extern ulint	os_n_pending_writes;
 
+/** File operations statistics. */
+typedef struct os_file_accounting_struct	os_file_accounting_t;
+
+/** Aggregates file operations (open/close/flush). */
+struct os_file_accounting_struct {
+	ulint		n_open_files;		/*!< Number of currently
+						open files */
+	ulint		n_open;			/*!< Number of open ops. */
+	ulint		n_close;		/*!< Number of close ops. */
+	ulint		n_flush;		/*!< Number of flush ops. */
+};
+
+/** File operations accounting record. */
+typedef struct os_file_accounting_struct	os_file_accounting_t;
+
+/** File operations accounting. */
+extern os_file_accounting_t	os_file_acct;
+
 #ifdef __WIN__
 
 /** We define always WIN_ASYNC_IO, and check at run-time whether
