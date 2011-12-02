@@ -11,7 +11,8 @@ INCLUDE(CheckLibraryExists)
 # Overwrite server compilation comment string.
 #
 
-SET(COMPILATION_COMMENT "Twitter MySQL Server - ${CMAKE_BUILD_TYPE}")
+SET(COMPILATION_COMMENT "Twitter MySQL")
+SET(COMPILATION_COMMENT_VERSION_SOURCE TRUE)
 
 #
 # Feature set.

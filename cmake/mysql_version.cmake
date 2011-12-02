@@ -68,6 +68,28 @@ ENDMACRO()
 # Get mysql version and other interesting variables
 GET_MYSQL_VERSION()
 
+# Get information about this source tree.
+MACRO(GET_INFO_SRC_VALUE keyword var)
+  # Search for the INFO_SRC file.
+  IF(EXISTS ${CMAKE_BINARY_DIR}/Docs/INFO_SRC)
+    SET(PATH_INFO_SRC ${CMAKE_BINARY_DIR}/Docs/INFO_SRC)
+  ELSEIF(EXISTS ${CMAKE_SOURCE_DIR}/Docs/INFO_SRC)
+    SET(PATH_INFO_SRC ${CMAKE_SOURCE_DIR}/Docs/INFO_SRC)
+  ELSE()
+    MESSAGE(FATAL_ERROR "INFO_SRC not found.")
+  ENDIF()
+
+  # Parse strings from the INFO_SRC and store it in a variable.
+  FILE(STRINGS ${PATH_INFO_SRC} str REGEX "^[ ]*${keyword}")
+
+  # Match the option value.
+  IF(str)
+    STRING(REPLACE "${keyword}: " "" str ${str})
+    STRING(REGEX REPLACE "[ ].*" "" str "${str}")
+    SET(${var} ${str})
+  ENDIF()
+ENDMACRO()
+
 SET(MYSQL_TCP_PORT_DEFAULT "3306")
 
 IF(NOT MYSQL_TCP_PORT)
@@ -85,6 +107,15 @@ IF(NOT COMPILATION_COMMENT)
   SET(COMPILATION_COMMENT "Source distribution")
 ENDIF()
 
+IF(COMPILATION_COMMENT_VERSION_SOURCE)
+  SET(COMPILATION_COMMENT "${COMPILATION_COMMENT}; ${VERSION}")
+  GET_INFO_SRC_VALUE("abbrev-commit" COMMIT_ID)
+  IF(COMMIT_ID)
+    SET(COMPILATION_COMMENT "${COMPILATION_COMMENT}; ${COMMIT_ID}")
+  ENDIF()
+ENDIF()
+
+MESSAGE(STATUS "${COMPILATION_COMMENT}")
 
 INCLUDE(package_name)
 IF(NOT CPACK_PACKAGE_FILE_NAME)
