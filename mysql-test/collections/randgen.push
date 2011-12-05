@@ -1,1 +1,1 @@
-perl mysql-test-run.pl --timer --force --parallel=1 --suite=randgen --comment=randgen --vardir=var-randgen --force-restart --no-check-testcases
+perl mysql-test-run.pl --timer --force --parallel=1 --suite=randgen --comment=randgen --vardir=var-randgen --force-restart --no-check-testcases --retry=0
