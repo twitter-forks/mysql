@@ -63,9 +63,6 @@ extern ulint	os_n_pending_reads;
 /** Number of pending write operations */
 extern ulint	os_n_pending_writes;
 
-/** File operations statistics. */
-typedef struct os_file_accounting_struct	os_file_accounting_t;
-
 /** Aggregates file operations (open/close/flush). */
 struct os_file_accounting_struct {
 	ulint		n_open_files;		/*!< Number of currently
