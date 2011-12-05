@@ -118,6 +118,11 @@ UNIV_INTERN ulint	fil_n_pending_log_flushes		= 0;
 /** Number of pending tablespace flushes */
 UNIV_INTERN ulint	fil_n_pending_tablespace_flushes	= 0;
 
+/** Number of tablespace files opened. */
+UNIV_INTERN ulint	fil_n_tablespace_opened			= 0;
+/** Number of tablespace files closed. */
+UNIV_INTERN ulint	fil_n_tablespace_closed			= 0;
+
 /** The null file address */
 UNIV_INTERN fil_addr_t	fil_addr_null = {FIL_NULL, 0};
 
@@ -327,6 +332,31 @@ fil_validate_skip(void)
 	return(fil_validate());
 }
 #endif /* UNIV_DEBUG */
+
+/**********************************************************************//**
+Tablespace open operation accounting. */
+UNIV_INLINE
+void
+fil_account_open(
+/*=============*/
+	fil_system_t*	system) /*!< in: tablespace memory cache */
+{
+	system->n_open++;
+	os_atomic_increment_ulint(&fil_n_tablespace_opened, 1);
+}
+
+/**********************************************************************//**
+Tablespace close operation accounting. */
+UNIV_INLINE
+void
+fil_account_close(
+/*==============*/
+	fil_system_t*	system) /*!< in: tablespace memory cache */
+{
+	ut_a(system->n_open > 0);
+	system->n_open--;
+	os_atomic_increment_ulint(&fil_n_tablespace_closed, 1);
+}
 
 /********************************************************************//**
 NOTE: you must call fil_mutex_enter_and_prepare_for_io() first!
@@ -832,7 +862,7 @@ add_size:
 
 	node->open = TRUE;
 
-	system->n_open++;
+	fil_account_open(system);
 
 	if (space->purpose == FIL_TABLESPACE && space->id != 0) {
 		/* Put the node to the LRU list */
@@ -865,8 +895,8 @@ fil_node_close_file(
 	/* printf("Closing file %s\n", node->name); */
 
 	node->open = FALSE;
-	ut_a(system->n_open > 0);
-	system->n_open--;
+
+	fil_account_close(system);
 
 	if (node->space->purpose == FIL_TABLESPACE && node->space->id != 0) {
 		ut_a(UT_LIST_GET_LEN(system->LRU) > 0);

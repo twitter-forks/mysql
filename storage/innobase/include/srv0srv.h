@@ -746,6 +746,10 @@ struct export_var_struct{
 	ulint innodb_rows_inserted;		/*!< srv_n_rows_inserted */
 	ulint innodb_rows_updated;		/*!< srv_n_rows_updated */
 	ulint innodb_rows_deleted;		/*!< srv_n_rows_deleted */
+	ulint innodb_tablespace_files_open;	/*!< fil_n_tablespace_opened
+						- fil_n_tablespace_closed */
+	ulint innodb_tablespace_files_opened;	/*!< fil_n_tablespace_opened */
+	ulint innodb_tablespace_files_closed;	/*!< fil_n_tablespace_closed */
 	ulint innodb_truncated_status_writes;	/*!< srv_truncated_status_writes */
 };
 

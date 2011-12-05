@@ -157,6 +157,10 @@ extern ulint	fil_n_pending_log_flushes;
 /** Number of pending tablespace flushes */
 extern ulint	fil_n_pending_tablespace_flushes;
 
+/** Number of tablespace files opened. */
+extern ulint	fil_n_tablespace_opened;
+/** Number of tablespace files closed. */
+extern ulint	fil_n_tablespace_closed;
 
 #ifndef UNIV_HOTBACKUP
 /*******************************************************************//**

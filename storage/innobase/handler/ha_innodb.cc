@@ -700,6 +700,12 @@ static SHOW_VAR innodb_status_variables[]= {
   (char*) &export_vars.innodb_rows_read,		  SHOW_LONG},
   {"rows_updated",
   (char*) &export_vars.innodb_rows_updated,		  SHOW_LONG},
+  {"tablespace_files_open",
+  (char*) &export_vars.innodb_tablespace_files_open,	  SHOW_LONG},
+  {"tablespace_files_opened",
+  (char*) &export_vars.innodb_tablespace_files_opened,	  SHOW_LONG},
+  {"tablespace_files_closed",
+  (char*) &export_vars.innodb_tablespace_files_closed,	  SHOW_LONG},
   {"truncated_status_writes",
   (char*) &export_vars.innodb_truncated_status_writes,	SHOW_LONG},
   {NullS, NullS, SHOW_LONG}

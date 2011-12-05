@@ -2094,6 +2094,11 @@ srv_export_innodb_status(void)
 	export_vars.innodb_files_opened = os_file_acct.n_open;
 	export_vars.innodb_files_closed = os_file_acct.n_close;
 	export_vars.innodb_files_flushed = os_file_acct.n_flush;
+	export_vars.innodb_tablespace_files_opened = fil_n_tablespace_opened;
+	export_vars.innodb_tablespace_files_closed = fil_n_tablespace_closed;
+	export_vars.innodb_tablespace_files_open
+		= export_vars.innodb_tablespace_files_opened
+		- export_vars.innodb_tablespace_files_closed;
 
 	mutex_exit(&srv_innodb_monitor_mutex);
 }
