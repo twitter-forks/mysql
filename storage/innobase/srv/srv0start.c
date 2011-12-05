@@ -1853,7 +1853,7 @@ innobase_start_or_create_for_mysql(void)
 			== ULINT_UNDEFINED)) {
 
 			ut_print_timestamp(stderr);
-			fprintf(stderr, "  InnoDB: "
+			fprintf(stderr, " InnoDB: "
 				"Waiting for the background threads to "
 				"start\n");
 			os_thread_sleep(1000000);
