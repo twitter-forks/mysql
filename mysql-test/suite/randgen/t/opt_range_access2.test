@@ -1,0 +1,18 @@
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_opt_range_access2.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --gendata=$RQG_HOME/conf/optimizer/range_access2.zz
+  --grammar=$RQG_HOME/conf/optimizer/range_access2.yy
+  --validator=ResultsetComparatorSimplify
+  --reporters=QueryTimeout,Backtrace
+  --engine=$RQG_ENGINE
+  --queries=1M
+  --threads=1
+  --seed=time
+  --duration=600;
+
+--source suite/randgen/include/cleanup.inc

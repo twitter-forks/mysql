@@ -1,0 +1,3 @@
+--sql-mode=ONLY_FULL_GROUP_BY
+--optimizer-switch=index_merge=off
+--testcase-timeout=15
