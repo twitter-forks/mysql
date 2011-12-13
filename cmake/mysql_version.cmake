@@ -75,15 +75,15 @@ MACRO(GET_INFO_SRC_VALUE keyword var)
     SET(PATH_INFO_SRC ${CMAKE_BINARY_DIR}/Docs/INFO_SRC)
   ELSEIF(EXISTS ${CMAKE_SOURCE_DIR}/Docs/INFO_SRC)
     SET(PATH_INFO_SRC ${CMAKE_SOURCE_DIR}/Docs/INFO_SRC)
-  ELSE()
-    MESSAGE(FATAL_ERROR "INFO_SRC not found.")
   ENDIF()
 
   # Parse strings from the INFO_SRC and store it in a variable.
-  FILE(STRINGS ${PATH_INFO_SRC} str REGEX "^[ ]*${keyword}")
+  IF(PATH_INFO_SRC)
+    FILE(STRINGS ${PATH_INFO_SRC} str REGEX "^[ ]*${keyword}")
+  ENDIF()
 
   # Match the option value.
-  IF(str)
+  IF(PATH_INFO_SRC AND str)
     STRING(REPLACE "${keyword}: " "" str ${str})
     STRING(REGEX REPLACE "[ ].*" "" str "${str}")
     SET(${var} ${str})
@@ -112,6 +112,8 @@ IF(COMPILATION_COMMENT_VERSION_SOURCE)
   GET_INFO_SRC_VALUE("abbrev-commit" COMMIT_ID)
   IF(COMMIT_ID)
     SET(COMPILATION_COMMENT "${COMPILATION_COMMENT}; ${COMMIT_ID}")
+  ELSE()
+    SET(COMPILATION_COMMENT "${COMPILATION_COMMENT}; Working tree")
   ENDIF()
 ENDIF()
 
