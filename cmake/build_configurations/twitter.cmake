@@ -64,11 +64,13 @@ SET(WITH_READLINE OFF CACHE BOOL "Disable bundled readline")
 # Linux-native asynchronous I/O access.
 #
 
-CHECK_INCLUDE_FILES(libaio.h HAVE_LIBAIO_H)
-CHECK_LIBRARY_EXISTS(aio io_queue_init "" HAVE_LIBAIO)
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  CHECK_INCLUDE_FILES(libaio.h HAVE_LIBAIO_H)
+  CHECK_LIBRARY_EXISTS(aio io_queue_init "" HAVE_LIBAIO)
 
-IF(NOT HAVE_LIBAIO_H OR NOT HAVE_LIBAIO)
-  MESSAGE(FATAL_ERROR "Build requires development files for the "
-    "Linux-native asynchronous I/O facility (libaio-devel).")
+  IF(NOT HAVE_LIBAIO_H OR NOT HAVE_LIBAIO)
+    MESSAGE(FATAL_ERROR "Build requires development files for the "
+      "Linux-native asynchronous I/O facility (libaio-devel).")
+  ENDIF()
 ENDIF()
 
