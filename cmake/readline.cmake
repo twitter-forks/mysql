@@ -165,7 +165,7 @@ MACRO (MYSQL_FIND_SYSTEM_READLINE name)
     #include <readline/readline.h>
     int main(int argc, char **argv)
     {
-      char res= *(*rl_completion_entry_function)(0,0);
+      int integer= rl_completion_entry_function(NULL, 0);
       completion_matches(0,0);
     }"
     ${name}_USE_LIBEDIT_INTERFACE)
@@ -230,7 +230,8 @@ MACRO (MYSQL_CHECK_READLINE)
       IF(NOT READLINE_FOUND)
         MYSQL_FIND_SYSTEM_READLINE(edit)
         IF(NOT READLINE_FOUND)
-          MESSAGE(FATAL_ERROR "Cannot find system readline or libedit libraries.Use WITH_READLINE or WITH_LIBEDIT")
+          MESSAGE(FATAL_ERROR "Cannot find system readline or libedit libraries."
+          "Use WITH_READLINE or WITH_LIBEDIT")
         ENDIF()
       ENDIF()
     ENDIF()
