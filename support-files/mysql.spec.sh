@@ -701,6 +701,13 @@ elif [ -n "$SEVERAL_PID_FILES" ] ; then
 	exit 1
 fi
 
+# The MySQL server must not be running for an upgrade to continue.
+if [ -n "$SERVER_TO_START" ] ; then
+	echo "A MySQL server instance is currently running."
+	echo "The instance must be stopped before upgrade can continue."
+	exit 1
+fi
+
 NEW_VERSION=%{mysql_version}-%{release}
 
 # The "pre" section code is also run on a first installation,
@@ -738,7 +745,8 @@ fi
 # Note we *could* make that depend on $SERVER_TO_START, but we rather don't,
 # so a "stop" is attempted even if there is no PID file.
 # (Maybe the "stop" doesn't work then, but we might fix that in itself.)
-if [ -x %{_sysconfdir}/init.d/mysql ] ; then
+if [ -x %{_sysconfdir}/init.d/mysql ] &&
+	%{_sysconfdir}/init.d/mysql status > /dev/null 2>&1 ; then
         %{_sysconfdir}/init.d/mysql stop > /dev/null 2>&1
         echo "Giving mysqld 5 seconds to exit nicely"
         sleep 5
