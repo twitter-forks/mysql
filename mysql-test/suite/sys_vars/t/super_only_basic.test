@@ -1,0 +1,35 @@
+--source include/not_embedded.inc
+
+SET @old_read_only = @@GLOBAL.read_only;
+SET GLOBAL read_only = OFF;
+
+--echo
+--echo # Super-only is a global variable.
+--error ER_GLOBAL_VARIABLE
+SET @@SESSION.super_only = 0;
+
+--echo
+--echo # Read-only is a requirement for super-only.
+--echo
+--error ER_OPTION_PREVENTS_STATEMENT
+SET GLOBAL super_only=ON;
+
+--echo
+--echo # Super-only can be enabled when read-only is enabled.
+--echo
+SET GLOBAL read_only = ON;
+SET GLOBAL super_only = ON;
+SELECT @@GLOBAL.super_only;
+SET GLOBAL super_only = OFF;
+SET GLOBAL read_only = OFF;
+
+--echo
+--echo # Super-only requires read-only, not the global read lock.
+--echo
+FLUSH TABLES WITH READ LOCK;
+--error ER_OPTION_PREVENTS_STATEMENT
+SET GLOBAL super_only=ON;
+SELECT @@GLOBAL.super_only;
+UNLOCK TABLES;
+
+SET GLOBAL read_only = @old_read_only;

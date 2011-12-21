@@ -1,0 +1,27 @@
+
+# Create new non-super user and setup a connect to the server
+# using this user.
+
+CREATE USER user1;
+# Save and enable read-only mode.
+SET @old_read_only = @@GLOBAL.read_only;
+SET GLOBAL read_only = ON;
+
+# Attempt to execute a statement as the non-super user.
+SELECT 1;
+1
+1
+# Enable the super-only mode.
+SET GLOBAL super_only = ON;
+# Try to execute a statement as the non-super user.
+SELECT 1;
+ERROR HY000: The MySQL server is running with the --super-only option so it cannot execute this statement
+# Disable the super-only mode.
+SET GLOBAL super_only = OFF;
+# Execute a statement as the non-super user.
+SELECT 1;
+1
+1
+# Cleanup and exit
+DROP USER user1;
+SET GLOBAL read_only = @old_read_only;

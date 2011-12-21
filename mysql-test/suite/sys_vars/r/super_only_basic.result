@@ -1,0 +1,32 @@
+SET @old_read_only = @@GLOBAL.read_only;
+SET GLOBAL read_only = OFF;
+
+# Super-only is a global variable.
+SET @@SESSION.super_only = 0;
+ERROR HY000: Variable 'super_only' is a GLOBAL variable and should be set with SET GLOBAL
+
+# Read-only is a requirement for super-only.
+
+SET GLOBAL super_only=ON;
+ERROR HY000: The MySQL server is running with the read_only=OFF option so it cannot execute this statement
+
+# Super-only can be enabled when read-only is enabled.
+
+SET GLOBAL read_only = ON;
+SET GLOBAL super_only = ON;
+SELECT @@GLOBAL.super_only;
+@@GLOBAL.super_only
+1
+SET GLOBAL super_only = OFF;
+SET GLOBAL read_only = OFF;
+
+# Super-only requires read-only, not the global read lock.
+
+FLUSH TABLES WITH READ LOCK;
+SET GLOBAL super_only=ON;
+ERROR HY000: The MySQL server is running with the read_only=OFF option so it cannot execute this statement
+SELECT @@GLOBAL.super_only;
+@@GLOBAL.super_only
+0
+UNLOCK TABLES;
+SET GLOBAL read_only = @old_read_only;

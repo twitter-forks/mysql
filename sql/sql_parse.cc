@@ -846,6 +846,30 @@ static my_bool deny_updates_if_read_only_option(THD *thd,
 }
 
 /**
+  Determine if a non-superuser can execute a statement.
+
+  @remark If the super-only option is enabled, only superusers
+          can execute statements.
+
+  @returns Status code
+    @retval TRUE The statement should be denied.
+    @retval FALSE Statement can be executed.
+*/
+
+static bool deny_statement_if_super_only_option(THD *thd)
+{
+  DBUG_ENTER("deny_statement_if_super_only_option");
+
+  if (likely(!opt_super_only))
+    DBUG_RETURN(FALSE);
+
+  if (thd->security_ctx->master_access & SUPER_ACL)
+    DBUG_RETURN(FALSE);
+
+  DBUG_RETURN(TRUE);
+}
+
+/**
   Perform one connection-level (COM_XXXX) command.
 
   @param command         type of command to perform
@@ -2038,6 +2062,17 @@ mysql_execute_command(THD *thd)
       my_error(ER_OPTION_PREVENTS_STATEMENT, MYF(0), "--read-only");
       DBUG_RETURN(-1);
     }
+
+    /*
+      When option super-only is set, deny operations originating from
+      non-super users.
+    */
+    if (deny_statement_if_super_only_option(thd))
+    {
+      my_error(ER_OPTION_PREVENTS_STATEMENT, MYF(0), "--super-only");
+      DBUG_RETURN(-1);
+    }
+
 #ifdef HAVE_REPLICATION
   } /* endif unlikely slave */
 #endif

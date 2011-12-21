@@ -1,0 +1,43 @@
+--source include/not_embedded.inc
+
+--echo
+--echo # Create new non-super user and setup a connect to the server
+--echo # using this user.
+--echo
+CREATE USER user1;
+connect(con1,localhost,user1,,);
+
+connection default;
+--echo # Save and enable read-only mode.
+SET @old_read_only = @@GLOBAL.read_only;
+SET GLOBAL read_only = ON;
+--echo
+
+--echo # Attempt to execute a statement as the non-super user.
+connection con1;
+SELECT 1;
+
+--echo # Enable the super-only mode.
+connection default;
+SET GLOBAL super_only = ON;
+
+--echo # Try to execute a statement as the non-super user.
+connection con1;
+--error ER_OPTION_PREVENTS_STATEMENT
+SELECT 1;
+
+--echo # Disable the super-only mode.
+connection default;
+SET GLOBAL super_only = OFF;
+
+--echo # Execute a statement as the non-super user.
+connection con1;
+SELECT 1;
+
+--echo # Cleanup and exit
+--connection default
+disconnect con1;
+
+DROP USER user1;
+
+SET GLOBAL read_only = @old_read_only;

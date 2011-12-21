@@ -1702,6 +1702,27 @@ static Sys_var_charptr Sys_socket(
        READ_ONLY GLOBAL_VAR(mysqld_unix_port), CMD_LINE(REQUIRED_ARG),
        IN_FS_CHARSET, DEFAULT(0));
 
+/**
+  Only the session that holds the global read lock can enable the
+  super-only mode.
+*/
+static bool check_super_only(sys_var *, THD *thd, set_var *)
+{
+  if (opt_readonly == FALSE)
+  {
+    my_error(ER_OPTION_PREVENTS_STATEMENT, MYF(0), "read_only=OFF");
+    return true;
+  }
+
+  return false;
+}
+
+static Sys_var_mybool Sys_super_only(
+       "super_only", "Don't allow non-superusers to execute statements.",
+       GLOBAL_VAR(opt_super_only), CMD_LINE(OPT_ARG),
+       DEFAULT(FALSE), NO_MUTEX_GUARD, NOT_IN_BINLOG,
+       ON_CHECK(check_super_only));
+
 /* 
   thread_concurrency is a no-op on all platforms since
   MySQL 5.1.  It will be removed in the context of
