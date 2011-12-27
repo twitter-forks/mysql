@@ -82,7 +82,7 @@ UNIV_INTERN
 ibool
 os_compare_release(
 /*===============*/
-	const char*	release)	/*!< in: OS release */
+	const char*	release __attribute__((unused))) /*!< in: OS release */
 {
 #if defined(UNIV_LINUX) && defined(_GNU_SOURCE)
 	struct utsname name;
