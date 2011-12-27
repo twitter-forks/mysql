@@ -11563,6 +11563,7 @@ i_s_innodb_cmp_reset,
 i_s_innodb_cmpmem,
 i_s_innodb_cmpmem_reset,
 i_s_innodb_buffer_page,
+i_s_innodb_buffer_page_lru,
 i_s_innodb_buffer_stats
 mysql_declare_plugin_end;
 

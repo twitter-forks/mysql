@@ -118,6 +118,7 @@ Database: information_schema
 | INNODB_LOCKS                          |
 | INNODB_CMPMEM_RESET                   |
 | INNODB_CMP_RESET                      |
+| INNODB_BUFFER_PAGE_LRU                |
 +---------------------------------------+
 Database: INFORMATION_SCHEMA
 +---------------------------------------+
@@ -162,6 +163,7 @@ Database: INFORMATION_SCHEMA
 | INNODB_LOCKS                          |
 | INNODB_CMPMEM_RESET                   |
 | INNODB_CMP_RESET                      |
+| INNODB_BUFFER_PAGE_LRU                |
 +---------------------------------------+
 Wildcard: inf_rmation_schema
 +--------------------+
