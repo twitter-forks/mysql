@@ -2775,6 +2775,8 @@ i_s_innodb_set_page_type(
 	const byte*	frame)		/*!< in: buffer frame */
 {
 	if (page_type == FIL_PAGE_INDEX) {
+		const page_t*	page = (const page_t*) frame;
+
 		/* FIL_PAGE_INDEX is a bit special, its value
 		is defined as 17855, so we cannot use FIL_PAGE_INDEX
 		to index into i_s_page_type[] array, its array index
@@ -2782,10 +2784,15 @@ i_s_innodb_set_page_type(
 		(1) */
 		page_info->page_type = I_S_PAGE_TYPE_INDEX;
 
-		page_info->index_id = btr_page_get_index_id(frame);
+		page_info->index_id = btr_page_get_index_id(page);
 
-		page_info->data_size = page_get_data_size(frame);
-		page_info->num_recs = page_get_n_recs(frame);
+		page_info->data_size = (ulint)(page_header_get_field(
+			page, PAGE_HEAP_TOP) - (page_is_comp(page)
+						? PAGE_NEW_SUPREMUM_END
+						: PAGE_OLD_SUPREMUM_END)
+			- page_header_get_field(page, PAGE_GARBAGE));
+
+		page_info->num_recs = page_get_n_recs(page);
 	} else if (page_type >= I_S_PAGE_TYPE_UNKNOWN) {
 		/* Encountered an unknown page type */
 		page_info->page_type = I_S_PAGE_TYPE_UNKNOWN;
