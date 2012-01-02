@@ -1,5 +1,6 @@
 /*
    Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+   Copyright (c) 2012, Twitter, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -951,6 +952,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  END_OF_INPUT                  /* INTERNAL */
 %token  ENGINES_SYM
 %token  ENGINE_SYM
+%token  ENGINE_CONTROL_SYM
 %token  ENUM
 %token  EQ                            /* OPERATOR */
 %token  EQUAL_SYM                     /* OPERATOR */
@@ -1420,7 +1422,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
         IDENT_sys TEXT_STRING_sys TEXT_STRING_literal
         NCHAR_STRING opt_component key_cache_name
         sp_opt_label BIN_NUM label_ident TEXT_STRING_filesystem ident_or_empty
-        opt_constraint constraint opt_ident
+        opt_constraint constraint opt_ident engine_control_command
 
 %type <lex_str_ptr>
         opt_table_alias
@@ -1486,7 +1488,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 
 %type <item_list>
         expr_list opt_udf_expr_list udf_expr_list when_list
-        ident_list ident_list_arg opt_expr_list
+        ident_list ident_list_arg opt_expr_list opt_expr_list_prec_comma
 
 %type <var_type>
         option_type opt_var_type opt_var_ident_type
@@ -5243,6 +5245,9 @@ known_storage_engines:
           }
         ;
 
+engine_control_command:
+          ident_or_text  { $$= $1; }
+
 row_types:
           DEFAULT        { $$= ROW_TYPE_DEFAULT; }
         | FIXED_SYM      { $$= ROW_TYPE_FIXED; }
@@ -8932,6 +8937,15 @@ sum_expr:
               MYSQL_YYABORT;
             $5->empty();
           }
+        | ENGINE_CONTROL_SYM '(' known_storage_engines ','
+          engine_control_command opt_expr_list_prec_comma ')'
+          {
+            $$= new (YYTHD->mem_root) Item_func_engine_control($3, $5, $6);
+            if ($$ == NULL)
+              MYSQL_YYABORT;
+            Lex->set_stmt_unsafe(LEX::BINLOG_STMT_UNSAFE_SYSTEM_FUNCTION);
+            Lex->safe_to_cache_query= false;
+          }
         ;
 
 variable:
@@ -9059,6 +9073,11 @@ cast_type:
 opt_expr_list:
           /* empty */ { $$= NULL; }
         | expr_list { $$= $1;}
+        ;
+
+opt_expr_list_prec_comma:
+          /* empty */ { $$= NULL; }
+        | ',' expr_list { $$= $2;}
         ;
 
 expr_list:
@@ -12515,6 +12534,7 @@ keyword_sp:
         | ENUM                     {}
         | ENGINE_SYM               {}
         | ENGINES_SYM              {}
+        | ENGINE_CONTROL_SYM       {}
         | ERROR_SYM                {}
         | ERRORS                   {}
         | ESCAPE_SYM               {}

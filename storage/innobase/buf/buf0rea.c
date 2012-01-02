@@ -1,6 +1,7 @@
 /*****************************************************************************
 
 Copyright (c) 1995, 2010, Innobase Oy. All Rights Reserved.
+Copyright (c) 2012, Twitter, Inc.
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -737,10 +738,10 @@ tablespace_deleted:
 }
 
 /********************************************************************//**
-Issues read requests for pages which recovery wants to read in. */
+Reads a sequential set of pages into the buffer pool. */
 UNIV_INTERN
-void
-buf_read_recv_pages(
+ulint
+buf_read_pages(
 /*================*/
 	ibool		sync,		/*!< in: TRUE if the caller
 					wants this function to wait
@@ -757,10 +758,13 @@ buf_read_recv_pages(
 	ulint		n_stored)	/*!< in: number of page numbers
 					in the array */
 {
+	MYSQL_THD	thd;
 	ib_int64_t	tablespace_version;
 	ulint		count;
 	ulint		err;
 	ulint		i;
+
+	thd = thd_get_current_thd();
 
 	zip_size = fil_space_get_zip_size(space);
 
@@ -768,7 +772,7 @@ buf_read_recv_pages(
 		/* It is a single table tablespace and the .ibd file is
 		missing: do nothing */
 
-		return;
+		return(0);
 	}
 
 	tablespace_version = fil_space_get_version(space);
@@ -784,6 +788,9 @@ buf_read_recv_pages(
 
 			os_aio_simulated_wake_handler_threads();
 			os_thread_sleep(10000);
+
+			if (thd && thd_killed(thd))
+				break;
 
 			count++;
 
@@ -801,6 +808,9 @@ buf_read_recv_pages(
 				os_aio_print_debug = TRUE;
 			}
 		}
+
+		if (thd && thd_killed(thd))
+			break;
 
 		os_aio_print_debug = FALSE;
 
@@ -824,8 +834,10 @@ buf_read_recv_pages(
 #ifdef UNIV_DEBUG
 	if (buf_debug_prints) {
 		fprintf(stderr,
-			"Recovery applies read-ahead pages %lu\n",
+			"Read-ahead %lu pages\n",
 			(ulong) n_stored);
 	}
 #endif /* UNIV_DEBUG */
+
+	return(n_stored);
 }

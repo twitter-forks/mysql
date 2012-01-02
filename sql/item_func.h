@@ -2,6 +2,7 @@
 #define ITEM_FUNC_INCLUDED
 
 /* Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+   Copyright (c) 2012, Twitter, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1862,6 +1863,25 @@ public:
   void fix_length_and_dec()
   { max_length= 21; unsigned_flag=1; }
   bool check_partition_func_processor(uchar *int_arg) {return FALSE;}
+};
+
+class Item_func_engine_control :public Item_int_func
+{
+private:
+  handlerton *m_hton;
+  LEX_STRING m_cmd;
+
+public:
+  Item_func_engine_control(handlerton *hton, LEX_STRING cmd, List<Item> *list)
+   :Item_int_func(), m_hton(hton), m_cmd(cmd)
+  {
+    if (list)
+      set_arguments(*list);
+  }
+  virtual ~Item_func_engine_control() {}
+  longlong val_int();
+  const char *func_name() const { return "engine_control"; }
+  void fix_length_and_dec() { decimals= 0; maybe_null= 0; }
 };
 
 Item *get_system_var(THD *thd, enum_var_type var_type, LEX_STRING name,

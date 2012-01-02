@@ -1,0 +1,128 @@
+#
+# ENGINE_CONTROL syntax and arguments.
+#
+SELECT ENGINE_CONTROL(unknown, unknown);
+ERROR 42000: Unknown storage engine 'unknown'
+SELECT ENGINE_CONTROL(myisam, unknown);
+ERROR HY000: The storage engine does not support control commands
+SELECT ENGINE_CONTROL(innodb, unknown);
+ERROR HY000: The storage engine does not support the 'unknown' control command
+SELECT ENGINE_CONTROL(innodb, prefetch_pages);
+ERROR HY000: Invalid control command argument
+SELECT ENGINE_CONTROL(innodb, prefetch_pages, 0);
+ERROR HY000: Invalid control command argument
+SELECT ENGINE_CONTROL(innodb, prefetch_pages, 4294967296, 0);
+ERROR HY000: Invalid control command argument
+SELECT ENGINE_CONTROL(innodb, prefetch_pages, 0, 4294967296);
+ERROR HY000: Invalid control command argument
+#
+# Create helper functions.
+#
+SET storage_engine = InnoDB;
+CREATE PROCEDURE create_and_populate_t1(rows INT)
+BEGIN
+CREATE TABLE t1 (c1 INT, c2 VARCHAR(30), c3 LONGBLOB, PRIMARY KEY (c1));
+START TRANSACTION;
+WHILE rows > 0 DO
+INSERT INTO t1 VALUES (rows, REPEAT(rows, CEIL(RAND() * 30)),
+REPEAT(rows, CEIL(RAND() * 30)));
+SET rows = rows - 1;
+END WHILE;
+COMMIT;
+END|
+CREATE PROCEDURE prefetch_buffer_pool()
+BEGIN
+DECLARE total_pages_fetched INT DEFAULT 0;
+DECLARE cur CURSOR FOR SELECT space, GROUP_CONCAT(page_number)
+FROM buffer_pool GROUP BY space;
+OPEN cur;
+BEGIN
+DECLARE tablespace_id BIGINT;
+DECLARE page_numbers TEXT;
+DECLARE EXIT HANDLER FOR NOT FOUND BEGIN END;
+WHILE TRUE DO
+FETCH cur INTO tablespace_id, page_numbers;
+SET @prefetch_stmt =
+CONCAT("SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, ",
+tablespace_id, ", ", page_numbers,
+") INTO @pages_fetched");
+PREPARE stmt FROM @prefetch_stmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+SET total_pages_fetched = total_pages_fetched + @pages_fetched;
+END WHILE;
+END;
+CLOSE cur;
+SELECT COUNT(*) = total_pages_fetched FROM buffer_pool;
+SELECT COUNT(*) AS pages_not_fetched FROM buffer_pool AS BP
+LEFT OUTER JOIN INFORMATION_SCHEMA.INNODB_BUFFER_PAGE AS IS_BP
+ON (BP.page_number = IS_BP.page_number and BP.space = IS_BP.space)
+WHERE IS_BP.page_number IS NULL;
+END|
+# Create and populate table t1 with 256 rows.
+CALL create_and_populate_t1(256);
+# Save the original value of innodb_file_per_table.
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+#
+# Prefetch pages of a single tablespace.
+#
+# Create each new table using its own .ibd file.
+SET GLOBAL innodb_file_per_table = OFF;
+CREATE TABLE t2 AS SELECT * FROM t1;
+CREATE TABLE t3 AS SELECT * FROM t1;
+CREATE TABLE t4 AS SELECT * FROM t1;
+CREATE TABLE t5 AS SELECT * FROM t1;
+CREATE TABLE buffer_pool AS SELECT SPACE, PAGE_NUMBER FROM
+INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE TABLE_NAME LIKE 'test/t%';
+CALL prefetch_buffer_pool();
+COUNT(*) = total_pages_fetched
+1
+pages_not_fetched
+0
+DROP TABLE buffer_pool;
+DROP TABLE t2, t3, t4, t5;
+#
+# Prefetch pages of multiple tablespaces.
+#
+# Create each new table using its own .ibd file.
+SET GLOBAL innodb_file_per_table = ON;
+CREATE TABLE t2 AS SELECT * FROM t1;
+CREATE TABLE t3 AS SELECT * FROM t1;
+CREATE TABLE t4 AS SELECT * FROM t1;
+CREATE TABLE t5 AS SELECT * FROM t1;
+CREATE TABLE buffer_pool AS SELECT SPACE, PAGE_NUMBER FROM
+INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE TABLE_NAME LIKE 'test/t%';
+CALL prefetch_buffer_pool();
+COUNT(*) = total_pages_fetched
+1
+pages_not_fetched
+0
+DROP TABLE buffer_pool;
+DROP TABLE t2, t3, t4, t5;
+#
+# Prefetch all pages of multiple tablespaces.
+#
+SET GLOBAL innodb_file_per_table = ON;
+CREATE TABLE t2 AS SELECT * FROM t1;
+CREATE TABLE t3 AS SELECT * FROM t1;
+CREATE TABLE t4 AS SELECT * FROM t1;
+CREATE TABLE t5 AS SELECT * FROM t1;
+DROP TABLE t1;
+CREATE TEMPORARY TABLE temp_buffer_pool AS SELECT space FROM
+INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE table_name LIKE 'test/t%'
+  GROUP BY space;
+CREATE TABLE buffer_pool AS SELECT SPACE, PAGE_NUMBER FROM
+INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE
+SPACE IN (SELECT SPACE FROM temp_buffer_pool) ORDER BY PAGE_NUMBER;
+DROP TABLE temp_buffer_pool;
+CALL prefetch_buffer_pool();
+COUNT(*) = total_pages_fetched
+1
+pages_not_fetched
+0
+DROP TABLE buffer_pool;
+DROP TABLE t2, t3, t4, t5;
+# Cleanup.
+SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
+DROP PROCEDURE create_and_populate_t1;
+DROP PROCEDURE prefetch_buffer_pool;

@@ -560,6 +560,13 @@ void thd_inc_row_count(MYSQL_THD thd);
 int mysql_tmpfile(const char *prefix);
 
 /**
+  Get current THD object from thread local data
+
+  @retval     The THD object for the thread, NULL if not connection thread
+*/
+MYSQL_THD thd_get_current_thd();
+
+/**
   Check the killed state of a connection
 
   @details

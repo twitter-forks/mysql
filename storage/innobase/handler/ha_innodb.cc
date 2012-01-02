@@ -3,6 +3,7 @@
 Copyright (c) 2000, 2011, Oracle and/or its affiliates. All Rights Reserved.
 Copyright (c) 2008, 2009 Google Inc.
 Copyright (c) 2009, Percona Inc.
+Copyright (c) 2012, Twitter, Inc.
 
 Portions of this file contain modifications contributed and copyrighted by
 Google, Inc. Those modifications are gratefully acknowledged and are described
@@ -86,6 +87,7 @@ extern "C" {
 #include "ha_prototypes.h"
 #include "ut0mem.h"
 #include "ibuf0ibuf.h"
+#include "buf0rea.h"
 }
 
 #include "ha_innodb.h"
@@ -392,6 +394,16 @@ uint
 innobase_alter_table_flags(
 /*=======================*/
 	uint	flags);
+/****************************************************************//**
+Manipulate internal parameters of the storage engine. */
+static
+longlong
+innobase_control(
+/*=============*/
+	handlerton*	hton,
+	const char*	cmd,
+	Item**		args,
+	uint		args_count);
 
 static const char innobase_hton_name[]= "InnoDB";
 
@@ -2258,6 +2270,7 @@ innobase_init(
         innobase_hton->flags=HTON_NO_FLAGS;
         innobase_hton->release_temporary_latches=innobase_release_temporary_latches;
 	innobase_hton->alter_table_flags = innobase_alter_table_flags;
+	innobase_hton->control = innobase_control;
 
 	ut_a(DATA_MYSQL_TRUE_VARCHAR == (ulint)MYSQL_TYPE_VARCHAR);
 
@@ -2676,6 +2689,108 @@ innobase_alter_table_flags(
 		| HA_INPLACE_ADD_UNIQUE_INDEX_NO_WRITE
 		| HA_INPLACE_DROP_UNIQUE_INDEX_NO_READ_WRITE
 		| HA_INPLACE_ADD_PK_INDEX_NO_READ_WRITE);
+}
+
+/****************************************************************//**
+Unsigned long integer comparison function.
+@return an integer less than, equal to, or greater than zero if the
+first argument is respectively less than, equal to, or greater than
+the second. */
+extern "C" UNIV_INTERN
+int
+ulint_cmp(
+/*========*/
+	const void *	a,	/*!< in: Array element. */
+	const void *	b)	/*!< in: Array element. */
+{
+	ulint	v1 = *(const ulint*) a;
+	ulint	v2 = *(const ulint*) b;
+
+	if (v1 < v2)
+		return(-1);
+
+	if (v1 > v2)
+		return(1);
+
+	return(0);
+}
+
+/****************************************************************//**
+Setup parameters and issue a synchronous read request for pages to
+be placed into the buffer pool. */
+static
+longlong
+setup_and_prefetch_pages(
+/*=====================*/
+	Item**	args,		/*!< in: Arguments to command. */
+	uint	args_count)	/*!< in: Number of arguments. */
+{
+	ulint	ret;
+	ulint	space;
+	ulint*	page_nos;
+	ulint   n_stored;
+	ulint	space_size;
+
+	/* Must at least have the tablespace identifier and a page number. */
+	if (args_count < 2) {
+		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
+		return(-1);
+	}
+
+	space= args[0]->val_int();
+
+	/* Get the size of the space in pages. */
+	space_size = fil_space_get_size(space);
+
+	/* Ensure that the file space exists and is a tablespace. */
+	if (!space_size || (fil_space_get_type(space) != FIL_TABLESPACE)) {
+		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
+		return(-1);
+	}
+
+	n_stored = args_count - 1;
+	page_nos = (ulint*) mem_alloc(n_stored * sizeof(ulint));
+
+	/* Build an array of page numbers. */
+	for (ulint i = 0; i < n_stored; i++)
+		page_nos[i] = (ulint) args[i+1]->val_int();
+
+	my_qsort(page_nos, n_stored, sizeof(ulint), ulint_cmp);
+
+	/* Ensure that highest page is not outside of the tablespace. */
+	if (space_size < page_nos[n_stored - 1]) {
+		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
+		mem_free(page_nos);
+		return(-1);
+	}
+
+	/* Read the set of pages into the buffer pool. */
+	ret = buf_read_pages(TRUE, space, 0, page_nos, n_stored);
+
+	mem_free(page_nos);
+
+	return(ret);
+}
+
+/****************************************************************//**
+Manipulate internal parameters of the storage engine. */
+static
+longlong
+innobase_control(
+/*=============*/
+	handlerton*,			/*!< in: Innodb handlerton */
+	const char*	cmd,		/*!< in: Control command. */
+	Item**		args,		/*!< in: Arguments. */
+	uint		args_count)	/*!< in: Number of arguments. */
+{
+	if (0 == innobase_strcasecmp(cmd, "prefetch_pages")) {
+
+		return(setup_and_prefetch_pages(args, args_count));
+	}
+
+	my_error(ER_HTON_CONTROL_CMD_NOT_IMPLEMENTED, MYF(0), cmd);
+
+	return(0);
 }
 
 /*****************************************************************//**
