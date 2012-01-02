@@ -1715,7 +1715,7 @@ recv_read_in_area(
 		}
 	}
 
-	buf_read_recv_pages(FALSE, space, zip_size, page_nos, n);
+	buf_read_pages(FALSE, space, zip_size, page_nos, n);
 	/*
 	fprintf(stderr, "Recv pages at %lu n %lu\n", page_nos[0], n);
 	*/

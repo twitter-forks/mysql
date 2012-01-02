@@ -127,10 +127,11 @@ buf_read_ibuf_merge_pages(
 	ulint		n_stored);	/*!< in: number of elements
 					in the arrays */
 /********************************************************************//**
-Issues read requests for pages which recovery wants to read in. */
+Reads a sequential set of pages into the buffer pool.
+@return number of pages read. */
 UNIV_INTERN
-void
-buf_read_recv_pages(
+ulint
+buf_read_pages(
 /*================*/
 	ibool		sync,		/*!< in: TRUE if the caller
 					wants this function to wait

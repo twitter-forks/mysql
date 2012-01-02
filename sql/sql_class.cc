@@ -336,7 +336,7 @@ void thd_close_connection(THD *thd)
 
   @retval     The THD object for the thread, NULL if not connection thread
 */
-THD *thd_get_current_thd()
+extern "C" MYSQL_THD thd_get_current_thd()
 {
   return current_thd;
 }

@@ -195,6 +195,7 @@ static SYMBOL symbols[] = {
   { "ENDS",		SYM(ENDS_SYM)},
   { "ENGINE",		SYM(ENGINE_SYM)},
   { "ENGINES",		SYM(ENGINES_SYM)},
+  { "ENGINE_CONTROL",   SYM(ENGINE_CONTROL_SYM)},
   { "ENUM",		SYM(ENUM)},
   { "ERROR",            SYM(ERROR_SYM)},
   { "ERRORS",		SYM(ERRORS)},

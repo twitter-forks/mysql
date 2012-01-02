@@ -1,4 +1,5 @@
 /* Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+   Copyright (c) 2012, Twitter, Inc.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -6617,4 +6618,17 @@ longlong Item_func_uuid_short::val_int()
   val= uuid_value++;
   mysql_mutex_unlock(&LOCK_uuid_generator);
   return (longlong) val;
+}
+
+
+longlong Item_func_engine_control::val_int()
+{
+  DBUG_ASSERT(fixed == 1);
+
+  if (m_hton->control)
+    return m_hton->control(m_hton, m_cmd.str, args, arg_count);
+
+  my_error(ER_HTON_CONTROL_NOT_IMPLEMENTED, MYF(0));
+
+  return -1;
 }

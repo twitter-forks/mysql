@@ -2,7 +2,16 @@ languages czech=cze latin2, danish=dan latin1, dutch=nla latin1, english=eng lat
 
 default-language eng
 
-start-error-number 1000
+start-error-number 997
+
+ER_HTON_CONTROL_INVALID_ARGUMENT
+  eng "Invalid control command argument"
+
+ER_HTON_CONTROL_NOT_IMPLEMENTED
+  eng "The storage engine does not support control commands"
+
+ER_HTON_CONTROL_CMD_NOT_IMPLEMENTED
+  eng "The storage engine does not support the '%s' control command"
 
 ER_HASHCHK  
         eng "hashchk"
