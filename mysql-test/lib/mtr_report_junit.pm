@@ -26,6 +26,7 @@ use XML::Simple;
 use Sys::Hostname;
 use POSIX qw(strftime);
 use base qw(Exporter);
+use Data::Dumper;
 
 our @EXPORT= qw(mtr_report_stats_junit);
 
@@ -44,6 +45,8 @@ sub mtr_report_stats_junit {
   my $filename = shift;
   my $testinfo;
   my $doc;
+
+  print Dumper ($tests);
 
   foreach my $tinfo (@$tests) {
     my $suite = $tinfo->{name} =~ /^([^\.]+)\./ ? $1 : 'unknown';
@@ -67,13 +70,9 @@ sub mtr_report_stats_junit {
 
       my $testcase = gen_testcase ($name, $tinfo->{name}, $testtime);
       if ($tinfo->{failures}) {
-	my @lines = split (/\n/, $tinfo->{logfile});
-	my $message = $lines[$#lines];
-	my $failure = gen_failure (
-          $tinfo->{result},
-          $message,
-          $tinfo->{logfile}
-        );
+	my $content = $tinfo->{logfile};
+	$content .= "\n" . $tinfo->{comment} if $tinfo->{comment};
+	my $failure = gen_failure ($tinfo->{result}, "Test failed", $content);
 	push @{$testcase->{failure}}, $failure;
       }
 
