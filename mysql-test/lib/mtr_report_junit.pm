@@ -1,14 +1,15 @@
 # -*- cperl -*-
-# 
+# Copyright (c) 2012 Twitter, Inc.
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; version 2 of the License.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
@@ -74,16 +75,16 @@ sub mtr_report_stats_junit {
       push @testcases, $testcase;
     }
 
-    my $tot_failed = $testinfo->{$suite}{tot_failed} ? 
+    my $tot_failed = $testinfo->{$suite}{tot_failed} ?
       $testinfo->{$suite}{tot_failed} : 0;
 
-    my $tot_skipped = $testinfo->{$suite}{tot_skipped} ? 
+    my $tot_skipped = $testinfo->{$suite}{tot_skipped} ?
       $testinfo->{$suite}{tot_skipped} : 0;
 
     my $testsuite = gen_testsuite (
-      $suite, 
-      $suitetime, 
-      $tot_failed, 
+      $suite,
+      $suitetime,
+      $tot_failed,
       $tot_skipped,
       $testinfo->{$suite}{tot_tests}
     );
@@ -109,7 +110,7 @@ sub gen_testsuite {
     hostname     => $hostname,
     errors       => 0,
     failures     => $failures,
-    skip         => $skip,	    
+    skip         => $skip,
     tests        => $tests,
     'time'       => $time,
     testcase     => [],
@@ -128,7 +129,7 @@ sub gen_testcase {
     class   => $class,
     'time'  => $time,
     failure => [],
-    skipped => [], 	    
+    skipped => [],
   };
 }
 
