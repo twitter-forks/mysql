@@ -571,6 +571,7 @@ sub main {
 
   print_total_times($opt_parallel) if $opt_report_times;
 
+
   mtr_report_stats_junit($completed, $opt_junit_output) if $opt_junit_output;
   mtr_report_stats("Completed", $completed);
   remove_vardir_subs() if $opt_clean_vardir;

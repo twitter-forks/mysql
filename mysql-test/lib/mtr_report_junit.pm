@@ -23,11 +23,22 @@ package mtr_report_junit;
 use strict;
 use warnings;
 use XML::Simple;
+use Sys::Hostname;
 use POSIX qw(strftime);
 use base qw(Exporter);
 
 our @EXPORT= qw(mtr_report_stats_junit);
 
+#
+# Function: mtr_report_stats_junit
+#
+# Arg 1: $tests      Arrayref of completed tests
+# Arg 2: $filename   File to write XML output to
+#
+# This function acts much like mtr_report_stats from the mtr_report.pm library,
+# except that instead of writing a summary of tests to STDOUT, it writes JUnit
+# style XML to $filename.  This is the only exported function from this library.
+#
 sub mtr_report_stats_junit {
   my $tests    = shift;
   my $filename = shift;
@@ -95,13 +106,25 @@ sub mtr_report_stats_junit {
   $xs->XMLout ($doc, RootName => 'testsuites', OutputFile => $filename)
 }
 
+#
+# Function gen_testsuite
+#
+# Arg 1: $name      Name of the testsuite
+# Arg 2: $time      Aggregate time (in seconds) of every test in the suite
+# Arg 3: $failures  Number of tests that failed in the suite
+# Arg 4: $skip      Number of tests that were skipped in the suite
+# ARg 5: $tests     Total number of tests in the suite
+#
+# This function populates and returns a hashref that represents a JUnit
+# <testsuite></testsuite> XML block.
+#
 sub gen_testsuite {
   my $name     = shift;
   my $time     = shift;
   my $failures = shift;
   my $skip     = shift;
   my $tests    = shift;
-  my $hostname = `/bin/hostname`;
+  my $hostname = hostname;
 
   chomp $hostname;
 
@@ -115,10 +138,20 @@ sub gen_testsuite {
     'time'       => $time,
     testcase     => [],
     timestamp    => strftime ("%Y-%m-%dT%H:%M:%S", localtime),
-    'system-out' => [''],
+    'system-out' => [],
   };
 }
 
+#
+# Function: gen_testcase
+#
+# Arg 1: $name   Name of the test case (must be unique)
+# Arg 2: $class  Class of the test case
+# Arg 3: $time   Time (in seconds) the test case took to run
+#
+# This function populates and returns a hashref that represents a JUnit
+# <testcase></testcase> XML block.
+#
 sub gen_testcase {
   my $name  = shift;
   my $class = shift;
@@ -133,10 +166,26 @@ sub gen_testcase {
   };
 }
 
+#
+# Function: gen_failure
+#
+# Arg 1: $type     The type of the assert
+# Arg 2: $message  The message specified in the assert
+# Arg 3: $content  Usually the traceback
+#
+# This function populates and returns a hashref that represents a JUnit
+# <failure></failure> XML block.  It can also be used to generate a JUnit
+# <skipped></skipped> XML block which uses the same fields.
+#
+
 sub gen_failure {
-  my $type = shift;
+  my $type    = shift;
   my $message = shift;
   my $content = shift;
+
+  # MySQL test output sometimes contains bell (^G) characters, which
+  # XML chokes on, even inside of CDATA blocks.
+  $content =~ s/\007//g;
 
   return {
     type    => $type,
