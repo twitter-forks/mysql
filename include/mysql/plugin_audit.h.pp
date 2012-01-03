@@ -187,6 +187,7 @@ char *thd_security_context(void* thd, char *buffer, unsigned int length,
                            unsigned int max_query_len);
 void thd_inc_row_count(void* thd);
 int mysql_tmpfile(const char *prefix);
+void* thd_get_current_thd();
 int thd_killed(const void* thd);
 unsigned long thd_get_thread_id(const void* thd);
 void thd_get_xid(const void* thd, MYSQL_XID *xid);
