@@ -94,6 +94,7 @@ use My::SysInfo;
 use My::CoreDump;
 use mtr_cases;
 use mtr_report;
+use mtr_report_junit;
 use mtr_match;
 use mtr_unique;
 use mtr_results;
@@ -311,6 +312,7 @@ our $opt_warnings= 1;
 
 our $opt_include_ndbcluster= 0;
 our $opt_skip_ndbcluster= 1;
+our $opt_junit_output= undef;
 
 my $exe_ndbd;
 my $exe_ndbmtd;
@@ -569,8 +571,8 @@ sub main {
 
   print_total_times($opt_parallel) if $opt_report_times;
 
+  mtr_report_stats_junit($completed, $opt_junit_output) if $opt_junit_output;
   mtr_report_stats("Completed", $completed);
-
   remove_vardir_subs() if $opt_clean_vardir;
 
   exit(0);
@@ -699,6 +701,7 @@ sub run_test_server ($$$) {
 	    elsif ($opt_max_test_fail > 0 and
 		   $num_failed_test >= $opt_max_test_fail) {
 	      push(@$completed, $result);
+	      mtr_report_stats_junit($completed, $opt_junit_output) if $opt_junit_output;
 	      mtr_report_stats("Too many failed", $completed, 1);
 	      mtr_report("Too many tests($num_failed_test) failed!",
 			 "Terminating...");
@@ -860,6 +863,7 @@ sub run_test_server ($$$) {
     # ----------------------------------------------------
     if ( has_expired($suite_timeout) )
     {
+      mtr_report_stats_junit($completed, $opt_junit_output) if $opt_junit_output;
       mtr_report_stats("Timeout", $completed, 1);
       mtr_report("Test suite timeout! Terminating...");
       return undef;
@@ -1185,6 +1189,7 @@ sub command_line_setup {
 	     'result-file'              => \$opt_resfile,
 	     'unit-tests!'              => \$opt_ctest,
 	     'stress=s'                 => \$opt_stress,
+             'junit-output=s'           => \$opt_junit_output,
 
              'help|h'                   => \$opt_usage,
 	     # list-options is internal, not listed in help
@@ -6190,6 +6195,7 @@ Misc options
   unit-tests            Run unit tests even if they would otherwise not be run
   stress=ARGS           Run stress test, providing options to
                         mysql-stress-test.pl. Options are separated by comma.
+  junit-output=FILE     Output JUnit test summary XML to FILE.
 
 Some options that control enabling a feature for normal test runs,
 can be turned off by prepending 'no' to the option, e.g. --notimer.
