@@ -177,7 +177,6 @@ sub gen_testcase {
 # <failure></failure> XML block.  It can also be used to generate a JUnit
 # <skipped></skipped> XML block which uses the same fields.
 #
-
 sub gen_failure {
   my $type    = shift;
   my $message = shift;
