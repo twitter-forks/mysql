@@ -1,37 +1,29 @@
---source include/have_semisync_plugin.inc
 --source include/not_embedded.inc
 --source include/master-slave.inc
---source include/have_innodb.inc
 --source suite/randgen/include/setup_rqg.inc
 
-let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_rpl_stmt_semisync.log;
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_rpl_stmt_single_engine.log;
 
 exec perl $RQG_HOME/gentest.pl
   --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --grammar=$RQG_HOME/conf/replication/replication_simple.yy
   --gendata=$RQG_HOME/conf/replication/replication_single_engine.zz
-  --reporters=ReplicationSemiSync,Deadlock,Backtrace,ErrorLog
-  --validators=None
   --rpl_mode=statement
-  --engine=InnoDB
-  --queries=1M
-  --threads=1
-  --duration=150;
+  --engine=$RQG_ENGINE
+  --queries=10K
+  --duration=240;
 
-let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_rpl_row_semisync.log;
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_rpl_row_single_engine.log;
 
 exec perl $RQG_HOME/gentest.pl
   --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --grammar=$RQG_HOME/conf/replication/replication_simple.yy
   --gendata=$RQG_HOME/conf/replication/replication_single_engine.zz
-  --reporters=ReplicationSemiSync,Deadlock,Backtrace,ErrorLog
-  --validators=None
   --rpl_mode=row
-  --engine=InnoDB
-  --queries=1M
-  --threads=1
-  --duration=150;
+  --engine=$RQG_ENGINE
+  --queries=10K
+  --duration=240;
 
 --source suite/randgen/include/cleanup.inc

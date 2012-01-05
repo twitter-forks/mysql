@@ -1,0 +1,17 @@
+--source include/have_innodb.inc
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_innodb_repeatable_read.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --gendata=$RQG_HOME/conf/transactions/transactions.zz
+  --grammar=$RQG_HOME/conf/transactions/repeatable_read.yy
+  --validator=RepeatableRead
+  --reporters=Deadlock,ErrorLog,Backtrace
+  --engine=InnoDB
+  --queries=100000
+  --duration=600;
+
+--source suite/randgen/include/cleanup.inc

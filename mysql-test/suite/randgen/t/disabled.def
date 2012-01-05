@@ -1,0 +1,1 @@
+rpl_semi_sync : Generates too much output to the error log and also fails occasionally.
