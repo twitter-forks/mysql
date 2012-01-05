@@ -46,8 +46,6 @@ sub mtr_report_stats_junit {
   my $testinfo;
   my $doc;
 
-  print Dumper ($tests);
-
   foreach my $tinfo (@$tests) {
     my $suite = $tinfo->{name} =~ /^([^\.]+)\./ ? $1 : 'unknown';
     $testinfo->{$suite}{tot_tests}++;
