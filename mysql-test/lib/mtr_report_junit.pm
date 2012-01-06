@@ -22,19 +22,18 @@ package mtr_report_junit;
 
 use strict;
 use warnings;
-use XML::Simple;
 use Sys::Hostname;
 use POSIX qw(strftime);
 use base qw(Exporter);
-use Data::Dumper;
 
-our @EXPORT= qw(mtr_report_stats_junit);
+our @EXPORT= qw(mtr_report_stats_junit mtr_junit_supported);
 
 #
 # Function: mtr_report_stats_junit
 #
 # Arg 1: $tests      Arrayref of completed tests
 # Arg 2: $filename   File to write XML output to
+# Arg 3: $package    Package to use when writing <testsuite> blocks
 #
 # This function acts much like mtr_report_stats from the mtr_report.pm library,
 # except that instead of writing a summary of tests to STDOUT, it writes JUnit
@@ -43,8 +42,12 @@ our @EXPORT= qw(mtr_report_stats_junit);
 sub mtr_report_stats_junit {
   my $tests    = shift;
   my $filename = shift;
+  my $package  = shift;
   my $testinfo;
   my $doc;
+
+  eval "use XML::Simple";
+  return undef if $@;
 
   foreach my $tinfo (@$tests) {
     my $suite = $tinfo->{name} =~ /^([^\.]+)\./ ? $1 : 'unknown';
@@ -96,11 +99,22 @@ sub mtr_report_stats_junit {
       $tot_skipped,
       $testinfo->{$suite}{tot_tests}
     );
+    $testsuite->{package} = $package if $package;
     push @{$testsuite->{testcase}}, @testcases;
     push @{$doc->{testsuite}}, $testsuite;
   }
   my $xs = XML::Simple->new(NoEscape => 1);
   $xs->XMLout ($doc, RootName => 'testsuites', OutputFile => $filename)
+}
+
+#
+# Function: mtr_junit_supported
+#
+# Returns true if XML output is supported (requires XML::Simple)
+#
+sub mtr_junit_supported {
+  eval "use XML::Simple";
+  return $@ ? 0 : 1;
 }
 
 #
