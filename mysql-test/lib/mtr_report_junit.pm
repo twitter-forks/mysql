@@ -50,7 +50,16 @@ sub mtr_report_stats_junit {
   return undef if $@;
 
   foreach my $tinfo (@$tests) {
-    my $suite = $tinfo->{name} =~ /^([^\.]+)\./ ? $1 : 'unknown';
+    my $suite;
+
+    if ($tinfo->{name} =~ /^([^\.]+)\./) {
+      $suite = $1;
+    } else {
+      $suite = $::opt_ctest ? 'unit_test' : 'unknown'
+    }
+
+    $suite = "$package.$suite" if $package;
+
     $testinfo->{$suite}{tot_tests}++;
     $testinfo->{$suite}{tot_failed}++  if $tinfo->{failures};
     $testinfo->{$suite}{tot_skipped}++ if $tinfo->{skip};
