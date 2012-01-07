@@ -2210,7 +2210,7 @@ sub read_plugin_defs($)
     or mtr_error("Can't read plugin defintions file $defs_file");
 
   # Need to check if we will be running mysqld-debug
-  if ($opt_debug_server) {
+  if ($opt_debug_server and ! $opt_embedded_server) {
     $running_debug= 1 if find_mysqld($basedir) =~ /mysqld-debug/;
   }
 
