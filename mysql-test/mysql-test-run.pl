@@ -281,6 +281,7 @@ my $opt_reorder= 1;
 my $opt_force_restart= 0;
 
 my $opt_strace_client;
+my $opt_strace_server;
 
 our $opt_user = "root";
 
@@ -1123,7 +1124,8 @@ sub command_line_setup {
 	     'debugger=s'               => \$opt_debugger,
 	     'boot-dbx'                 => \$opt_boot_dbx,
 	     'client-debugger=s'        => \$opt_client_debugger,
-             'strace-client:s'          => \$opt_strace_client,
+             'strace-server'            => \$opt_strace_server,
+             'strace-client'            => \$opt_strace_client,
              'max-save-core=i'          => \$opt_max_save_core,
              'max-save-datadir=i'       => \$opt_max_save_datadir,
              'max-test-fail=i'          => \$opt_max_test_fail,
@@ -1734,6 +1736,19 @@ sub command_line_setup {
     $opt_debug= 1;
     $debug_d= "d,query,info,error,enter,exit";
   }
+
+  if ( $opt_strace_server && ($^O ne "linux") )
+  {
+    $opt_strace_server=0;
+    mtr_warning("Strace only supported in Linux ");
+  }
+
+  if ( $opt_strace_client && ($^O ne "linux") )
+  {
+    $opt_strace_client=0;
+    mtr_warning("Strace only supported in Linux ");
+  }
+
 
   mtr_report("Checking supported features...");
 
@@ -4889,6 +4904,12 @@ sub mysqld_start ($$) {
 
   my $args;
   mtr_init_args(\$args);
+# implementation for strace-server
+  if ( $opt_strace_server )
+  {
+    strace_server_arguments($args, \$exe, $mysqld->name());
+  }
+
 
   if ( $opt_valgrind_mysqld )
   {
@@ -5454,6 +5475,14 @@ sub start_mysqltest ($) {
 
   mtr_init_args(\$args);
 
+  if ( $opt_strace_client )
+  {
+    $exe=  "strace";
+    mtr_add_arg($args, "-o");
+    mtr_add_arg($args, "%s/log/mysqltest.strace", $opt_vardir);
+    mtr_add_arg($args, "$exe_mysqltest");
+  }
+
   mtr_add_arg($args, "--defaults-file=%s", $path_config_file);
   mtr_add_arg($args, "--silent");
   mtr_add_arg($args, "--tmpdir=%s", $opt_tmpdir);
@@ -5490,13 +5519,6 @@ sub start_mysqltest ($) {
     mtr_add_arg($args, "--cursor-protocol");
   }
 
-  if ( $opt_strace_client )
-  {
-    $exe=  $opt_strace_client || "strace";
-    mtr_add_arg($args, "-o");
-    mtr_add_arg($args, "%s/log/mysqltest.strace", $opt_vardir);
-    mtr_add_arg($args, "$exe_mysqltest");
-  }
 
   mtr_add_arg($args, "--timer-file=%s/log/timer", $opt_vardir);
 
@@ -5797,6 +5819,19 @@ sub debugger_arguments {
   }
 }
 
+#
+# Modify the exe and args so that program is run in strace 
+#
+sub strace_server_arguments {
+  my $args= shift;
+  my $exe=  shift;
+  my $type= shift;
+
+  mtr_add_arg($args, "-o");
+  mtr_add_arg($args, "%s/log/%s.strace", $opt_vardir, $type);
+  mtr_add_arg($args, $$exe);
+  $$exe= "strace";
+}
 
 #
 # Modify the exe and args so that program is run in valgrind
@@ -6113,9 +6148,8 @@ Options for debugging the product
                         test(s)
   manual-dbx            Let user manually start mysqld in dbx, before running
                         test(s)
-  strace-client[=path]  Create strace output for mysqltest client, optionally
-                        specifying name and path to the trace program to use.
-                        Example: $0 --strace-client=ktrace
+  strace-client         Create strace output for mysqltest client, 
+  strace-server         Create strace output for mysqltest server, 
   max-save-core         Limit the number of core files saved (to avoid filling
                         up disks for heavily crashing server). Defaults to
                         $opt_max_save_core, set to 0 for no limit. Set
