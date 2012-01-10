@@ -55,7 +55,7 @@ sub mtr_report_stats_junit {
     if ($tinfo->{name} =~ /^([^\.]+)\./) {
       $suite = $1;
     } else {
-      $suite = $::opt_ctest ? 'unit_test' : 'unknown'
+      $suite = 'report';
     }
 
     $suite = "$package.$suite" if $package;
@@ -72,7 +72,7 @@ sub mtr_report_stats_junit {
     my @testcases;
 
     foreach my $tinfo (@{$testinfo->{$suite}{tests}}) {
-      my $name = $tinfo->{shortname};
+      my $name = $tinfo->{shortname} ? $tinfo->{shortname} : $tinfo->{name};
       $name .= '_' . $tinfo->{combination} if $tinfo->{combination};
 
       my $testtime = $tinfo->{timer} ? $tinfo->{timer} / 1000 : 0;
