@@ -147,6 +147,10 @@ MACRO (MYSQL_FIND_SYSTEM_READLINE name)
   IF(${name}_LIBRARY AND ${name}_INCLUDE_DIR)
     SET(SYSTEM_READLINE_FOUND 1)
     SET(CMAKE_REQUIRED_LIBRARIES ${${name}_LIBRARY} ${CURSES_LIBRARY})
+
+    SET(_save_CMAKE_REQUIRED_INCLUDES "${CMAKE_REQUIRED_INCLUDES}")
+    SET(CMAKE_REQUIRED_INCLUDES ${${name}_INCLUDE_DIR})
+
     CHECK_CXX_SOURCE_COMPILES("
     #include <stdio.h>
     #include <readline/readline.h>
@@ -159,7 +163,18 @@ MACRO (MYSQL_FIND_SYSTEM_READLINE name)
        return 0;
     }"
     ${name}_HAVE_HIST_ENTRY)
-    
+
+    CHECK_CXX_SOURCE_COMPILES("
+    #include <stdio.h>
+    #include <readline/readline.h>
+    int main(int argc, char **argv)
+    {
+      #if RL_READLINE_VERSION
+      #error readline
+      #endif
+    }"
+    ${name}_IS_EDITLINE_WRAPPER)
+
     CHECK_CXX_SOURCE_COMPILES("
     #include <stdio.h>
     #include <readline/readline.h>
@@ -170,7 +185,6 @@ MACRO (MYSQL_FIND_SYSTEM_READLINE name)
     }"
     ${name}_USE_LIBEDIT_INTERFACE)
 
-
     CHECK_CXX_SOURCE_COMPILES("
     #include <stdio.h>
     #include <readline/readline.h>
@@ -180,12 +194,16 @@ MACRO (MYSQL_FIND_SYSTEM_READLINE name)
       rl_compentry_func_t *func2= (rl_compentry_func_t*)0;
     }"
     ${name}_USE_NEW_READLINE_INTERFACE)
-    
+
+    SET(CMAKE_REQUIRED_INCLUDES "${_save_CMAKE_REQUIRED_INCLUDES}")
+
     IF(${name}_USE_LIBEDIT_INTERFACE  OR ${name}_USE_NEW_READLINE_INTERFACE)
       SET(READLINE_LIBRARY ${${name}_LIBRARY} ${CURSES_LIBRARY})
       SET(READLINE_INCLUDE_DIR ${${name}_INCLUDE_DIR})
       SET(HAVE_HIST_ENTRY ${${name}_HAVE_HIST_ENTRY})
-      SET(USE_LIBEDIT_INTERFACE ${${name}_USE_LIBEDIT_INTERFACE})
+      IF (${name}_IS_EDITLINE_WRAPPER)
+        SET(USE_LIBEDIT_INTERFACE ${${name}_USE_LIBEDIT_INTERFACE})
+      ENDIF()
       SET(USE_NEW_READLINE_INTERFACE ${${name}_USE_NEW_READLINE_INTERFACE})
       SET(READLINE_FOUND 1)
     ENDIF()
