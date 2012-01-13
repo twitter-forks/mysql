@@ -85,3 +85,17 @@ IF(UNIX)
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ 
     GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 ENDIF()
+
+IF(APPLE)
+  FOREACH(resource
+          Info.plist Description.plist StartupParameters.plist preflight postflight)
+    CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/MacOSX/${resource}.sh
+                   ${CMAKE_CURRENT_BINARY_DIR}/MacOSX/${resource} ESCAPE_QUOTES @ONLY)
+  ENDFOREACH(resource)
+
+  FOREACH(resource MySQLCOM StartupItem.Description.plist StartupItem.postinstall
+                   ReadMe.txt StartupItem.Info.plist)
+    CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/MacOSX/${resource}
+                   ${CMAKE_CURRENT_BINARY_DIR}/MacOSX/${resource} COPYONLY)
+  ENDFOREACH(resource)
+ENDIF()
