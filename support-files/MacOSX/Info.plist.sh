@@ -25,7 +25,7 @@
 	<key>CFBundleName</key>
 	<string>MySQL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>@MYSQL_NUMERIC_VERSION@</string>
+	<string>@MYSQL_NO_DASH_VERSION@</string>
 	<key>IFPkgFlagAllowBackRev</key>
 	<false/>
 	<key>IFPkgFlagAuthorizationAction</key>
