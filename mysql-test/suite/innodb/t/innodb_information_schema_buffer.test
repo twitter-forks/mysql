@@ -70,3 +70,28 @@ and PAGE_TYPE="index";
 DROP TABLE infoschema_child;
 DROP TABLE infoschema_parent;
 
+--echo #
+--echo # MYSQL-38: Counters in innodb_buffer_pool_stats seem broken
+--echo #
+
+--echo # Trigger a refresh of the per-second averages.
+SELECT SLEEP(1);
+
+CREATE TABLE stats AS
+  SELECT NUMBER_PAGES_CREATED, NUMBER_PAGES_WRITTEN, NUMBER_PAGES_GET
+  FROM INFORMATION_SCHEMA.INNODB_BUFFER_POOL_STATS;
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+DROP TABLE t1;
+
+--echo # Trigger a refresh of the per-second averages.
+SELECT SLEEP(1);
+
+SELECT 1 AS STATUS
+  FROM stats, INFORMATION_SCHEMA.INNODB_BUFFER_POOL_STATS AS bp
+  WHERE stats.NUMBER_PAGES_CREATED < bp.NUMBER_PAGES_CREATED AND
+        stats.NUMBER_PAGES_WRITTEN <= bp.NUMBER_PAGES_WRITTEN AND
+        stats.NUMBER_PAGES_GET < bp.NUMBER_PAGES_GET;
+
+DROP TABLE stats;
