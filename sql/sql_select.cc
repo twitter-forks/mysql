@@ -10516,6 +10516,14 @@ create_tmp_table(THD *thd,TMP_TABLE_PARAM *param,List<Item> &fields,
         *blob_field++= fieldnr;
 	blob_count++;
       }
+
+      if (new_field->real_type() == MYSQL_TYPE_STRING ||
+          new_field->real_type() == MYSQL_TYPE_VARCHAR)
+      {
+        string_count++;
+        string_total_length+= new_field->pack_length();
+      }
+
       if (item->marker == 4 && item->maybe_null)
       {
 	group_null_items++;
@@ -10603,6 +10611,11 @@ create_tmp_table(THD *thd,TMP_TABLE_PARAM *param,List<Item> &fields,
       (reclength / string_total_length <= RATIO_TO_PACK_ROWS ||
        string_total_length / string_count >= AVG_STRING_LENGTH_TO_PACK_ROWS)))
     use_packed_rows= 1;
+
+  if (!use_packed_rows)
+    share->db_create_options&= ~HA_OPTION_PACK_RECORD;
+  else
+    share->db_create_options|= HA_OPTION_PACK_RECORD;
 
   share->reclength= reclength;
   {
@@ -10719,6 +10732,10 @@ create_tmp_table(THD *thd,TMP_TABLE_PARAM *param,List<Item> &fields,
              field->real_type() == MYSQL_TYPE_STRING &&
 	     length >= MIN_STRING_LENGTH_TO_PACK_ROWS)
       recinfo->type=FIELD_SKIP_ENDSPACE;
+    else if (use_packed_rows &&
+             field->real_type() == MYSQL_TYPE_VARCHAR &&
+             length >= MIN_STRING_LENGTH_TO_PACK_ROWS)
+      recinfo->type= FIELD_VARCHAR;
     else
       recinfo->type=FIELD_NORMAL;
     if (!--hidden_field_count)
@@ -11163,7 +11180,10 @@ static bool create_myisam_tmp_table(TABLE *table,TMP_TABLE_PARAM *param,
 		       param->start_recinfo,
 		       share->uniques, &uniquedef,
 		       &create_info,
-		       HA_CREATE_TMP_TABLE)))
+                       HA_CREATE_TMP_TABLE |
+                       ((share->db_create_options & HA_OPTION_PACK_RECORD) ?
+                        HA_PACK_RECORD : 0)
+                       )))
   {
     table->file->print_error(error,MYF(0));	/* purecov: inspected */
     table->db_stat=0;
