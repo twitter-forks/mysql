@@ -725,6 +725,9 @@ struct export_var_struct{
 	ulint innodb_log_waits;			/*!< srv_log_waits */
 	ulint innodb_log_write_requests;	/*!< srv_log_write_requests */
 	ulint innodb_log_writes;		/*!< srv_log_writes */
+	ib_uint64_t innodb_lsn_current;		/*!< log_sys->lsn */
+	ib_uint64_t innodb_lsn_flushed;		/*!< log_sys->flushed_to_disk_lsn */
+	ib_uint64_t innodb_lsn_checkpoint;	/*!< log_sys->last_checkpoint_lsn */
 	ulint innodb_os_log_written;		/*!< srv_os_log_written */
 	ulint innodb_os_log_fsyncs;		/*!< fil_n_log_flushes */
 	ulint innodb_os_log_pending_writes;	/*!< srv_os_log_pending_writes */

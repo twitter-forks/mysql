@@ -2099,6 +2099,9 @@ srv_export_innodb_status(void)
 	export_vars.innodb_tablespace_files_open
 		= export_vars.innodb_tablespace_files_opened
 		- export_vars.innodb_tablespace_files_closed;
+	export_vars.innodb_lsn_current = log_sys->lsn;
+	export_vars.innodb_lsn_flushed = log_sys->flushed_to_disk_lsn;
+	export_vars.innodb_lsn_checkpoint = log_sys->last_checkpoint_lsn;
 
 	mutex_exit(&srv_innodb_monitor_mutex);
 }
