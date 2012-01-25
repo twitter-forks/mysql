@@ -10736,6 +10736,8 @@ create_tmp_table(THD *thd,TMP_TABLE_PARAM *param,List<Item> &fields,
              field->real_type() == MYSQL_TYPE_VARCHAR &&
              length >= MIN_STRING_LENGTH_TO_PACK_ROWS)
       recinfo->type= FIELD_VARCHAR;
+    else if (use_packed_rows && field->zero_pack())
+      recinfo->type= FIELD_SKIP_ZERO;
     else
       recinfo->type=FIELD_NORMAL;
     if (!--hidden_field_count)
