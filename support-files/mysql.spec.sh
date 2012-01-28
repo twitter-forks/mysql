@@ -294,9 +294,6 @@ Summary:	MySQL: a very fast and reliable SQL database server
 Group:		Applications/Databases
 Requires:	%{distro_requires}
 Provides:	msqlormysql mysql MySQL mysql-server MySQL-server
-Obsoletes:	mysql MySQL mysql-server MySQL-server
-Obsoletes:	MySQL-server-classic MySQL-server-community MySQL-server-enterprise
-Obsoletes:	MySQL-server-advanced MySQL-server-advanced-gpl MySQL-server-enterprise-gpl
 
 %description -n MySQL-server%{product_suffix}
 The MySQL(TM) software delivers a very fast, multi-threaded, multi-user,
@@ -327,9 +324,6 @@ package "MySQL-client%{product_suffix}" as well!
 Summary:	MySQL - Client
 Group:		Applications/Databases
 Provides:	mysql-client MySQL-client
-Obsoletes:	mysql-client MySQL-client
-Obsoletes:	MySQL-client-classic MySQL-client-community MySQL-client-enterprise
-Obsoletes:	MySQL-client-advanced MySQL-client-advanced-gpl MySQL-client-enterprise-gpl
 
 %description -n MySQL-client%{product_suffix}
 This package contains the standard MySQL clients and administration tools.
@@ -342,10 +336,6 @@ Summary:	MySQL - Test suite
 Group:		Applications/Databases
 Requires:	MySQL-client perl
 Provides:	mysql-test MySQL-test
-Obsoletes:	mysql-test MySQL-test
-Obsoletes:	mysql-bench MySQL-bench
-Obsoletes:	MySQL-test-classic MySQL-test-community MySQL-test-enterprise
-Obsoletes:	MySQL-test-advanced MySQL-test-advanced-gpl MySQL-test-enterprise-gpl
 AutoReqProv:	no
 
 %description -n MySQL-test%{product_suffix}
@@ -358,9 +348,6 @@ For a description of MySQL see the base MySQL RPM or http://www.mysql.com/
 Summary:	MySQL - Development header files and libraries
 Group:		Applications/Databases
 Provides:	mysql-devel MySQL-devel
-Obsoletes:	mysql-devel MySQL-devel
-Obsoletes:	MySQL-devel-classic MySQL-devel-community MySQL-devel-enterprise
-Obsoletes:	MySQL-devel-advanced MySQL-devel-advanced-gpl MySQL-devel-enterprise-gpl
 
 %description -n MySQL-devel%{product_suffix}
 This package contains the development header files and libraries necessary
@@ -373,11 +360,6 @@ For a description of MySQL see the base MySQL RPM or http://www.mysql.com/
 Summary:	MySQL - Shared libraries
 Group:		Applications/Databases
 Provides:	mysql-shared MySQL-shared
-Obsoletes:	mysql-shared MySQL-shared-standard MySQL-shared-pro
-Obsoletes:	MySQL-shared-pro-cert MySQL-shared-pro-gpl
-Obsoletes:	MySQL-shared-pro-gpl-cert MySQL-shared
-Obsoletes:	MySQL-shared-classic MySQL-shared-community MySQL-shared-enterprise
-Obsoletes:	MySQL-shared-advanced MySQL-shared-advanced-gpl MySQL-shared-enterprise-gpl
 
 %description -n MySQL-shared%{product_suffix}
 This package contains the shared libraries (*.so*) which certain languages
@@ -389,10 +371,6 @@ Summary:	MySQL - Embedded library
 Group:		Applications/Databases
 Requires:	MySQL-devel
 Provides:	mysql-embedded MySQL-embedded
-Obsoletes:	mysql-embedded MySQL-embedded
-Obsoletes:	MySQL-embedded-pro
-Obsoletes:	MySQL-embedded-classic MySQL-embedded-community MySQL-embedded-enterprise
-Obsoletes:	MySQL-embedded-advanced MySQL-embedded-advanced-gpl MySQL-embedded-enterprise-gpl
 
 %description -n MySQL-embedded%{product_suffix}
 This package contains the MySQL server as an embedded library.
@@ -1174,6 +1152,11 @@ echo "====="                                     >> $STATUS_HISTORY
 # merging BK trees)
 ##############################################################################
 %changelog
+* Fri Jan 27 2012 Davi Arnaut <davi.arnaut@twitter.com>
+
+- Remove obsoletes metadata as it can interfere with the installation of
+  obsoleted packages.
+
 * Wed Sep 28 2011 Joerg Bruehe <joerg.bruehe@oracle.com>
 
 - Fix duplicate mentioning of "mysql_plugin" and its manual page,
