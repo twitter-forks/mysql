@@ -621,4 +621,6 @@
 #cmakedefine SIZEOF_TIME_T @SIZEOF_TIME_T@
 #cmakedefine TIME_T_UNSIGNED @TIME_T_UNSIGNED@
 
+@SIZEOF_TIME_T_CODE@
+
 #endif
