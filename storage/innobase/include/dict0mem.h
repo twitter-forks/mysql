@@ -600,6 +600,9 @@ struct dict_table_struct{
 				/*!< flag: TRUE if the maximum length of
 				a single row exceeds BIG_ROW_SIZE;
 				initialized in dict_table_add_to_cache() */
+	ulint		initial_size;
+				/*!< when srv_file_per_table is on, the
+				initial size of the tablespace file in pages */
 				/** Statistics for query optimization */
 				/* @{ */
 	unsigned	stat_initialized:1; /*!< TRUE if statistics have

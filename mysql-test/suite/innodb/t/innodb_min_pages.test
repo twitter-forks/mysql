@@ -1,0 +1,48 @@
+--source include/have_innodb.inc
+--source include/not_embedded.inc
+
+--echo #
+--echo # MYSQL-42: Allow pre-allocation of InnoDB file-per-table
+--echo #           (ibd) tablespace files
+--echo #
+
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET GLOBAL innodb_file_per_table = ON;
+
+CREATE TABLE t1 (c1 INT, c2 VARCHAR(30),
+                 c3 LONGBLOB, PRIMARY KEY (c1)) MIN_PAGES=1000;
+#INSERT INTO t1 VALUES (1, 'abc', '123');
+
+--echo
+--echo # Ensure that MIN_PAGES is presed as MIN_ROWS.
+--echo
+
+SHOW CREATE TABLE t1;
+
+--echo
+--echo # Ensure that the tablespace has the requested amount of pages.
+--echo
+
+SELECT SPACE INTO @t1_space
+  FROM INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE table_name = 'test/t1';
+
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 999);
+--error ER_HTON_CONTROL_INVALID_ARGUMENT
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1000);
+
+--echo
+--echo # Ensure that the initial size is preserved across a ALTER TABLE.
+--echo
+
+ALTER TABLE t1 MODIFY c1 BIGINT;
+
+SELECT SPACE INTO @t1_space
+  FROM INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE table_name = 'test/t1';
+
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 999);
+--error ER_HTON_CONTROL_INVALID_ARGUMENT
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1000);
+
+DROP TABLE t1;
+
+SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;

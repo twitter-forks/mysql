@@ -268,12 +268,16 @@ dict_build_table_def_step(
 		}
 
 		/* We create a new single-table tablespace for the table.
-		We initially let it be 4 pages:
+		The initial size of a single-table tablespace must at least
+		be 4 pages:
 		- page 0 is the fsp header and an extent descriptor page,
 		- page 1 is an ibuf bitmap page,
 		- page 2 is the first inode page,
 		- page 3 will contain the root of the clustered index of the
 		table we create here. */
+
+		table->initial_size = ut_max(table->initial_size,
+					     FIL_IBD_FILE_INITIAL_SIZE);
 
 		if (table->dir_path_of_temp_table) {
 			/* We place tables created with CREATE TEMPORARY
@@ -294,7 +298,7 @@ dict_build_table_def_step(
 		error = fil_create_new_single_table_tablespace(
 			space, path_or_name, is_path,
 			flags == DICT_TF_COMPACT ? 0 : flags,
-			FIL_IBD_FILE_INITIAL_SIZE);
+			table->initial_size);
 		table->space = (unsigned int) space;
 
 		if (error != DB_SUCCESS) {
@@ -304,7 +308,7 @@ dict_build_table_def_step(
 
 		mtr_start(&mtr);
 
-		fsp_header_init(table->space, FIL_IBD_FILE_INITIAL_SIZE, &mtr);
+		fsp_header_init(table->space, table->initial_size, &mtr);
 
 		mtr_commit(&mtr);
 	} else {

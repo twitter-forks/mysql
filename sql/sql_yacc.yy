@@ -1112,6 +1112,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  MINUTE_MICROSECOND_SYM
 %token  MINUTE_SECOND_SYM
 %token  MINUTE_SYM                    /* SQL-2003-R */
+%token  MIN_PAGES_SYM
 %token  MIN_ROWS
 %token  MIN_SYM                       /* SQL-2003-N */
 %token  MODE_SYM
@@ -4940,6 +4941,8 @@ opt_part_option:
           { Lex->part_info->curr_part_elem->nodegroup_id= (uint16) $3; }
         | MAX_ROWS opt_equal real_ulonglong_num
           { Lex->part_info->curr_part_elem->part_max_rows= (ha_rows) $3; }
+        | MIN_PAGES_SYM opt_equal real_ulonglong_num
+          { Lex->part_info->curr_part_elem->part_min_rows= (ha_rows) $3; }
         | MIN_ROWS opt_equal real_ulonglong_num
           { Lex->part_info->curr_part_elem->part_min_rows= (ha_rows) $3; }
         | DATA_SYM DIRECTORY_SYM opt_equal TEXT_STRING_sys
@@ -5051,6 +5054,11 @@ create_table_option:
             Lex->create_info.used_fields|= HA_CREATE_USED_MAX_ROWS;
           }
         | MIN_ROWS opt_equal ulonglong_num
+          {
+            Lex->create_info.min_rows= $3;
+            Lex->create_info.used_fields|= HA_CREATE_USED_MIN_ROWS;
+          }
+        | MIN_PAGES_SYM opt_equal ulonglong_num
           {
             Lex->create_info.min_rows= $3;
             Lex->create_info.used_fields|= HA_CREATE_USED_MIN_ROWS;
@@ -12617,6 +12625,7 @@ keyword_sp:
         | MICROSECOND_SYM          {}
         | MIGRATE_SYM              {}
         | MINUTE_SYM               {}
+        | MIN_PAGES_SYM            {}
         | MIN_ROWS                 {}
         | MODIFY_SYM               {}
         | MODE_SYM                 {}

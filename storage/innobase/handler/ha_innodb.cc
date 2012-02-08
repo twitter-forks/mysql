@@ -6508,6 +6508,8 @@ create_table_def(
 					an .ibd file for it (no .ibd extension
 					in the path, though); otherwise this
 					is NULL */
+	ulint		size,		/*!< in: the initial size of the
+					tablespace file in pages */
 	ulint		flags)		/*!< in: table flags */
 {
 	Field*		field;
@@ -6545,6 +6547,8 @@ create_table_def(
 	id where to store the table */
 
 	table = dict_mem_table_create(table_name, 0, n_cols, flags);
+
+	table->initial_size = size;
 
 	if (path_of_temp_table) {
 		table->dir_path_of_temp_table =
@@ -7026,6 +7030,7 @@ ha_innobase::create(
 	const char*	stmt;
 	size_t		stmt_len;
 	enum row_type	row_format;
+	ulint		initial_size = 0;
 
 	DBUG_ENTER("ha_innobase::create");
 
@@ -7228,6 +7233,9 @@ ha_innobase::create(
 		flags |= DICT_TF2_TEMPORARY << DICT_TF2_SHIFT;
 	}
 
+	/* The initial size of a single-table tablespace in pages. */
+	initial_size = (ulint) create_info->min_rows;
+
 	/* Get the transaction associated with the current thd, or create one
 	if not yet created */
 
@@ -7248,7 +7256,7 @@ ha_innobase::create(
 
 	error = create_table_def(trx, form, norm_name,
 		create_info->options & HA_LEX_CREATE_TMP_TABLE ? name2 : NULL,
-		flags);
+		initial_size, flags);
 
 	if (error) {
 		goto cleanup;
