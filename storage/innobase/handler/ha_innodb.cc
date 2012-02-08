@@ -2764,7 +2764,7 @@ setup_and_prefetch_pages(
 	my_qsort(page_nos, n_stored, sizeof(ulint), ulint_cmp);
 
 	/* Ensure that highest page is not outside of the tablespace. */
-	if (space_size < page_nos[n_stored - 1]) {
+	if (space_size <= page_nos[n_stored - 1]) {
 		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
 		mem_free(page_nos);
 		return(-1);

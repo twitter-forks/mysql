@@ -123,6 +123,15 @@ pages_not_fetched
 DROP TABLE buffer_pool;
 DROP TABLE t2, t3, t4, t5;
 # Cleanup.
-SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
 DROP PROCEDURE create_and_populate_t1;
 DROP PROCEDURE prefetch_buffer_pool;
+#
+# Prefetch one page past the end of the tablespace.
+#
+CREATE TABLE t1 (a INT);
+SELECT SPACE INTO @t1_space
+FROM INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE table_name = 'test/t1';
+SELECT ENGINE_CONTROL(innodb, prefetch_pages, @t1_space, 6);
+ERROR HY000: Invalid control command argument
+DROP TABLE t1;
+SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
