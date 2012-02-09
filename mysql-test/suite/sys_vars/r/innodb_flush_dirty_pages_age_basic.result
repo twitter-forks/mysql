@@ -1,0 +1,56 @@
+SET @start_global_value = @@global.innodb_flush_dirty_pages_age;
+SELECT @start_global_value;
+@start_global_value
+0
+Valid values are zero or above
+select @@global.innodb_flush_dirty_pages_age >=0;
+@@global.innodb_flush_dirty_pages_age >=0
+1
+select @@global.innodb_flush_dirty_pages_age;
+@@global.innodb_flush_dirty_pages_age
+0
+select @@session.innodb_flush_dirty_pages_age;
+ERROR HY000: Variable 'innodb_flush_dirty_pages_age' is a GLOBAL variable
+show global variables like 'innodb_flush_dirty_pages_age';
+Variable_name	Value
+innodb_flush_dirty_pages_age	0
+show session variables like 'innodb_flush_dirty_pages_age';
+Variable_name	Value
+innodb_flush_dirty_pages_age	0
+select * from information_schema.global_variables where variable_name='innodb_flush_dirty_pages_age';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_FLUSH_DIRTY_PAGES_AGE	0
+select * from information_schema.session_variables where variable_name='innodb_flush_dirty_pages_age';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_FLUSH_DIRTY_PAGES_AGE	0
+set global innodb_flush_dirty_pages_age=10;
+select @@global.innodb_flush_dirty_pages_age;
+@@global.innodb_flush_dirty_pages_age
+10
+select * from information_schema.global_variables where variable_name='innodb_flush_dirty_pages_age';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_FLUSH_DIRTY_PAGES_AGE	10
+select * from information_schema.session_variables where variable_name='innodb_flush_dirty_pages_age';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_FLUSH_DIRTY_PAGES_AGE	10
+set session innodb_flush_dirty_pages_age=1;
+ERROR HY000: Variable 'innodb_flush_dirty_pages_age' is a GLOBAL variable and should be set with SET GLOBAL
+set global innodb_flush_dirty_pages_age=1.1;
+ERROR 42000: Incorrect argument type to variable 'innodb_flush_dirty_pages_age'
+set global innodb_flush_dirty_pages_age=1e1;
+ERROR 42000: Incorrect argument type to variable 'innodb_flush_dirty_pages_age'
+set global innodb_flush_dirty_pages_age="foo";
+ERROR 42000: Incorrect argument type to variable 'innodb_flush_dirty_pages_age'
+set global innodb_flush_dirty_pages_age=-7;
+Warnings:
+Warning	1292	Truncated incorrect innodb_flush_dirty_pages_age value: '-7'
+select @@global.innodb_flush_dirty_pages_age;
+@@global.innodb_flush_dirty_pages_age
+0
+select * from information_schema.global_variables where variable_name='innodb_flush_dirty_pages_age';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_FLUSH_DIRTY_PAGES_AGE	0
+SET @@global.innodb_flush_dirty_pages_age = @start_global_value;
+SELECT @@global.innodb_flush_dirty_pages_age;
+@@global.innodb_flush_dirty_pages_age
+0

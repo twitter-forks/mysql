@@ -218,6 +218,8 @@ UNIV_INTERN ulint	srv_buf_pool_curr_size	= 0;
 UNIV_INTERN ulint	srv_mem_pool_size	= ULINT_MAX;
 UNIV_INTERN ulint	srv_lock_table_size	= ULINT_MAX;
 
+UNIV_INTERN uint	srv_buf_flush_dirty_pages_age = 0;
+
 /* This parameter is deprecated. Use srv_n_io_[read|write]_threads
 instead. */
 UNIV_INTERN ulint	srv_n_file_io_threads	= ULINT_MAX;
@@ -508,6 +510,9 @@ time when the last flush of log file has happened. The master
 thread ensures that we flush the log files at least once per
 second. */
 static time_t	srv_last_log_flush_time;
+
+/* Records the time of the last flush limit calculation. */
+static time_t	srv_last_flush_limit_time;
 
 /* The master thread performs various tasks based on the current
 state of IO activity and the level of IO utilization is past
@@ -2668,6 +2673,8 @@ srv_master_thread(
 {
 	buf_pool_stat_t buf_stat;
 	srv_slot_t*	slot;
+	ib_uint64_t	flush_lsn_limit = 0;
+	ib_uint64_t	new_flush_lsn_limit = srv_start_lsn;
 	ulint		old_activity_count;
 	ulint		n_pages_purged	= 0;
 	ulint		n_bytes_merged;
@@ -2844,7 +2851,9 @@ loop:
 #endif
 	/* If i/os during the 10 second period were less than 200% of
 	capacity, we assume that there is free disk i/o capacity
-	available, and it makes sense to flush srv_io_capacity pages.
+	available, and it makes sense to flush srv_io_capacity pages
+	unless there is a need to reduce the frequency of write requests
+	to the storage device (which might be the case for SSDs).
 
 	Note that this is done regardless of the fraction of dirty
 	pages relative to the max requested by the user. The one second
@@ -2856,12 +2865,33 @@ loop:
 	n_ios = log_sys->n_log_ios + buf_stat.n_pages_read
 		+ buf_stat.n_pages_written;
 
+	/* Constantly record the youngest age at which a dirty page
+	might be flushed. */
+	if (difftime(time(NULL), srv_last_flush_limit_time)
+	    > srv_buf_flush_dirty_pages_age) {
+
+		/* The limit prevents the flushing of pages dirtied within
+		the last srv_buf_flush_dirty_pages_age seconds. */
+		flush_lsn_limit = new_flush_lsn_limit;
+		new_flush_lsn_limit = log_get_lsn();
+		srv_last_flush_limit_time = time(NULL);
+	}
+
+	/* If not limited by age, try to keep the number of modified pages
+	in the buffer pool as low as possible. */
+	if (!srv_buf_flush_dirty_pages_age) {
+		flush_lsn_limit = IB_ULONGLONG_MAX;
+	}
+
 	srv_main_10_second_loops++;
 	if (n_pend_ios < SRV_PEND_IO_THRESHOLD
-	    && (n_ios - n_ios_very_old < SRV_PAST_IO_ACTIVITY)) {
+	    && (n_ios - n_ios_very_old < SRV_PAST_IO_ACTIVITY)
+	    && flush_lsn_limit) {
 
 		srv_main_thread_op_info = "flushing buffer pool pages";
-		buf_flush_list(PCT_IO(100), IB_ULONGLONG_MAX);
+		buf_flush_list(PCT_IO(100), flush_lsn_limit);
+
+		flush_lsn_limit = 0;
 
 		/* Flush logs if needed */
 		srv_sync_log_buffer_in_background();

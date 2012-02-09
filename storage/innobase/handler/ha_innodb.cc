@@ -11683,6 +11683,13 @@ static MYSQL_SYSVAR_UINT(trx_rseg_n_slots_debug, trx_rseg_n_slots_debug,
   NULL, NULL, 0, 0, 1024, 0);
 #endif /* UNIV_DEBUG */
 
+static MYSQL_SYSVAR_UINT(flush_dirty_pages_age, srv_buf_flush_dirty_pages_age,
+  PLUGIN_VAR_RQCMDARG,
+  "Minimum age (since the last flush) of pages to be flushed from "
+  "the buffer pool if the number of dirty pages is below the maximum "
+  "percentage.",
+  NULL, NULL, 0, 0, UINT_MAX32, 0);
+
 static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(additional_mem_pool_size),
   MYSQL_SYSVAR(autoextend_increment),
@@ -11756,6 +11763,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
 #ifdef UNIV_DEBUG
   MYSQL_SYSVAR(trx_rseg_n_slots_debug),
 #endif /* UNIV_DEBUG */
+  MYSQL_SYSVAR(flush_dirty_pages_age),
   NULL
 };
 
