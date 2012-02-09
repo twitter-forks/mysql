@@ -223,6 +223,8 @@ class ha_innobase: public handler
 			       uint num_of_keys);
 	int final_drop_index(TABLE *table_arg);
 	/** @} */
+	int create_handler_files(const char *name, const char *old_name,
+				 int action_flag, HA_CREATE_INFO *create_info);
 	bool check_if_incompatible_data(HA_CREATE_INFO *info,
 					uint table_changes);
 };

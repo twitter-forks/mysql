@@ -1035,6 +1035,32 @@ fsp_header_inc_size(
 }
 
 /**********************************************************************//**
+Updates the space size field of a space. */
+UNIV_INTERN
+void
+fsp_header_update_size(
+/*================*/
+	ulint	space,	/*!< in: space id */
+	mtr_t*	mtr)	/*!< in: mini-transaction handle */
+{
+	fsp_header_t*	header;
+	ulint		size;
+	ulint		flags;
+
+	ut_ad(mtr);
+
+	mtr_x_lock(fil_space_get_latch(space, &flags), mtr);
+
+	header = fsp_get_space_header(space,
+				      dict_table_flags_to_zip_size(flags),
+				      mtr);
+
+	size = fil_space_get_size(space);
+
+	mlog_write_ulint(header + FSP_SIZE, size, MLOG_4BYTES, mtr);
+}
+
+/**********************************************************************//**
 Gets the current free limit of the system tablespace.  The free limit
 means the place of the first page which has never been put to the
 free list for allocation.  The space above that address is initialized

@@ -1376,3 +1376,104 @@ func_exit:
 
 	DBUG_RETURN(err);
 }
+
+/*******************************************************************//**
+Tries to extend a data file so that it would accommodate the number
+of pages given. If the space is big enough already, does nothing.
+@return 0 on success */
+static
+int
+innobase_extend_to_desired_size(
+/*============================*/
+	dict_table_t*	table,	/*!< in: table in data dictionary. */
+	trx_t*		trx,	/*!< in: transaction handle. */
+	ulint		size)	/*!< in: desired size in pages. */
+{
+	int	error = FALSE;
+	ulint	actual_size;
+	mtr_t	mtr;
+
+	trx->op_info = "extending tablespace";
+	trx_start_if_not_started(trx);
+
+	/* Serialize data dictionary operations with dictionary mutex:
+	no deadlocks can occur then in these operations */
+	row_mysql_lock_data_dictionary(trx);
+
+	ut_ad(mutex_own(&(dict_sys->mutex)));
+
+	if (table->space == 0) {
+		my_printf_error(ER_UNKNOWN_ERROR,
+				"Table is in the system tablespace which "
+				"cannot be extended using MIN_PAGES", MYF(0));
+		error = TRUE;
+                goto exit;
+	}
+
+	/* Try to extend the data file of the tablespace. */
+	if (!fil_extend_space_to_desired_size(&actual_size, table->space,
+					      size)) {
+		my_printf_error(ER_UNKNOWN_ERROR,
+				"Could not extend the tablespace. Check "
+				"if there is enough free disk space.", MYF(0));
+		error = TRUE;
+	}
+
+	mtr_start(&mtr);
+
+	/* Update the space size in any case, it might have failed due to
+	insufficient free space remaining on the file system. */
+	fsp_header_update_size(table->space, &mtr);
+
+	mtr_commit(&mtr);
+
+exit:
+	trx_commit_for_mysql(trx);
+
+	row_mysql_unlock_data_dictionary(trx);
+
+	trx->op_info = "";
+
+	return(error);
+}
+
+/*******************************************************************//**
+Create any handler specific files. Subverted to perform handler specific
+actions.
+@return	0 on success */
+UNIV_INTERN
+int
+ha_innobase::create_handler_files(
+/*==============================*/
+	const char *name,		/*!< in: table name. */
+	const char *old_name,		/*!< in: old table name. */
+	int action_flag,		/*!< in: create action. */
+	HA_CREATE_INFO *create_info)	/*!< in: create info. */
+{
+	int	err = 0;
+
+	DBUG_ENTER("ha_innobase::create_handler_files");
+
+	/* Only when a new FRM file is put in place. */
+	if (action_flag != CHF_INDEX_FLAG) {
+		DBUG_RETURN(0);
+	}
+
+	ut_ad(create_info != NULL);
+
+	/* Changes in table options should only be applied if the table
+	was not recreated. */
+	if (!create_info->frm_only) {
+		DBUG_RETURN(0);
+	}
+
+	update_thd();
+
+	if (create_info->used_fields & HA_CREATE_USED_MIN_ROWS) {
+		err = innobase_extend_to_desired_size(prebuilt->table,
+						      prebuilt->trx,
+						      create_info->min_rows);
+	}
+
+	DBUG_RETURN(err);
+}

@@ -38,5 +38,22 @@ ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 999)
 1
 SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1000);
 ERROR HY000: Invalid control command argument
+
+# Extend the tablespace of an existing table.
+
+ALTER TABLE t1 MIN_PAGES=1250;
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1100);
+ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1100)
+1
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1250);
+ERROR HY000: Invalid control command argument
+DROP TABLE t1;
+
+# Ensure that a table in the system tablesplace cannot be extended.
+
+SET GLOBAL innodb_file_per_table = OFF;
+CREATE TABLE t1 (a INT);
+ALTER TABLE t1 MIN_PAGES=100;
+ERROR HY000: Table is in the system tablespace which cannot be extended using MIN_PAGES
 DROP TABLE t1;
 SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;

@@ -43,6 +43,26 @@ SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 999);
 --error ER_HTON_CONTROL_INVALID_ARGUMENT
 SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1000);
 
+--echo
+--echo # Extend the tablespace of an existing table.
+--echo
+
+ALTER TABLE t1 MIN_PAGES=1250;
+
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1100);
+--error ER_HTON_CONTROL_INVALID_ARGUMENT
+SELECT ENGINE_CONTROL(InnoDB, prefetch_pages, @t1_space, 1250);
+
+DROP TABLE t1;
+
+--echo
+--echo # Ensure that a table in the system tablesplace cannot be extended.
+--echo
+
+SET GLOBAL innodb_file_per_table = OFF;
+CREATE TABLE t1 (a INT);
+--error ER_UNKNOWN_ERROR
+ALTER TABLE t1 MIN_PAGES=100;
 DROP TABLE t1;
 
 SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;

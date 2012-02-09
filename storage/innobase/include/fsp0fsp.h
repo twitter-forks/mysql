@@ -208,6 +208,14 @@ fsp_header_inc_size(
 	ulint	size_inc,/*!< in: size increment in pages */
 	mtr_t*	mtr);	/*!< in: mini-transaction handle */
 /**********************************************************************//**
+Updates the space size field of a space. */
+UNIV_INTERN
+void
+fsp_header_update_size(
+/*================*/
+	ulint	space,	/*!< in: space id */
+	mtr_t*	mtr);	/*!< in: mini-transaction handle */
+/**********************************************************************//**
 Creates a new segment.
 @return the block where the segment header is placed, x-latched, NULL
 if could not create segment because of lack of space */
