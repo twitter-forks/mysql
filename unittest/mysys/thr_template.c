@@ -79,11 +79,6 @@ int main(int argc __attribute__((unused)), char **argv)
 
   do_tests();
 
-  /*
-    workaround until we know why it crashes randomly on some machine
-    (BUG#22320).
-  */
-  sleep(2);
   pthread_mutex_destroy(&mutex);
   pthread_cond_destroy(&cond);
   pthread_attr_destroy(&thr_attr);

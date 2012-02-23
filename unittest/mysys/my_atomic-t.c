@@ -180,4 +180,10 @@ void do_tests()
   test_concurrently("my_atomic_add64", test_atomic_add64, THREADS, CYCLES);
 
   my_atomic_rwlock_destroy(&rwl);
+
+  /*
+    workaround until we know why it crashes randomly on some machine
+    (BUG#22320).
+  */
+  sleep(2);
 }
