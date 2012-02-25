@@ -788,6 +788,9 @@ struct handlerton
    longlong (*control)(handlerton *hton, const char *cmd,
                        Item **args, uint arg_count);
 
+   /* Terminate connection/statement notification. */
+   void (*kill_connection)(handlerton *hton, THD *thd);
+
    /*
      Iterators creator.
      Presence of the pointer should be checked before using
@@ -2222,6 +2225,7 @@ int ha_finalize_handlerton(st_plugin_int *plugin);
 TYPELIB *ha_known_exts(void);
 int ha_panic(enum ha_panic_function flag);
 void ha_close_connection(THD* thd);
+void ha_kill_connection(THD *thd);
 bool ha_flush_logs(handlerton *db_type);
 void ha_drop_database(char* path);
 int ha_create_table(THD *thd, const char *path,

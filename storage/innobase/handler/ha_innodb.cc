@@ -340,6 +340,7 @@ static PSI_file_info	all_innodb_files[] = {
 static INNOBASE_SHARE *get_share(const char *table_name);
 static void free_share(INNOBASE_SHARE *share);
 static int innobase_close_connection(handlerton *hton, THD* thd);
+static void innobase_kill_connection(handlerton *hton, THD* thd);
 static int innobase_commit(handlerton *hton, THD* thd, bool all);
 static int innobase_rollback(handlerton *hton, THD* thd, bool all);
 static int innobase_rollback_to_savepoint(handlerton *hton, THD* thd,
@@ -2277,6 +2278,7 @@ innobase_init(
         innobase_hton->release_temporary_latches=innobase_release_temporary_latches;
 	innobase_hton->alter_table_flags = innobase_alter_table_flags;
 	innobase_hton->control = innobase_control;
+	innobase_hton->kill_connection = innobase_kill_connection;
 
 	ut_a(DATA_MYSQL_TRUE_VARCHAR == (ulint)MYSQL_TYPE_VARCHAR);
 
@@ -3228,6 +3230,35 @@ innobase_close_connection(
 	trx_free_for_mysql(trx);
 
 	DBUG_RETURN(0);
+}
+
+/*****************************************************************//**
+Cancel any pending lock request associated with the current THD. */
+static
+void
+innobase_kill_connection(
+/*======================*/
+        handlerton*	hton,	/*!< in:  innobase handlerton */
+	THD*	thd)	/*!< in: handle to the MySQL thread being killed */
+{
+	trx_t*	trx;
+
+	DBUG_ENTER("innobase_kill_connection");
+	DBUG_ASSERT(hton == innodb_hton_ptr);
+
+	mutex_enter(&kernel_mutex);
+
+	trx = thd_to_trx(thd);
+
+	/* Cancel a pending lock request. */
+	if (trx && trx->wait_lock) {
+
+		lock_cancel_waiting_and_release(trx->wait_lock);
+	}
+
+	mutex_exit(&kernel_mutex);
+
+	DBUG_VOID_RETURN;
 }
 
 

@@ -1483,6 +1483,10 @@ void THD::awake(THD::killed_state state_to_set)
       MYSQL_CALLBACK(thread_scheduler, post_kill_notification, (this));
   }
 
+  /* Interrupt target waiting inside a storage engine. */
+  if (state_to_set != THD::NOT_KILLED)
+    ha_kill_connection(this);
+
   /* Broadcast a condition to kick the target if it is waiting on it. */
   if (mysys_var)
   {
