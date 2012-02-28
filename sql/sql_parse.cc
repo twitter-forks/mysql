@@ -95,6 +95,8 @@
 #include "probes_mysql.h"
 #include "set_var.h"
 
+#include "sql_timer.h"        // thd_timer_set, thd_timer_reset
+
 #define FLAGSTR(V,F) ((V)&(F)?#F" ":"")
 
 /**
@@ -868,6 +870,76 @@ static bool deny_statement_if_super_only_option(THD *thd)
 
   DBUG_RETURN(TRUE);
 }
+
+
+/**
+  Get the maximum execution time for a statement.
+
+  @return Length of time in milliseconds.
+
+  @remark A zero timeout means that no timeout should be
+          applied to this particular statement.
+*/
+
+static ulong get_max_statement_time(THD *thd)
+{
+  /* Check if timer support is implemented and was initialized. */
+  if (have_statement_timeout != SHOW_OPTION_YES)
+    return 0;
+
+  /* The maximum execution time only applies to top-level statements. */
+  if (thd->spcont || thd->in_sub_stmt)
+    return 0;
+
+  /* Also does not apply to statements made by the slave thread. */
+  if (thd->slave_thread)
+    return 0;
+
+  return thd->variables.max_statement_time;
+}
+
+
+/**
+  Set the time until the currently running statement is aborted.
+
+  @param  thd   Thread (session) context.
+
+  @return TRUE if the timer was armed.
+*/
+
+static bool set_statement_timer(THD *thd)
+{
+  ulong max_statement_time= get_max_statement_time(thd);
+
+  if (max_statement_time == 0)
+    return false;
+
+  DBUG_ASSERT(thd->timer == NULL);
+
+  if (thd->timer)
+    return false;
+
+  thd->timer= thd_timer_set(thd, thd->timer_cache, max_statement_time);
+  thd->timer_cache= NULL;
+
+  return thd->timer;
+}
+
+
+/**
+  Deactivate the timer associated with the statement that was executed.
+
+  @param  thd   Thread (session) context.
+*/
+
+static void reset_statement_timer(THD *thd)
+{
+  DBUG_ASSERT(thd->timer);
+  /* Cache the timer object if it can be reused. */
+  thd->timer_cache= thd_timer_reset(thd->timer);
+  thd->timer= NULL;
+}
+
 
 /**
   Perform one connection-level (COM_XXXX) command.
@@ -2076,6 +2148,8 @@ mysql_execute_command(THD *thd)
 #ifdef HAVE_REPLICATION
   } /* endif unlikely slave */
 #endif
+
+  bool reset_timer= set_statement_timer(thd);
 
   status_var_increment(thd->status_var.com_stat[lex->sql_command]);
 
@@ -4491,6 +4565,8 @@ finish:
   DBUG_ASSERT(!thd->in_active_multi_stmt_transaction() ||
                thd->in_multi_stmt_transaction_mode());
 
+  if (reset_timer)
+    reset_statement_timer(thd);
 
   if (! thd->in_sub_stmt)
   {
@@ -4500,7 +4576,9 @@ finish:
       if (! thd->stmt_da->is_set())
         thd->send_kill_message();
     }
-    if (thd->killed == THD::KILL_QUERY || thd->killed == THD::KILL_BAD_DATA)
+    if (thd->killed == THD::KILL_QUERY ||
+        thd->killed == THD::KILL_TIMEOUT ||
+        thd->killed == THD::KILL_BAD_DATA)
     {
       thd->killed= THD::NOT_KILLED;
       thd->mysys_var->abort= 0;

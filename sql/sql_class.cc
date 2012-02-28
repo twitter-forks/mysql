@@ -61,6 +61,8 @@
 #include "sql_parse.h"                          // is_update_query
 #include "sql_callback.h"
 
+#include "sql_timer.h"                          // thd_timer_end
+
 /*
   The following is used to initialise Table_ident with a internal
   table name
@@ -879,6 +881,8 @@ THD::THD()
   m_binlog_invoker= FALSE;
   memset(&invoker_user, 0, sizeof(invoker_user));
   memset(&invoker_host, 0, sizeof(invoker_host));
+
+  timer= timer_cache= NULL;
 }
 
 
@@ -1256,6 +1260,8 @@ void THD::cleanup(void)
   DBUG_ENTER("THD::cleanup");
   DBUG_ASSERT(cleanup_done == 0);
 
+  mysql_mutex_assert_not_owner(&LOCK_thd_data);
+
   killed= KILL_CONNECTION;
 #ifdef ENABLE_WHEN_BINLOG_WILL_BE_ABLE_TO_PREPARE
   if (transaction.xid_state.xa_state == XA_PREPARED)
@@ -1338,6 +1344,11 @@ THD::~THD()
   ha_close_connection(this);
   mysql_audit_release(this);
   plugin_thdvar_cleanup(this);
+
+  DBUG_ASSERT(timer == NULL);
+
+  if (timer_cache)
+    thd_timer_end(timer_cache);
 
   DBUG_PRINT("info", ("freeing security context"));
   main_security_ctx.destroy();
@@ -1440,7 +1451,8 @@ void THD::awake(THD::killed_state state_to_set)
   /* Set the 'killed' flag of 'this', which is the target THD object. */
   killed= state_to_set;
 
-  if (state_to_set != THD::KILL_QUERY)
+  if (state_to_set != THD::KILL_QUERY &&
+      state_to_set != THD::KILL_TIMEOUT)
   {
 #ifdef SIGNAL_WITH_VIO_CLOSE
     if (this != current_thd)

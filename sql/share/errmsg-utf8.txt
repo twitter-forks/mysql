@@ -2,7 +2,10 @@ languages czech=cze latin2, danish=dan latin1, dutch=nla latin1, english=eng lat
 
 default-language eng
 
-start-error-number 997
+start-error-number 996
+
+ER_QUERY_TIMEOUT 70100
+  eng "Query execution was interrupted, max_statement_time exceeded"
 
 ER_HTON_CONTROL_INVALID_ARGUMENT
   eng "Invalid control command argument"
