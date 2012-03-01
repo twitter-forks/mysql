@@ -110,8 +110,6 @@ SELECT @@max_statement_time;
 SELECT local.max_statement_time;
 --error ER_UNKNOWN_TABLE
 SELECT session.max_statement_time;
---error ER_BAD_FIELD_ERROR
-SELECT max_statement_time = @@session.max_statement_time;
 
 --echo # Restore initial value
 

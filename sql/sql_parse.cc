@@ -895,6 +895,14 @@ static ulong get_max_statement_time(THD *thd)
   if (thd->slave_thread)
     return 0;
 
+  /* MAX_STATEMENT_TIME=MS option. */
+  if (thd->lex->max_statement_time)
+  {
+    /* Option only applies to SELECT statements. */
+    DBUG_ASSERT(thd->lex->sql_command == SQLCOM_SELECT);
+    return thd->lex->max_statement_time;
+  }
+
   return thd->variables.max_statement_time;
 }
 

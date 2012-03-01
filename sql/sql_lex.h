@@ -2449,6 +2449,9 @@ struct LEX: public Query_tables_list
   */
   table_map  used_tables;
 
+  /** Maximum execution time for a statement. */
+  ulong max_statement_time;
+
   LEX();
 
   virtual ~LEX()

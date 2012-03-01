@@ -1,0 +1,73 @@
+
+# Test MAX_STATEMENT_TIME option syntax.
+
+CREATE TABLE t1 (a INT);
+SET @var = (SELECT MAX_STATEMENT_TIME=0 1);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1)' at line 1
+SELECT 1 FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 1);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1)' at line 1
+SELECT (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT a FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT * FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT * FROM t1
+WHERE a IN (SELECT a FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+WHERE a IN (SELECT a FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT * FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+UNION SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+INSERT INTO t1 SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+CREATE TABLE t1 AS SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+CREATE TABLE t1 AS SELECT 1 A UNION SELECT 2 UNION SELECT MAX_STATEMENT_TIME=0 3;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+a
+DROP TABLE t1;
+
+# Test the MAX_STATEMENT_TIME option.
+
+SELECT MAX_STATEMENT_TIME=1 SLEEP(1);
+SLEEP(1)
+1
+CREATE TABLE t1 (a INT, b VARCHAR(300));
+INSERT INTO t1 VALUES (1, 'string');
+SELECT 996;
+996
+996
+DROP TABLE t1;
+
+# Test the MAX_STATEMENT_TIME option with SF.
+
+CREATE TABLE t1 (a INT, b VARCHAR(300));
+INSERT INTO t1 VALUES (1, 'string');
+CREATE FUNCTION f1() RETURNS INT
+BEGIN
+WHILE true DO
+INSERT INTO t1 SELECT * FROM t1;
+END WHILE;
+RETURN 1;
+END|
+SELECT MAX_STATEMENT_TIME=500 f1();
+ERROR 70100: Query execution was interrupted, max_statement_time exceeded
+DROP FUNCTION f1;
+DROP TABLE t1;
+
+# MAX_STATEMENT_TIME option takes precedence over @@max_statement_time.
+
+SET @@SESSION.max_statement_time = 100;
+SELECT MAX_STATEMENT_TIME=2000 SLEEP(1);
+SLEEP(1)
+0
+SET @@SESSION.max_statement_time = DEFAULT;

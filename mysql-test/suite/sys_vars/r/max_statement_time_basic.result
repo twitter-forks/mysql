@@ -142,8 +142,6 @@ SELECT local.max_statement_time;
 ERROR 42S02: Unknown table 'local' in field list
 SELECT session.max_statement_time;
 ERROR 42S02: Unknown table 'session' in field list
-SELECT max_statement_time = @@session.max_statement_time;
-ERROR 42S22: Unknown column 'max_statement_time' in 'field list'
 # Restore initial value
 SET @@global.max_statement_time = @start_global_value;
 SELECT @@global.max_statement_time;
