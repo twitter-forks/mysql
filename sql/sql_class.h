@@ -554,6 +554,10 @@ typedef struct system_status_var
   ulong key_cache_write;
   /* END OF KEY_CACHE parts */
 
+  ulong max_statement_time_exceeded;
+  ulong max_statement_time_set;
+  ulong max_statement_time_set_failed;
+
   ulong net_big_packet_count;
   ulong opened_tables;
   ulong opened_shares;

@@ -132,3 +132,30 @@ disconnect con1;
 
 connection default;
 DROP USER user1@localhost;
+
+--echo
+--echo # MAX_STATEMENT_TIME status variables.
+--echo
+
+SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) INTO @time_set
+  FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_SET';
+
+SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) INTO @time_exceeded
+  FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED';
+
+SELECT MAX_STATEMENT_TIME=10 SLEEP(1);
+
+--echo # Ensure that the counters for:
+--echo # - statements that are time limited; and
+--echo # - statements that exceeded their maximum execution time
+--echo # are incremented.
+
+SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_SET'
+        AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_set;
+
+SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED'
+        AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_exceeded;

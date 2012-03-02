@@ -930,6 +930,11 @@ static bool set_statement_timer(THD *thd)
   thd->timer= thd_timer_set(thd, thd->timer_cache, max_statement_time);
   thd->timer_cache= NULL;
 
+  if (thd->timer)
+    status_var_increment(thd->status_var.max_statement_time_set);
+  else
+    status_var_increment(thd->status_var.max_statement_time_set_failed);
+
   return thd->timer;
 }
 
