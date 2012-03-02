@@ -71,3 +71,16 @@ SELECT MAX_STATEMENT_TIME=2000 SLEEP(1);
 SLEEP(1)
 0
 SET @@SESSION.max_statement_time = DEFAULT;
+
+# MAX_STATEMENT_TIME account resource
+
+GRANT USAGE ON *.* TO user1@localhost WITH MAX_STATEMENT_TIME 5000;
+# con1
+SELECT @@max_statement_time;
+@@max_statement_time
+5000
+# restart and reconnect
+SELECT @@max_statement_time;
+@@max_statement_time
+5000
+DROP USER user1@localhost;

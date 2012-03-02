@@ -3,6 +3,7 @@
 #
 
 --source include/have_statement_timeout.inc
+--source include/not_embedded.inc
 
 --echo
 --echo # Test MAX_STATEMENT_TIME option syntax.
@@ -109,3 +110,25 @@ DROP TABLE t1;
 SET @@SESSION.max_statement_time = 100;
 SELECT MAX_STATEMENT_TIME=2000 SLEEP(1);
 SET @@SESSION.max_statement_time = DEFAULT;
+
+--echo
+--echo # MAX_STATEMENT_TIME account resource
+--echo
+
+GRANT USAGE ON *.* TO user1@localhost WITH MAX_STATEMENT_TIME 5000;
+
+--echo # con1
+connect(con1,localhost,user1,,test,,);
+SELECT @@max_statement_time;
+disconnect con1;
+
+--echo # restart and reconnect
+connection default;
+source include/restart_mysqld.inc;
+
+connect(con1,localhost,user1,,test,,);
+SELECT @@max_statement_time;
+disconnect con1;
+
+connection default;
+DROP USER user1@localhost;

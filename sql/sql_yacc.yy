@@ -13841,6 +13841,12 @@ grant_option:
             lex->mqh.user_conn= $2;
             lex->mqh.specified_limits|= USER_RESOURCES::USER_CONNECTIONS;
           }
+        | MAX_STATEMENT_TIME_SYM ulong_num
+          {
+            LEX *lex=Lex;
+            lex->mqh.statement_timeout= $2;
+            lex->mqh.specified_limits|= USER_RESOURCES::STATEMENT_TIMEOUT;
+          }
         ;
 
 begin:

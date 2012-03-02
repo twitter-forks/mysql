@@ -925,6 +925,22 @@ static my_bool acl_load(THD *thd, TABLE_LIST *tables)
             user.auth_string.length= strlen(user.auth_string.str);
           }
         }
+
+        /*
+          Find custom fields by name as these should always be located
+          at the end of the table as to avoid messing with the index
+          of fields that are added later. In other words, custom fields
+          have no specific position within a table and should always be
+          the last columns of a table.
+        */
+        {
+          Field *field;
+
+          if ((field= find_field_in_table_sef(table, "max_statement_time")))
+            user.user_resource.statement_timeout= (uint) field->val_int();
+          else
+            user.user_resource.statement_timeout= 0;
+        }
       }
       else
       {
@@ -1418,6 +1434,8 @@ static void acl_update_user(const char *user, const char *host,
 	  acl_user->user_resource.conn_per_hour= mqh->conn_per_hour;
 	if (mqh->specified_limits & USER_RESOURCES::USER_CONNECTIONS)
 	  acl_user->user_resource.user_conn= mqh->user_conn;
+        if (mqh->specified_limits & USER_RESOURCES::STATEMENT_TIMEOUT)
+          acl_user->user_resource.statement_timeout= mqh->statement_timeout;
 	if (ssl_type != SSL_TYPE_NOT_SPECIFIED)
 	{
 	  acl_user->ssl_type= ssl_type;
@@ -2395,6 +2413,18 @@ static int replace_user_table(THD *thd, TABLE *table, const LEX_USER &combo,
         my_error(ER_BAD_FIELD_ERROR, MYF(0), "plugin", "mysql.user");
         goto end;
       }
+    }
+
+    /*
+      Find custom fields by name as they have no specific position
+      within a table.
+    */
+    {
+      Field *field;
+
+      if ((field= find_field_in_table_sef(table, "max_statement_time")) &&
+          mqh.specified_limits & USER_RESOURCES::STATEMENT_TIMEOUT)
+        field->store(mqh.statement_timeout, TRUE);
     }
   }
 
@@ -5290,7 +5320,8 @@ bool mysql_show_grants(THD *thd,LEX_USER *lex_user)
 	(acl_user->user_resource.questions ||
          acl_user->user_resource.updates ||
          acl_user->user_resource.conn_per_hour ||
-         acl_user->user_resource.user_conn))
+         acl_user->user_resource.user_conn) ||
+         acl_user->user_resource.statement_timeout)
     {
       global.append(STRING_WITH_LEN(" WITH"));
       if (want_access & GRANT_ACL)
@@ -5303,6 +5334,8 @@ bool mysql_show_grants(THD *thd,LEX_USER *lex_user)
 		      "MAX_CONNECTIONS_PER_HOUR");
       add_user_option(&global, acl_user->user_resource.user_conn,
 		      "MAX_USER_CONNECTIONS");
+      add_user_option(&global, acl_user->user_resource.statement_timeout,
+                      "MAX_STATEMENT_TIME");
     }
     protocol->prepare_for_resend();
     protocol->store(global.ptr(),global.length(),global.charset());
@@ -9447,7 +9480,8 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
     /* Don't allow the user to connect if he has done too many queries */
     if ((acl_user->user_resource.questions || acl_user->user_resource.updates ||
          acl_user->user_resource.conn_per_hour ||
-         acl_user->user_resource.user_conn || 
+         acl_user->user_resource.user_conn ||
+         acl_user->user_resource.statement_timeout ||
          global_system_variables.max_user_connections) &&
         get_or_create_user_conn(thd,
           (opt_old_style_user_limits ? sctx->user : sctx->priv_user),
@@ -9530,6 +9564,10 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
   */
   thd->net.skip_big_packet= TRUE;
 #endif
+
+  if (thd->user_connect)
+    thd->variables.max_statement_time=
+      thd->user_connect->user_resources.statement_timeout;
 
   /* Ready to handle queries */
   DBUG_RETURN(0);

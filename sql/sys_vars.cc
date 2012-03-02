@@ -2130,7 +2130,7 @@ static Sys_var_set Sys_protocol_mode(
 static Sys_var_ulong Sys_max_statement_time(
        "max_statement_time",
        "Kill any statement that takes over the specified number of milliseconds",
-       SESSION_VAR(max_statement_time), CMD_LINE(REQUIRED_ARG),
+       SESSION_ONLY(max_statement_time), NO_CMD_LINE,
        VALID_RANGE(0, ULONG_MAX), DEFAULT(0), BLOCK_SIZE(1));
 
 #if defined(HAVE_OPENSSL) && !defined(EMBEDDED_LIBRARY)

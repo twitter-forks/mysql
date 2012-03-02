@@ -176,12 +176,14 @@ typedef struct user_resources {
   uint conn_per_hour;
   /* Maximum number of concurrent connections. */
   uint user_conn;
+  /* Maximum duration, in milliseconds, of a statement execution. */
+  uint statement_timeout;
   /*
      Values of this enum and specified_limits member are used by the
      parser to store which user limits were specified in GRANT statement.
   */
   enum {QUERIES_PER_HOUR= 1, UPDATES_PER_HOUR= 2, CONNECTIONS_PER_HOUR= 4,
-        USER_CONNECTIONS= 8};
+        USER_CONNECTIONS= 8, STATEMENT_TIMEOUT=16 };
   uint specified_limits;
 } USER_RESOURCES;
 
