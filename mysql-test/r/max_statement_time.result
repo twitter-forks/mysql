@@ -110,3 +110,17 @@ WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED'
         AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_exceeded;
 STATUS
 1
+
+# Check that the appropriate error status is set.
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+START TRANSACTION;
+SELECT * FROM t1 FOR UPDATE;
+a
+1
+SET @@SESSION.max_statement_time = 500;
+UPDATE t1 SET a = 2;
+ERROR 70100: Query execution was interrupted, max_statement_time exceeded
+ROLLBACK;
+DROP TABLE t1;

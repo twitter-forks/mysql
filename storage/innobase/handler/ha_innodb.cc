@@ -950,7 +950,7 @@ convert_error_code_to_mysql(
 		return(0);
 
 	case DB_INTERRUPTED:
-		my_error(ER_QUERY_INTERRUPTED, MYF(0));
+		thd_set_kill_status(thd ? thd : thd_get_current_thd());
 		/* fall through */
 
 	case DB_FOREIGN_EXCEED_MAX_CASCADE:
@@ -8687,7 +8687,7 @@ ha_innobase::check(
 
 	prebuilt->trx->op_info = "";
 	if (thd_killed(user_thd)) {
-		my_error(ER_QUERY_INTERRUPTED, MYF(0));
+		thd_set_kill_status(user_thd);
 	}
 
 	DBUG_RETURN(is_ok ? HA_ADMIN_OK : HA_ADMIN_CORRUPT);

@@ -4,6 +4,7 @@
 
 --source include/have_statement_timeout.inc
 --source include/not_embedded.inc
+--source include/have_innodb.inc
 
 --echo
 --echo # Test MAX_STATEMENT_TIME option syntax.
@@ -78,7 +79,6 @@ DROP TABLE t1;
 --echo
 --echo # Test the MAX_STATEMENT_TIME option with SF.
 --echo
-
 
 CREATE TABLE t1 (a INT, b VARCHAR(300));
 
@@ -159,3 +159,23 @@ SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
 SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
   WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED'
         AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_exceeded;
+
+--echo
+--echo # Check that the appropriate error status is set.
+--echo
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+
+START TRANSACTION;
+SELECT * FROM t1 FOR UPDATE;
+
+connect (con1,localhost,root,,test,,);
+SET @@SESSION.max_statement_time = 500;
+--error ER_QUERY_TIMEOUT
+UPDATE t1 SET a = 2;
+disconnect con1;
+
+connection default;
+ROLLBACK;
+DROP TABLE t1;

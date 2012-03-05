@@ -3491,6 +3491,16 @@ extern "C" int thd_killed(const MYSQL_THD thd)
 }
 
 /**
+  Set the killed status of the current statement.
+
+  @param thd  user thread connection handle
+*/
+extern "C" void thd_set_kill_status(const MYSQL_THD thd)
+{
+  thd->send_kill_message();
+}
+
+/**
   Return the thread id of a user thread
   @param thd user thread
   @return thread id

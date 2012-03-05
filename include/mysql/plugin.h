@@ -584,6 +584,13 @@ int thd_killed(const MYSQL_THD thd);
 
 
 /**
+  Set the killed status of the current statement.
+
+  @param thd  user thread connection handle
+*/
+void thd_set_kill_status(const MYSQL_THD thd);
+
+/**
   Return the thread id of a user thread
 
   @param thd  user thread connection handle
