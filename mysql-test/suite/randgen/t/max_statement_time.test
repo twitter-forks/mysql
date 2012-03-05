@@ -1,0 +1,16 @@
+--source include/have_statement_timeout.inc
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_example.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --gendata=$RQG_HOME/conf/twitter/max_statement_time.zz
+  --grammar=$RQG_HOME/conf/twitter/max_statement_time.yy
+  --engine=$RQG_ENGINE
+  --queries=100K
+  --threads=25
+  --duration=600;
+
+--source suite/randgen/include/cleanup.inc
