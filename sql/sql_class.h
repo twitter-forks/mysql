@@ -55,6 +55,8 @@ class Sroutine_hash_entry;
 class User_level_lock;
 class user_var_entry;
 
+struct st_thd_timer;
+
 enum enum_enable_or_disable { LEAVE_AS_IS, ENABLE, DISABLE };
 enum enum_ha_read_modes { RFIRST, RNEXT, RPREV, RLAST, RKEY, RNEXT_SAME };
 enum enum_duplicates { DUP_ERROR, DUP_REPLACE, DUP_UPDATE };
@@ -510,6 +512,7 @@ typedef struct system_variables
   double long_query_time_double;
 
   ulong protocol_mode;
+  ulong max_statement_time;
 } SV;
 
 
@@ -550,6 +553,10 @@ typedef struct system_status_var
   ulong key_cache_w_requests;
   ulong key_cache_write;
   /* END OF KEY_CACHE parts */
+
+  ulong max_statement_time_exceeded;
+  ulong max_statement_time_set;
+  ulong max_statement_time_set_failed;
 
   ulong net_big_packet_count;
   ulong opened_tables;
@@ -1644,6 +1651,9 @@ public:
     return current_stmt_binlog_format == BINLOG_FORMAT_ROW;
   }
 
+  /** Timer object. */
+  struct st_thd_timer *timer, *timer_cache;
+
 private:
   /**
     Indicates the format in which the current statement will be
@@ -2032,6 +2042,7 @@ public:
     KILL_BAD_DATA=1,
     KILL_CONNECTION=ER_SERVER_SHUTDOWN,
     KILL_QUERY=ER_QUERY_INTERRUPTED,
+    KILL_TIMEOUT=ER_QUERY_TIMEOUT,
     KILLED_NO_VALUE      /* means neither of the states */
   };
   killed_state volatile killed;

@@ -1,0 +1,91 @@
+# Save initial value
+SET @start_session_value = @@session.max_statement_time;
+SELECT @start_session_value;
+@start_session_value
+0
+# Display the DEFAULT value of max_statement_time
+SET @@session.max_statement_time = 20000;
+SET @@session.max_statement_time = DEFAULT;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+0
+# Check the DEFAULT value of max_statement_time
+SET @@session.max_statement_time = DEFAULT;
+SELECT @@session.max_statement_time = 28800;
+@@session.max_statement_time = 28800
+0
+# Change the value of max_statement_time to a valid value for SESSION scope
+SET @@session.max_statement_time = 10000;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+10000
+SET @@session.max_statement_time = 50050;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+50050
+SET @@session.max_statement_time = 65535;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+65535
+# Change the value of max_statement_time to an invalid value #
+SET @@session.max_statement_time = 0;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+0
+SET @@session.max_statement_time = -2;
+Warnings:
+Warning	1292	Truncated incorrect max_statement_time value: '-2'
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+0
+SET @@session.max_statement_time = 65530.34;
+ERROR 42000: Incorrect argument type to variable 'max_statement_time'
+SET @@session.max_statement_time = 100000000;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+100000000
+SET @@session.max_statement_time = test;
+ERROR 42000: Incorrect argument type to variable 'max_statement_time'
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+100000000
+# Check if the value in SESSION Table matches value in variable
+SELECT @@session.max_statement_time = VARIABLE_VALUE
+FROM INFORMATION_SCHEMA.SESSION_VARIABLES
+WHERE VARIABLE_NAME='max_statement_time';
+@@session.max_statement_time = VARIABLE_VALUE
+1
+# Check if TRUE and FALSE values can be used on variable
+SET @@session.max_statement_time = TRUE;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+1
+SET @@session.max_statement_time = FALSE;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+0
+# Check if accessing variable with SESSION,LOCAL and without SCOPE points to same session variable
+SET @@max_statement_time = 10000;
+SELECT @@max_statement_time = @@local.max_statement_time;
+@@max_statement_time = @@local.max_statement_time
+1
+SELECT @@local.max_statement_time = @@session.max_statement_time;
+@@local.max_statement_time = @@session.max_statement_time
+1
+# Check if max_statement_time can be accessed with and without @@ sign
+SET max_statement_time = 10000;
+SELECT @@max_statement_time;
+@@max_statement_time
+10000
+SELECT local.max_statement_time;
+ERROR 42S02: Unknown table 'local' in field list
+SELECT session.max_statement_time;
+ERROR 42S02: Unknown table 'session' in field list
+# Check that the variable is a SESSION-only variable
+SET @@global.max_statement_time = 0;
+ERROR HY000: Variable 'max_statement_time' is a SESSION variable and can't be used with SET GLOBAL
+# Restore initial value
+SET @@session.max_statement_time = @start_session_value;
+SELECT @@session.max_statement_time;
+@@session.max_statement_time
+0

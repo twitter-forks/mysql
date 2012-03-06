@@ -652,6 +652,10 @@ INSERT INTO tmp_proxies_priv VALUES ('localhost', 'root', '', '', TRUE, '', now(
 INSERT INTO proxies_priv SELECT * FROM tmp_proxies_priv WHERE @had_proxies_priv_table=0;
 DROP TABLE tmp_proxies_priv;
 
+--
+-- Custom columns should be the last columns of the user table.
+--
+ALTER TABLE user ADD max_statement_time int(11) unsigned DEFAULT 0 NOT NULL;
 
 # Activate the new, possible modified privilege tables
 # This should not be needed, but gives us some extra testing that the above

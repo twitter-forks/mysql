@@ -1,0 +1,157 @@
+
+# Test MAX_STATEMENT_TIME option syntax.
+
+CREATE TABLE t1 (a INT);
+SET @var = (SELECT MAX_STATEMENT_TIME=0 1);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1)' at line 1
+SELECT 1 FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 1);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '1)' at line 1
+SELECT (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT a FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT * FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT * FROM t1
+WHERE a IN (SELECT a FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+WHERE a IN (SELECT a FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+ERROR 42S22: Unknown column 'MAX_STATEMENT_TIME' in 'field list'
+SELECT * FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+UNION SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+INSERT INTO t1 SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+CREATE TABLE t1 AS SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+CREATE TABLE t1 AS SELECT 1 A UNION SELECT 2 UNION SELECT MAX_STATEMENT_TIME=0 3;
+ERROR 42000: Incorrect usage/placement of 'MAX_STATEMENT_TIME'
+SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+a
+DROP TABLE t1;
+
+# Test the MAX_STATEMENT_TIME option.
+
+SELECT MAX_STATEMENT_TIME=1 SLEEP(1);
+SLEEP(1)
+1
+CREATE TABLE t1 (a INT, b VARCHAR(300));
+INSERT INTO t1 VALUES (1, 'string');
+SELECT 996;
+996
+996
+DROP TABLE t1;
+
+# Test the MAX_STATEMENT_TIME option with SF.
+
+CREATE TABLE t1 (a INT, b VARCHAR(300));
+INSERT INTO t1 VALUES (1, 'string');
+CREATE FUNCTION f1() RETURNS INT
+BEGIN
+WHILE true DO
+INSERT INTO t1 SELECT * FROM t1;
+END WHILE;
+RETURN 1;
+END|
+SELECT MAX_STATEMENT_TIME=500 f1();
+ERROR 70100: Query execution was interrupted, max_statement_time exceeded
+DROP FUNCTION f1;
+DROP TABLE t1;
+
+# MAX_STATEMENT_TIME option takes precedence over @@max_statement_time.
+
+SET @@SESSION.max_statement_time = 100;
+SELECT MAX_STATEMENT_TIME=2000 SLEEP(1);
+SLEEP(1)
+0
+SET @@SESSION.max_statement_time = DEFAULT;
+
+# MAX_STATEMENT_TIME account resource
+
+GRANT USAGE ON *.* TO user1@localhost WITH MAX_STATEMENT_TIME 5000;
+# con1
+SELECT @@max_statement_time;
+@@max_statement_time
+5000
+# restart and reconnect
+SELECT @@max_statement_time;
+@@max_statement_time
+5000
+DROP USER user1@localhost;
+
+# MAX_STATEMENT_TIME status variables.
+
+SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) INTO @time_set
+FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_SET';
+SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) INTO @time_exceeded
+FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED';
+SELECT MAX_STATEMENT_TIME=10 SLEEP(1);
+SLEEP(1)
+1
+# Ensure that the counters for:
+# - statements that are time limited; and
+# - statements that exceeded their maximum execution time
+# are incremented.
+SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_SET'
+        AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_set;
+STATUS
+1
+SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED'
+        AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_exceeded;
+STATUS
+1
+
+# Check that the appropriate error status is set.
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+START TRANSACTION;
+SELECT * FROM t1 FOR UPDATE;
+a
+1
+SET @@SESSION.max_statement_time = 500;
+UPDATE t1 SET a = 2;
+ERROR 70100: Query execution was interrupted, max_statement_time exceeded
+SHOW WARNINGS;
+Level	Code	Message
+Error	996	Query execution was interrupted, max_statement_time exceeded
+Error	996	Query execution was interrupted, max_statement_time exceeded
+ROLLBACK;
+DROP TABLE t1;
+
+# Test interaction with lock waits.
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+SET @@SESSION.max_statement_time = 500;
+LOCK TABLES t1 WRITE;
+LOCK TABLES t1 READ;
+ERROR 70100: Query execution was interrupted, max_statement_time exceeded
+UNLOCK TABLES;
+BEGIN;
+SELECT * FROM t1;
+a
+1
+ALTER TABLE t1 ADD COLUMN b INT;
+ERROR 70100: Query execution was interrupted, max_statement_time exceeded
+ROLLBACK;
+SELECT GET_LOCK('lock', 1);
+GET_LOCK('lock', 1)
+1
+SELECT GET_LOCK('lock', 1);
+GET_LOCK('lock', 1)
+NULL
+SELECT RELEASE_LOCK('lock');
+RELEASE_LOCK('lock')
+1
+DROP TABLE t1;

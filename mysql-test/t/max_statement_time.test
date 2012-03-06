@@ -1,0 +1,220 @@
+#
+# Test behavior of MAX_STATEMENT_TIME.
+#
+
+--source include/have_statement_timeout.inc
+--source include/not_embedded.inc
+--source include/have_innodb.inc
+
+--echo
+--echo # Test MAX_STATEMENT_TIME option syntax.
+--echo
+
+CREATE TABLE t1 (a INT);
+
+--error ER_PARSE_ERROR
+SET @var = (SELECT MAX_STATEMENT_TIME=0 1);
+--error ER_PARSE_ERROR
+SELECT 1 FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 1);
+
+--error ER_BAD_FIELD_ERROR
+SELECT (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+--error ER_BAD_FIELD_ERROR
+SELECT a FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+--error ER_BAD_FIELD_ERROR
+SELECT * FROM t1 WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+--error ER_BAD_FIELD_ERROR
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+  WHERE a IN (SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+--error ER_BAD_FIELD_ERROR
+SELECT * FROM t1
+  WHERE a IN (SELECT a FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+--error ER_BAD_FIELD_ERROR
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+  WHERE a IN (SELECT a FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 a FROM t1);
+
+--error ER_CANT_USE_OPTION_HERE
+SELECT * FROM t1 UNION SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+--error ER_CANT_USE_OPTION_HERE
+SELECT MAX_STATEMENT_TIME=0 * FROM t1
+  UNION SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+--error ER_CANT_USE_OPTION_HERE
+INSERT INTO t1 SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+--error ER_CANT_USE_OPTION_HERE
+CREATE TABLE t1 AS SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+--error ER_CANT_USE_OPTION_HERE
+CREATE TABLE t1 AS SELECT 1 A UNION SELECT 2 UNION SELECT MAX_STATEMENT_TIME=0 3;
+
+SELECT MAX_STATEMENT_TIME=0 * FROM t1;
+
+DROP TABLE t1;
+
+--echo
+--echo # Test the MAX_STATEMENT_TIME option.
+--echo
+
+SELECT MAX_STATEMENT_TIME=1 SLEEP(1);
+
+CREATE TABLE t1 (a INT, b VARCHAR(300));
+
+INSERT INTO t1 VALUES (1, 'string');
+
+--disable_result_log
+--disable_query_log
+
+WHILE (! $mysql_errno)
+{
+  INSERT INTO t1 SELECT * FROM t1;
+  --error 0,996
+  SELECT MAX_STATEMENT_TIME=250 COUNT(*) FROM t1 WHERE b LIKE '%z%';
+}
+
+--enable_query_log
+--enable_result_log
+
+eval SELECT $mysql_errno;
+
+DROP TABLE t1;
+
+--echo
+--echo # Test the MAX_STATEMENT_TIME option with SF.
+--echo
+
+CREATE TABLE t1 (a INT, b VARCHAR(300));
+
+INSERT INTO t1 VALUES (1, 'string');
+
+DELIMITER |;
+
+CREATE FUNCTION f1() RETURNS INT
+BEGIN
+  WHILE true DO
+    INSERT INTO t1 SELECT * FROM t1;
+  END WHILE;
+  RETURN 1;
+END|
+
+DELIMITER ;|
+
+--error ER_QUERY_TIMEOUT
+SELECT MAX_STATEMENT_TIME=500 f1();
+
+DROP FUNCTION f1;
+
+DROP TABLE t1;
+
+--echo
+--echo # MAX_STATEMENT_TIME option takes precedence over @@max_statement_time.
+--echo
+
+SET @@SESSION.max_statement_time = 100;
+SELECT MAX_STATEMENT_TIME=2000 SLEEP(1);
+SET @@SESSION.max_statement_time = DEFAULT;
+
+--echo
+--echo # MAX_STATEMENT_TIME account resource
+--echo
+
+GRANT USAGE ON *.* TO user1@localhost WITH MAX_STATEMENT_TIME 5000;
+
+--echo # con1
+connect(con1,localhost,user1,,test,,);
+SELECT @@max_statement_time;
+disconnect con1;
+
+--echo # restart and reconnect
+connection default;
+source include/restart_mysqld.inc;
+
+connect(con1,localhost,user1,,test,,);
+SELECT @@max_statement_time;
+disconnect con1;
+
+connection default;
+DROP USER user1@localhost;
+
+--echo
+--echo # MAX_STATEMENT_TIME status variables.
+--echo
+
+SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) INTO @time_set
+  FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_SET';
+
+SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) INTO @time_exceeded
+  FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED';
+
+SELECT MAX_STATEMENT_TIME=10 SLEEP(1);
+
+--echo # Ensure that the counters for:
+--echo # - statements that are time limited; and
+--echo # - statements that exceeded their maximum execution time
+--echo # are incremented.
+
+SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_SET'
+        AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_set;
+
+SELECT 1 AS STATUS FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'MAX_STATEMENT_TIME_EXCEEDED'
+        AND CONVERT(VARIABLE_VALUE, UNSIGNED) > @time_exceeded;
+
+--echo
+--echo # Check that the appropriate error status is set.
+--echo
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+
+START TRANSACTION;
+SELECT * FROM t1 FOR UPDATE;
+
+connect (con1,localhost,root,,test,,);
+SET @@SESSION.max_statement_time = 500;
+--error ER_QUERY_TIMEOUT
+UPDATE t1 SET a = 2;
+SHOW WARNINGS;
+disconnect con1;
+
+connection default;
+ROLLBACK;
+DROP TABLE t1;
+
+--echo
+--echo # Test interaction with lock waits.
+--echo
+
+CREATE TABLE t1 (a INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1);
+
+connect (con1,localhost,root,,test,,);
+SET @@SESSION.max_statement_time = 500;
+
+connection default;
+LOCK TABLES t1 WRITE;
+
+connection con1;
+--error ER_QUERY_TIMEOUT
+LOCK TABLES t1 READ;
+
+connection default;
+UNLOCK TABLES;
+BEGIN;
+SELECT * FROM t1;
+
+connection con1;
+--error ER_QUERY_TIMEOUT
+ALTER TABLE t1 ADD COLUMN b INT;
+
+connection default;
+ROLLBACK;
+SELECT GET_LOCK('lock', 1);
+
+connection con1;
+SELECT GET_LOCK('lock', 1);
+
+disconnect con1;
+connection default;
+SELECT RELEASE_LOCK('lock');
+DROP TABLE t1;

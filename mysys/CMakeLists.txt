@@ -44,6 +44,14 @@ IF(HAVE_ALARM)
  SET(MYSYS_SOURCES ${MYSYS_SOURCES} my_alarm.c)
 ENDIF()
 
+IF(HAVE_POSIX_TIMERS)
+ SET(MYSYS_SOURCES ${MYSYS_SOURCES} posix_timers.c)
+ENDIF()
+
+IF(HAVE_KQUEUE_TIMERS)
+  SET(MYSYS_SOURCES ${MYSYS_SOURCES} kqueue_timers.c)
+ENDIF()
+
 IF(NOT HAVE_CXX_NEW)
  # gcc as C++ compiler  does not have new/delete
  SET(MYSYS_SOURCES ${MYSYS_SOURCES} my_new.cc)

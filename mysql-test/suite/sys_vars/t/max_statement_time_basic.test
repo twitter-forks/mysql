@@ -1,0 +1,78 @@
+--source include/have_statement_timeout.inc
+
+--echo # Save initial value
+
+SET @start_session_value = @@session.max_statement_time;
+SELECT @start_session_value;
+
+--echo # Display the DEFAULT value of max_statement_time
+
+SET @@session.max_statement_time = 20000;
+SET @@session.max_statement_time = DEFAULT;
+SELECT @@session.max_statement_time;
+
+--echo # Check the DEFAULT value of max_statement_time
+
+SET @@session.max_statement_time = DEFAULT;
+SELECT @@session.max_statement_time = 28800;
+
+--echo # Change the value of max_statement_time to a valid value for SESSION scope
+
+SET @@session.max_statement_time = 10000;
+SELECT @@session.max_statement_time;
+SET @@session.max_statement_time = 50050;
+SELECT @@session.max_statement_time;
+SET @@session.max_statement_time = 65535;
+SELECT @@session.max_statement_time;
+
+--echo # Change the value of max_statement_time to an invalid value #
+
+SET @@session.max_statement_time = 0;
+SELECT @@session.max_statement_time;
+SET @@session.max_statement_time = -2;
+SELECT @@session.max_statement_time;
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@session.max_statement_time = 65530.34;
+SET @@session.max_statement_time = 100000000;
+SELECT @@session.max_statement_time;
+
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@session.max_statement_time = test;
+SELECT @@session.max_statement_time;
+
+--echo # Check if the value in SESSION Table matches value in variable
+
+SELECT @@session.max_statement_time = VARIABLE_VALUE
+FROM INFORMATION_SCHEMA.SESSION_VARIABLES
+WHERE VARIABLE_NAME='max_statement_time';
+
+--echo # Check if TRUE and FALSE values can be used on variable
+
+SET @@session.max_statement_time = TRUE;
+SELECT @@session.max_statement_time;
+SET @@session.max_statement_time = FALSE;
+SELECT @@session.max_statement_time;
+
+--echo # Check if accessing variable with SESSION,LOCAL and without SCOPE points to same session variable
+
+SET @@max_statement_time = 10000;
+SELECT @@max_statement_time = @@local.max_statement_time;
+SELECT @@local.max_statement_time = @@session.max_statement_time;
+
+--echo # Check if max_statement_time can be accessed with and without @@ sign
+
+SET max_statement_time = 10000;
+SELECT @@max_statement_time;
+--error ER_UNKNOWN_TABLE
+SELECT local.max_statement_time;
+--error ER_UNKNOWN_TABLE
+SELECT session.max_statement_time;
+
+--echo # Check that the variable is a SESSION-only variable
+--error ER_LOCAL_VARIABLE
+SET @@global.max_statement_time = 0;
+
+--echo # Restore initial value
+
+SET @@session.max_statement_time = @start_session_value;
+SELECT @@session.max_statement_time;

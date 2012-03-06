@@ -782,10 +782,10 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 
 %pure_parser                                    /* We have threads */
 /*
-  Currently there are 168 shift/reduce conflicts.
+  Currently there are 172 shift/reduce conflicts.
   We should not introduce new conflicts any more.
 */
-%expect 168
+%expect 172
 
 /*
    Comments for TOKENS.
@@ -1094,6 +1094,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  MATCH                         /* SQL-2003-R */
 %token  MAX_CONNECTIONS_PER_HOUR
 %token  MAX_QUERIES_PER_HOUR
+%token  MAX_STATEMENT_TIME_SYM
 %token  MAX_ROWS
 %token  MAX_SIZE_SYM
 %token  MAX_SYM                       /* SQL-2003-N */
@@ -7237,15 +7238,25 @@ opt_ignore_leaves:
 
 
 select:
-          select_init
+          top_level_select_init
           {
             LEX *lex= Lex;
             lex->sql_command= SQLCOM_SELECT;
           }
         ;
 
+top_level_select_init:
+          SELECT_SYM
+          {
+            Lex->sql_command= SQLCOM_SELECT;
+          }
+          select_init2
+        | '(' select_paren ')' union_opt
+        ;
+
+
 /* Need select_init2 for subselects. */
-select_init:
+union_select_init:
           SELECT_SYM select_init2
         | '(' select_paren ')' union_opt
         ;
@@ -7401,6 +7412,20 @@ select_option:
               Lex->select_lex.options|= OPTION_TO_QUERY_CACHE;
               Lex->select_lex.sql_cache= SELECT_LEX::SQL_CACHE;
             }
+          }
+        | MAX_STATEMENT_TIME_SYM EQ ulong_num
+          {
+            /*
+              Maximum execution time only applies to top-level SELECT statements.
+            */
+            if (Lex->sql_command != SQLCOM_SELECT ||
+                Lex->current_select != &Lex->select_lex)
+            {
+              my_error(ER_CANT_USE_OPTION_HERE, MYF(0), "MAX_STATEMENT_TIME");
+              MYSQL_YYABORT;
+            }
+
+            Lex->max_statement_time= $3;
           }
         ;
 
@@ -12615,6 +12640,7 @@ keyword_sp:
         | MASTER_SSL_KEY_SYM       {}
         | MAX_CONNECTIONS_PER_HOUR {}
         | MAX_QUERIES_PER_HOUR     {}
+        | MAX_STATEMENT_TIME_SYM   {}
         | MAX_SIZE_SYM             {}
         | MAX_UPDATES_PER_HOUR     {}
         | MAX_USER_CONNECTIONS_SYM {}
@@ -13815,6 +13841,12 @@ grant_option:
             lex->mqh.user_conn= $2;
             lex->mqh.specified_limits|= USER_RESOURCES::USER_CONNECTIONS;
           }
+        | MAX_STATEMENT_TIME_SYM ulong_num
+          {
+            LEX *lex=Lex;
+            lex->mqh.statement_timeout= $2;
+            lex->mqh.specified_limits|= USER_RESOURCES::STATEMENT_TIMEOUT;
+          }
         ;
 
 begin:
@@ -13916,7 +13948,7 @@ union_list:
             if (add_select_to_union_list(Lex, (bool)$2, TRUE))
               MYSQL_YYABORT;
           }
-          select_init
+          union_select_init
           {
             /*
               Remove from the name resolution context stack the context of the

@@ -30,3 +30,7 @@ ENDMACRO()
 FOREACH(testname bitmap base64 my_vsnprintf my_atomic my_rdtsc lf my_malloc)
   MY_ADD_TEST(${testname})
 ENDFOREACH()
+
+IF(HAVE_MY_TIMER)
+  MY_ADD_TEST(my_timer)
+ENDIF()
