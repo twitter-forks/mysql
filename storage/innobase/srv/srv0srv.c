@@ -210,6 +210,8 @@ UNIV_INTERN ulint	srv_buf_pool_size	= ULINT_MAX;
 UNIV_INTERN my_bool	srv_buf_pool_populate	= FALSE;
 /* requested number of buffer pool instances */
 UNIV_INTERN ulint       srv_buf_pool_instances  = 1;
+/** whether or not to flush neighbors of a block */
+UNIV_INTERN my_bool	srv_flush_neighbors	= TRUE;
 /* previously requested size */
 UNIV_INTERN ulint	srv_buf_pool_old_size;
 /* current size in kilobytes */
