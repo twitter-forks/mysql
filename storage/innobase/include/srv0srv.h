@@ -165,6 +165,7 @@ extern ulint	srv_mem_pool_size;
 extern ulint	srv_lock_table_size;
 
 extern uint	srv_buf_flush_dirty_pages_age;
+extern my_bool	srv_anticipatory_flushing;
 
 extern ulint	srv_n_file_io_threads;
 extern my_bool	srv_random_read_ahead;
