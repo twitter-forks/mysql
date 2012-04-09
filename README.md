@@ -1,10 +1,10 @@
 # Twitter MySQL 5.5 #
 
-This is [http://twitter.com/](Twitter)'s MySQL development branch, which is based on MySQL 5.5 as published by Oracle on [https://launchpad.net/mysql-server](MySQL on Launchpad). 
+This is [Twitter](http://twitter.com/)'s MySQL development branch, which is based on MySQL 5.5 as published by Oracle on [MySQL on Launchpad](https://launchpad.net/mysql-server). 
 
 This repository is published in order to share code and information and is *not intended to be used directly outside of Twitter*. We provide no guarantees of bug fixes, ongoing maintenance, compatibility, or suitability for any user outside of Twitter.
 
-The original README file provided with the upstream MySQL release can be found at [README-MySQL](README-MySQL).
+The original README file provided with the upstream MySQL release can be found at [README-MySQL](https://github.com/twitter/mysql/blob/master/README-MySQL).
 
 # Features in Twitter MySQL #
 
@@ -18,7 +18,7 @@ Additional status variables have been added, particularly from the internals of 
 
 ## Optimization of memory allocation under NUMA ##
 
-On most recent multi-processor systems, a [http://en.wikipedia.org/wiki/Non-Uniform_Memory_Access](non-uniform memory access NUMA) (NUMA) architecture is in use, which divides the total system memory across multiple NUMA "nodes". When allocating large amounts of memory to InnoDB's buffer pool, as is typical, some inefficiencies as well as serious problems can be encountered. More details about the The following changes have been made to optimize and improve this:
+On most recent multi-processor systems, a [non-uniform memory access NUMA](http://en.wikipedia.org/wiki/Non-Uniform_Memory_Access) (NUMA) architecture is in use, which divides the total system memory across multiple NUMA "nodes". When allocating large amounts of memory to InnoDB's buffer pool, as is typical, some inefficiencies as well as serious problems can be encountered. More details about the The following changes have been made to optimize and improve this:
 
 * An option has been added to forcibly pre-allocate the entire buffer pool during startup. This is primarily intended to force the system to decide which pages to allocate, and on which NUMA node to allocate them. If the buffer pool can't be fully allocated for any reason, InnoDB will abort during startup.
 * An option has been added to `mysqld_safe` to wrap the start of `mysqld` with `numactl --interleave=all` to interleave memory allocation between all NUMA nodes available. This ensures that no NUMA node is favored for any allocation, so that memory usage will remain even over time between multiple NUMA nodes.
