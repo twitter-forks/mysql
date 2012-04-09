@@ -18,7 +18,7 @@ Additional status variables have been added, particularly from the internals of 
 
 ## Optimization of memory allocation under NUMA ##
 
-On most recent multi-processor systems, a [non-uniform memory access NUMA](http://en.wikipedia.org/wiki/Non-Uniform_Memory_Access) (NUMA) architecture is in use, which divides the total system memory across multiple NUMA "nodes". When allocating large amounts of memory to InnoDB's buffer pool, as is typical, some inefficiencies as well as serious problems can be encountered. More details about the The following changes have been made to optimize and improve this:
+On most recent multi-processor systems, a [non-uniform memory access NUMA](http://en.wikipedia.org/wiki/Non-Uniform_Memory_Access) (NUMA) architecture is in use, which divides the total system memory across multiple NUMA "nodes". When allocating large amounts of memory to InnoDB's buffer pool, as is typical, some inefficiencies as well as serious problems can be encountered. More details about the problems typical in NUMA systems running MySQL can be found in [a blog post by Jeremy Cole](http://blog.jcole.us/2010/09/28/mysql-swap-insanity-and-the-numa-architecture/). The following changes have been made to optimize and improve this:
 
 * An option has been added to forcibly pre-allocate the entire buffer pool during startup. This is primarily intended to force the system to decide which pages to allocate, and on which NUMA node to allocate them. If the buffer pool can't be fully allocated for any reason, InnoDB will abort during startup.
 * An option has been added to `mysqld_safe` to wrap the start of `mysqld` with `numactl --interleave=all` to interleave memory allocation between all NUMA nodes available. This ensures that no NUMA node is favored for any allocation, so that memory usage will remain even over time between multiple NUMA nodes.
@@ -28,7 +28,7 @@ On most recent multi-processor systems, a [non-uniform memory access NUMA](http:
 
 * Reduced unnecessary work through improved server-side statement timeout support. This allows the server to proactively cancel queries that run longer than a millisecond-granularity timeout.
 
-## Buffer pool export and restore by pre-fetch ##
+## Buffer pool export and restore by prefetch ##
 
 * Export and restore InnoDB buffer pool in using a safe and lightweight method. This enables us to build tools to support rolling restarts of our services with minimal pain.
 
