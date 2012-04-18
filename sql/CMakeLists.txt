@@ -20,6 +20,7 @@ ${CMAKE_SOURCE_DIR}/regex
 ${ZLIB_INCLUDE_DIR}
 ${SSL_INCLUDE_DIRS}
 ${CMAKE_BINARY_DIR}/sql
+${BREAKPAD_INCLUDE_DIRS}
 )
 
 SET(GEN_SOURCES
@@ -84,6 +85,10 @@ IF(HAVE_MY_TIMER)
   SET(SQL_SOURCE ${SQL_SOURCE} sql_timer.cc)
 ENDIF()
 
+IF(HAVE_BREAKPAD)
+  SET(SQL_SOURCE ${SQL_SOURCE} minidump.cc)
+ENDIF()
+
 MYSQL_ADD_PLUGIN(partition ha_partition.cc STORAGE_ENGINE DEFAULT STATIC_ONLY
 RECOMPILE_FOR_EMBEDDED)
 
@@ -93,7 +98,7 @@ DTRACE_INSTRUMENT(sql)
 TARGET_LINK_LIBRARIES(sql ${MYSQLD_STATIC_PLUGIN_LIBS} 
   mysys dbug strings vio regex   
   ${LIBWRAP} ${LIBCRYPT} ${LIBDL}
-  ${SSL_LIBRARIES})
+  ${SSL_LIBRARIES} ${BREAKPAD_LIBRARIES})
 
 #
 # On Windows platform we compile in the clinet-side Windows Native Authentication

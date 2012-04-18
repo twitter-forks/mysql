@@ -573,6 +573,7 @@
 #cmakedefine HAVE_UCA_COLLATIONS 1
 #cmakedefine HAVE_COMPRESS 1
 
+#cmakedefine HAVE_BREAKPAD 1
 
 /*
   Stuff that always need to be defined (compile breaks without it)

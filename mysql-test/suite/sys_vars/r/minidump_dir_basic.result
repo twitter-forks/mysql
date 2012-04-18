@@ -1,0 +1,53 @@
+# Displaying default value
+SELECT COUNT(@@GLOBAL.minidump_dir);
+COUNT(@@GLOBAL.minidump_dir)
+1
+1 Expected
+# Check if Value can set
+SET @@GLOBAL.minidump_dir=1;
+ERROR HY000: Variable 'minidump_dir' is a read only variable
+Expected error 'Read only variable'
+SELECT COUNT(@@GLOBAL.minidump_dir);
+COUNT(@@GLOBAL.minidump_dir)
+1
+1 Expected
+# Check if the value in GLOBAL Table matches value in variable
+SELECT @@GLOBAL.minidump_dir = VARIABLE_VALUE
+FROM INFORMATION_SCHEMA.GLOBAL_VARIABLES
+WHERE VARIABLE_NAME='minidump_dir';
+@@GLOBAL.minidump_dir = VARIABLE_VALUE
+1
+1 Expected
+SELECT COUNT(@@GLOBAL.minidump_dir);
+COUNT(@@GLOBAL.minidump_dir)
+1
+1 Expected
+SELECT COUNT(VARIABLE_VALUE)
+FROM INFORMATION_SCHEMA.GLOBAL_VARIABLES
+WHERE VARIABLE_NAME='minidump_dir';
+COUNT(VARIABLE_VALUE)
+1
+1 Expected
+# Check if accessing variable with and without GLOBAL point to same variable
+SELECT @@minidump_dir = @@GLOBAL.minidump_dir;
+@@minidump_dir = @@GLOBAL.minidump_dir
+1
+1 Expected
+# Check if minidump_dir can be accessed with and without @@ sign
+SELECT COUNT(@@minidump_dir);
+COUNT(@@minidump_dir)
+1
+1 Expected
+SELECT COUNT(@@local.minidump_dir);
+ERROR HY000: Variable 'minidump_dir' is a GLOBAL variable
+Expected error 'Variable is a GLOBAL variable'
+SELECT COUNT(@@SESSION.minidump_dir);
+ERROR HY000: Variable 'minidump_dir' is a GLOBAL variable
+Expected error 'Variable is a GLOBAL variable'
+SELECT COUNT(@@GLOBAL.minidump_dir);
+COUNT(@@GLOBAL.minidump_dir)
+1
+1 Expected
+SELECT minidump_dir = @@SESSION.minidump_dir;
+ERROR 42S22: Unknown column 'minidump_dir' in 'field list'
+Expected error 'Readonly variable'
