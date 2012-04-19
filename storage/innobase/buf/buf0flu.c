@@ -1749,8 +1749,6 @@ buf_flush_batch(
 	}
 #endif /* UNIV_DEBUG */
 
-	srv_buf_pool_flushed += count;
-
 	return(count);
 }
 
