@@ -445,6 +445,7 @@ volatile bool mqh_used = 0;
 my_bool opt_noacl;
 my_bool sp_automatic_privileges= 1;
 my_bool opt_super_only= 0;
+char *opt_minidump_dir= NULL;
 
 ulong opt_binlog_rows_event_max_size;
 const char *binlog_format_names[]= {"MIXED", "STATEMENT", "ROW", NullS};
@@ -6699,6 +6700,7 @@ static int mysql_init_variables(void)
   mysqld_user= mysqld_chroot= opt_init_file= opt_bin_logname = 0;
   prepared_stmt_count= 0;
   mysqld_unix_port= opt_mysql_tmpdir= my_bind_addr_str= NullS;
+  opt_minidump_dir= NULL;
   bzero((uchar*) &mysql_tmpdir_list, sizeof(mysql_tmpdir_list));
   bzero((char *) &global_status_var, sizeof(global_status_var));
   opt_large_pages= 0;
@@ -7546,6 +7548,8 @@ static int fix_paths(void)
   if (!slave_load_tmpdir)
     slave_load_tmpdir= mysql_tmpdir;
 #endif /* HAVE_REPLICATION */
+  if (!opt_minidump_dir)
+    opt_minidump_dir= mysql_tmpdir;
   /*
     Convert the secure-file-priv option to system format, allowing
     a quick strcmp to check if read or write is in an allowed dir

@@ -266,6 +266,8 @@ MYSQL_CHECK_ZLIB_WITH_COMPRESS()
 MYSQL_CHECK_SSL()
 # Add readline or libedit.
 MYSQL_CHECK_READLINE()
+# Google Breakpad crash reporting.
+INCLUDE(breakpad)
 
 #
 # Setup maintainer mode options by the end. Platform checks are

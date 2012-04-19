@@ -23,6 +23,7 @@
 #include "sql_base.h" // table_def_cache, table_cache_count, unused_tables
 #include "sql_show.h" // calc_sum_of_all_status
 #include "sql_select.h"
+#include "minidump.h" // my_write_minidump
 #include "keycaches.h"
 #include <hash.h>
 #include <thr_alarm.h>
@@ -586,4 +587,6 @@ Estimated memory (with thread stack):    %ld\n",
   Events::dump_internal_status();
 #endif
   puts("");
+
+  my_write_minidump(opt_minidump_dir);
 }

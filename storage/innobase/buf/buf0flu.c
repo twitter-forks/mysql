@@ -1379,10 +1379,10 @@ buf_flush_try_neighbors(
 
 	ut_ad(flush_type == BUF_FLUSH_LRU || flush_type == BUF_FLUSH_LIST);
 
-	if (UT_LIST_GET_LEN(buf_pool->LRU) < BUF_LRU_OLD_MIN_LEN) {
-		/* If there is little space, it is better not to flush
-		any block except from the end of the LRU list */
-
+	if (UT_LIST_GET_LEN(buf_pool->LRU) < BUF_LRU_OLD_MIN_LEN
+	    || !srv_flush_neighbors) {
+		/* If there is little space or neighbor flushing is
+		not enabled then just flush the victim. */
 		low = offset;
 		high = offset + 1;
 	} else {
@@ -1749,8 +1749,6 @@ buf_flush_batch(
 			(ulong) count);
 	}
 #endif /* UNIV_DEBUG */
-
-	srv_buf_pool_flushed += count;
 
 	return(count);
 }

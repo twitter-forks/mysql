@@ -11641,6 +11641,11 @@ static MYSQL_SYSVAR_ULONG(commit_concurrency, innobase_commit_concurrency,
   "Helps in performance tuning in heavily concurrent environments.",
   innobase_commit_concurrency_validate, NULL, 0, 0, 1000, 0);
 
+static MYSQL_SYSVAR_BOOL(flush_neighbors, srv_flush_neighbors,
+  PLUGIN_VAR_NOCMDARG,
+  "Flush neighbors from buffer pool when flushing a block.",
+  NULL, NULL, TRUE);
+
 static MYSQL_SYSVAR_ULONG(concurrency_tickets, srv_n_free_tickets_to_enter,
   PLUGIN_VAR_RQCMDARG,
   "Number of times a thread is allowed to enter InnoDB within the same SQL query after it has once got the ticket",
@@ -11800,12 +11805,19 @@ static MYSQL_SYSVAR_UINT(flush_dirty_pages_age, srv_buf_flush_dirty_pages_age,
   "percentage.",
   NULL, NULL, 0, 0, UINT_MAX32, 0);
 
+static MYSQL_SYSVAR_BOOL(anticipatory_flushing, srv_anticipatory_flushing,
+  PLUGIN_VAR_NOCMDARG,
+  "Attempt to flush dirty pages from the master thread if enough I/O "
+  "bandwidth is available for background tasks (see innodb_io_capacity).",
+  NULL, NULL, TRUE);
+
 static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(additional_mem_pool_size),
   MYSQL_SYSVAR(autoextend_increment),
   MYSQL_SYSVAR(buffer_pool_size),
   MYSQL_SYSVAR(buffer_pool_populate),
   MYSQL_SYSVAR(buffer_pool_instances),
+  MYSQL_SYSVAR(flush_neighbors),
   MYSQL_SYSVAR(checksums),
   MYSQL_SYSVAR(commit_concurrency),
   MYSQL_SYSVAR(concurrency_tickets),
@@ -11874,6 +11886,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(trx_rseg_n_slots_debug),
 #endif /* UNIV_DEBUG */
   MYSQL_SYSVAR(flush_dirty_pages_age),
+  MYSQL_SYSVAR(anticipatory_flushing),
   NULL
 };
 

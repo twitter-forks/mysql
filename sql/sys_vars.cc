@@ -2134,6 +2134,11 @@ static Sys_var_ulong Sys_max_statement_time(
        SESSION_ONLY(max_statement_time), NO_CMD_LINE,
        VALID_RANGE(0, ULONG_MAX), DEFAULT(0), BLOCK_SIZE(1));
 
+static Sys_var_charptr Sys_minidump_dir(
+       "minidump_dir", "Path for minidump files. Defaults to tmpdir.",
+       READ_ONLY GLOBAL_VAR(opt_minidump_dir), CMD_LINE(REQUIRED_ARG),
+       IN_FS_CHARSET, DEFAULT(0));
+
 #if defined(HAVE_OPENSSL) && !defined(EMBEDDED_LIBRARY)
 #define SSL_OPT(X) CMD_LINE(REQUIRED_ARG,X)
 #else

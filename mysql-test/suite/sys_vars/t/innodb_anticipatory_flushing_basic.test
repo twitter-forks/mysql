@@ -1,0 +1,65 @@
+--source include/have_innodb.inc
+
+SET @start_global_value = @@global.innodb_anticipatory_flushing;
+SELECT @start_global_value;
+
+#
+# exists as global only
+#
+--echo Valid values are 'ON' and 'OFF'
+select @@global.innodb_anticipatory_flushing in (0, 1);
+select @@global.innodb_anticipatory_flushing;
+--error ER_INCORRECT_GLOBAL_LOCAL_VAR
+select @@session.innodb_anticipatory_flushing;
+show global variables like 'innodb_anticipatory_flushing';
+show session variables like 'innodb_anticipatory_flushing';
+select * from information_schema.global_variables where variable_name='innodb_anticipatory_flushing';
+select * from information_schema.session_variables where variable_name='innodb_anticipatory_flushing';
+
+#
+# show that it's writable
+#
+set global innodb_anticipatory_flushing='OFF';
+select @@global.innodb_anticipatory_flushing;
+select * from information_schema.global_variables where variable_name='innodb_anticipatory_flushing';
+select * from information_schema.session_variables where variable_name='innodb_anticipatory_flushing';
+set @@global.innodb_anticipatory_flushing=1;
+select @@global.innodb_anticipatory_flushing;
+select * from information_schema.global_variables where variable_name='innodb_anticipatory_flushing';
+select * from information_schema.session_variables where variable_name='innodb_anticipatory_flushing';
+set global innodb_anticipatory_flushing=0;
+select @@global.innodb_anticipatory_flushing;
+select * from information_schema.global_variables where variable_name='innodb_anticipatory_flushing';
+select * from information_schema.session_variables where variable_name='innodb_anticipatory_flushing';
+set @@global.innodb_anticipatory_flushing='ON';
+select @@global.innodb_anticipatory_flushing;
+select * from information_schema.global_variables where variable_name='innodb_anticipatory_flushing';
+select * from information_schema.session_variables where variable_name='innodb_anticipatory_flushing';
+--error ER_GLOBAL_VARIABLE
+set session innodb_anticipatory_flushing='OFF';
+--error ER_GLOBAL_VARIABLE
+set @@session.innodb_anticipatory_flushing='ON';
+
+#
+# incorrect types
+#
+--error ER_WRONG_TYPE_FOR_VAR
+set global innodb_anticipatory_flushing=1.1;
+--error ER_WRONG_TYPE_FOR_VAR
+set global innodb_anticipatory_flushing=1e1;
+--error ER_WRONG_VALUE_FOR_VAR
+set global innodb_anticipatory_flushing=2;
+--echo NOTE: The following should fail with ER_WRONG_VALUE_FOR_VAR (BUG#50643)
+set global innodb_anticipatory_flushing=-3;
+select @@global.innodb_anticipatory_flushing;
+select * from information_schema.global_variables where variable_name='innodb_anticipatory_flushing';
+select * from information_schema.session_variables where variable_name='innodb_anticipatory_flushing';
+--error ER_WRONG_VALUE_FOR_VAR
+set global innodb_anticipatory_flushing='AUTO';
+
+#
+# Cleanup
+#
+
+SET @@global.innodb_anticipatory_flushing = @start_global_value;
+SELECT @@global.innodb_anticipatory_flushing;

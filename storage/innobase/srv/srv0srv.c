@@ -210,6 +210,8 @@ UNIV_INTERN ulint	srv_buf_pool_size	= ULINT_MAX;
 UNIV_INTERN my_bool	srv_buf_pool_populate	= FALSE;
 /* requested number of buffer pool instances */
 UNIV_INTERN ulint       srv_buf_pool_instances  = 1;
+/** whether or not to flush neighbors of a block */
+UNIV_INTERN my_bool	srv_flush_neighbors	= TRUE;
 /* previously requested size */
 UNIV_INTERN ulint	srv_buf_pool_old_size;
 /* current size in kilobytes */
@@ -219,6 +221,9 @@ UNIV_INTERN ulint	srv_mem_pool_size	= ULINT_MAX;
 UNIV_INTERN ulint	srv_lock_table_size	= ULINT_MAX;
 
 UNIV_INTERN uint	srv_buf_flush_dirty_pages_age = 0;
+
+/* Try to flush dirty pages so as to avoid IO bursts at */
+UNIV_INTERN my_bool	srv_anticipatory_flushing = TRUE;
 
 /* This parameter is deprecated. Use srv_n_io_[read|write]_threads
 instead. */
@@ -2886,7 +2891,8 @@ loop:
 	srv_main_10_second_loops++;
 	if (n_pend_ios < SRV_PEND_IO_THRESHOLD
 	    && (n_ios - n_ios_very_old < SRV_PAST_IO_ACTIVITY)
-	    && flush_lsn_limit) {
+	    && flush_lsn_limit
+	    && srv_anticipatory_flushing) {
 
 		srv_main_thread_op_info = "flushing buffer pool pages";
 		buf_flush_list(PCT_IO(100), flush_lsn_limit);
@@ -2929,7 +2935,7 @@ loop:
 
 		n_pages_flushed = buf_flush_list(
 			PCT_IO(100), IB_ULONGLONG_MAX);
-	} else {
+	} else if (srv_anticipatory_flushing) {
 		/* Otherwise, we only flush a small number of pages so that
 		we do not unnecessarily use much disk i/o capacity from
 		other work */
