@@ -546,6 +546,8 @@ buf_LRU_free_from_unzip_LRU_list(
 {
 	buf_block_t*	block;
 	ulint		distance;
+	ulint		scanned = 0;
+	ibool		freed = FALSE;
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
@@ -569,8 +571,6 @@ buf_LRU_free_from_unzip_LRU_list(
 	     UNIV_LIKELY(block != NULL) && UNIV_LIKELY(distance > 0);
 	     block = UT_LIST_GET_PREV(unzip_LRU, block), distance--) {
 
-		ibool freed;
-
 		ut_ad(buf_block_get_state(block) == BUF_BLOCK_FILE_PAGE);
 		ut_ad(block->in_unzip_LRU_list);
 		ut_ad(block->page.in_LRU_list);
@@ -579,12 +579,16 @@ buf_LRU_free_from_unzip_LRU_list(
 		freed = buf_LRU_free_block(&block->page, FALSE);
 		mutex_exit(&block->mutex);
 
+		scanned++;
+
 		if (freed) {
-			return(TRUE);
+			break;
 		}
 	}
 
-	return(FALSE);
+	srv_buf_pool_LRU_unzip_search_scanned += scanned;
+
+	return(freed);
 }
 
 /******************************************************************//**
@@ -605,6 +609,8 @@ buf_LRU_free_from_common_LRU_list(
 {
 	buf_page_t*	bpage;
 	ulint		distance;
+	ibool		freed = FALSE;
+	ulint		scanned = 0;
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
@@ -614,9 +620,10 @@ buf_LRU_free_from_common_LRU_list(
 	     UNIV_LIKELY(bpage != NULL) && UNIV_LIKELY(distance > 0);
 	     bpage = UT_LIST_GET_PREV(LRU, bpage), distance--) {
 
-		ibool		freed;
 		unsigned	accessed;
 		mutex_t*	block_mutex = buf_page_get_mutex(bpage);
+
+		scanned++;
 
 		ut_ad(buf_page_in_file(bpage));
 		ut_ad(bpage->in_LRU_list);
@@ -633,11 +640,13 @@ buf_LRU_free_from_common_LRU_list(
 			if (!accessed) {
 				++buf_pool->stat.n_ra_pages_evicted;
 			}
-			return(TRUE);
+			break;
 		}
 	}
 
-	return(FALSE);
+	srv_buf_pool_LRU_search_scanned += scanned;
+
+	return(freed);
 }
 
 /******************************************************************//**
@@ -807,6 +816,8 @@ buf_LRU_get_free_block(
 	ulint		n_iterations	= 1;
 	ibool		mon_value_was	= FALSE;
 	ibool		started_monitor	= FALSE;
+
+	srv_buf_pool_LRU_get_free_search++;
 loop:
 	buf_pool_mutex_enter(buf_pool);
 

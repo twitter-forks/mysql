@@ -74,9 +74,6 @@ static buf_flush_stat_t	buf_flush_stat_cur;
 Updated by buf_flush_stat_update(). Not protected by any mutex. */
 static buf_flush_stat_t	buf_flush_stat_sum;
 
-/** Number of pages flushed through non flush_list flushes. */
-static ulint buf_lru_flush_page_count = 0;
-
 /* @} */
 
 #if defined UNIV_DEBUG || defined UNIV_BUF_DEBUG
@@ -1473,6 +1470,10 @@ buf_flush_try_neighbors(
 		buf_pool_mutex_exit(buf_pool);
 	}
 
+	if (count) {
+		srv_buf_pool_flush_neighbor_pages += (count - 1);
+	}
+
 	return(count);
 }
 
@@ -1559,6 +1560,7 @@ buf_flush_LRU_list_batch(
 {
 	buf_page_t*	bpage;
 	ulint		count = 0;
+	ulint		scanned = 0;
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
@@ -1570,6 +1572,7 @@ buf_flush_LRU_list_batch(
 		/* Iterate backwards over the flush list till we find
 		a page that isn't ready for flushing. */
 		while (bpage != NULL
+		       && (scanned++, TRUE)
 		       && !buf_flush_page_and_try_neighbors(
 				bpage, BUF_FLUSH_LRU, max, &count)) {
 
@@ -1578,6 +1581,8 @@ buf_flush_LRU_list_batch(
 	} while (bpage != NULL && count < max);
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
+
+	srv_buf_pool_flush_LRU_batch_scanned += scanned;
 
 	return(count);
 }
@@ -1606,6 +1611,7 @@ buf_flush_flush_list_batch(
 	ulint		len;
 	buf_page_t*	bpage;
 	ulint		count = 0;
+	ulint		scanned = 0;
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
@@ -1649,6 +1655,7 @@ buf_flush_flush_list_batch(
 		       && !buf_flush_page_and_try_neighbors(
 				bpage, BUF_FLUSH_LIST, min_n, &count)) {
 
+			++scanned;
 			buf_flush_list_mutex_enter(buf_pool);
 
 			/* If we are here that means that buf_pool->mutex
@@ -1677,6 +1684,8 @@ buf_flush_flush_list_batch(
 		}
 
 	} while (count < min_n && bpage != NULL && len > 0);
+
+	srv_buf_pool_flush_batch_scanned += scanned;
 
 	ut_ad(buf_pool_mutex_own(buf_pool));
 
@@ -1776,7 +1785,7 @@ buf_flush_common(
 		/* We keep track of all flushes happening as part of LRU
 		flush. When estimating the desired rate at which flush_list
 		should be flushed we factor in this value. */
-		buf_lru_flush_page_count += page_count;
+		srv_buf_pool_flush_LRU_page_count += page_count;
 	}
 }
 
@@ -2093,7 +2102,7 @@ buf_flush_stat_update(void)
 
 	/* values for this interval */
 	lsn_diff = lsn - buf_flush_stat_cur.redo;
-	n_flushed = buf_lru_flush_page_count
+	n_flushed = srv_buf_pool_flush_LRU_page_count
 		    - buf_flush_stat_cur.n_flushed;
 
 	/* add the current value and subtract the obsolete entry. */
@@ -2110,7 +2119,7 @@ buf_flush_stat_update(void)
 
 	/* reset the current entry. */
 	buf_flush_stat_cur.redo = lsn;
-	buf_flush_stat_cur.n_flushed = buf_lru_flush_page_count;
+	buf_flush_stat_cur.n_flushed = srv_buf_pool_flush_LRU_page_count;
 }
 
 /*********************************************************************
@@ -2170,7 +2179,7 @@ buf_flush_get_desired_flush_rate(void)
 	number of pages flushed in the current interval. */
 	lru_flush_avg = buf_flush_stat_sum.n_flushed
 			/ BUF_FLUSH_STAT_N_INTERVAL
-			+ (buf_lru_flush_page_count
+			+ (srv_buf_pool_flush_LRU_page_count
 			   - buf_flush_stat_cur.n_flushed);
 
 	n_flush_req = (n_dirty * redo_avg) / log_capacity;

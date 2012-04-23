@@ -340,6 +340,42 @@ extern ulint srv_buf_pool_flushed;
 reading of a disk page */
 extern ulint srv_buf_pool_reads;
 
+/** Number of pages scanned as part of a flush batch. */
+extern ulint srv_buf_pool_flush_batch_scanned;
+
+/** Number of pages flushed as part of sync batches. */
+extern ulint srv_buf_pool_flush_sync_page;
+
+/** Number of pages flushed as part of adaptive batches. */
+extern ulint srv_buf_pool_flush_adaptive_pages;
+
+/** Number of pages flushed as part of anticipatory batches. */
+extern ulint srv_buf_pool_flush_anticipatory_pages;
+
+/** Number of pages flushed as part of background (async) batches. */
+extern ulint srv_buf_pool_flush_background_pages;
+
+/** Number of pages flushed as part of max_dirty batches. */
+extern ulint srv_buf_pool_flush_max_dirty_pages;
+
+/** Number of pages flushed as part of neighbor flush. */
+extern ulint srv_buf_pool_flush_neighbor_pages;
+
+/** Number of pages scanned as part of LRU batches. */
+extern ulint srv_buf_pool_flush_LRU_batch_scanned;
+
+/** Number of pages flushed as part of LRU batches. */
+extern ulint srv_buf_pool_flush_LRU_page_count;
+
+/** Number of pages scanned as part of LRU search. */
+extern ulint srv_buf_pool_LRU_search_scanned;
+
+/** Number of pages scanned as part of LRU unzip search. */
+extern ulint srv_buf_pool_LRU_unzip_search_scanned;
+
+/** Number of searches performed for a clean page. */
+extern ulint srv_buf_pool_LRU_get_free_search;
+
 /** Status variables to be passed to MySQL */
 typedef struct export_var_struct export_struc;
 
@@ -759,6 +795,30 @@ struct export_var_struct{
 	ulint innodb_tablespace_files_opened;	/*!< fil_n_tablespace_opened */
 	ulint innodb_tablespace_files_closed;	/*!< fil_n_tablespace_closed */
 	ulint innodb_truncated_status_writes;	/*!< srv_truncated_status_writes */
+	ulint innodb_buffer_pool_flush_batch_scanned;
+						/*!< srv_buf_pool_flush_batch_scanned */
+	ulint innodb_buffer_pool_flush_sync_page;
+						/*!< srv_buf_pool_flush_sync_page */
+	ulint innodb_buffer_pool_flush_adaptive_pages;
+						/*!< srv_buf_pool_flush_adaptive_pages */
+	ulint innodb_buffer_pool_flush_anticipatory_pages;
+						/*!< srv_buf_pool_flush_anticipatory_pages */
+	ulint innodb_buffer_pool_flush_background_pages;
+						/*!< srv_buf_pool_flush_background_pages */
+	ulint innodb_buffer_pool_flush_max_dirty_pages;
+						/*!< srv_buf_pool_flush_max_dirty_pages */
+	ulint innodb_buffer_pool_flush_neighbor_pages;
+						/*!< srv_buf_pool_flush_neighbor_pages */
+	ulint innodb_buffer_pool_flush_LRU_batch_scanned;
+						/*!< srv_buf_pool_flush_LRU_batch_scanned */
+	ulint innodb_buffer_pool_flush_LRU_page_count;
+						/*!< srv_buf_pool_flush_LRU_page_count */
+	ulint innodb_buffer_pool_LRU_search_scanned;
+						/*!< srv_buf_pool_LRU_search_scanned */
+	ulint innodb_buffer_pool_LRU_unzip_search_scanned;
+						/*!< srv_buf_pool_LRU_unzip_search_scanned */
+	ulint innodb_buffer_pool_LRU_get_free_search;
+						/*!< srv_buf_pool_LRU_get_free_search */
 };
 
 /** Thread slot in the thread table */

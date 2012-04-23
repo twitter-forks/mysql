@@ -330,6 +330,42 @@ UNIV_INTERN ulint srv_buf_pool_flushed = 0;
 reading of a disk page */
 UNIV_INTERN ulint srv_buf_pool_reads = 0;
 
+/** Number of pages scanned as part of a flush batch. */
+UNIV_INTERN ulint srv_buf_pool_flush_batch_scanned;
+
+/** Number of pages flushed as part of sync batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_sync_page;
+
+/** Number of pages flushed as part of adaptive batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_adaptive_pages;
+
+/** Number of pages flushed as part of anticipatory batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_anticipatory_pages;
+
+/** Number of pages flushed as part of background (async) batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_background_pages;
+
+/** Number of pages flushed as part of max_dirty batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_max_dirty_pages;
+
+/** Number of pages flushed as part of neighbor flush. */
+UNIV_INTERN ulint srv_buf_pool_flush_neighbor_pages;
+
+/** Number of pages scanned as part of LRU batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_LRU_batch_scanned;
+
+/** Number of pages flushed as part of LRU batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_LRU_page_count;
+
+/** Number of pages scanned as part of LRU search. */
+UNIV_INTERN ulint srv_buf_pool_LRU_search_scanned;
+
+/** Number of pages scanned as part of LRU unzip search. */
+UNIV_INTERN ulint srv_buf_pool_LRU_unzip_search_scanned;
+
+/** Number of searches performed for a clean page. */
+UNIV_INTERN ulint srv_buf_pool_LRU_get_free_search;
+
 /* structure to pass status variables to MySQL */
 UNIV_INTERN export_struc export_vars;
 
@@ -2113,6 +2149,31 @@ srv_export_innodb_status(void)
 	export_vars.innodb_lsn_flushed = log_sys->flushed_to_disk_lsn;
 	export_vars.innodb_lsn_checkpoint = log_sys->last_checkpoint_lsn;
 
+	export_vars.innodb_buffer_pool_flush_batch_scanned
+		= srv_buf_pool_flush_batch_scanned;
+	export_vars.innodb_buffer_pool_flush_sync_page
+		= srv_buf_pool_flush_sync_page;
+	export_vars.innodb_buffer_pool_flush_adaptive_pages
+		= srv_buf_pool_flush_adaptive_pages;
+	export_vars.innodb_buffer_pool_flush_anticipatory_pages
+		= srv_buf_pool_flush_anticipatory_pages;
+	export_vars.innodb_buffer_pool_flush_background_pages
+		= srv_buf_pool_flush_background_pages;
+	export_vars.innodb_buffer_pool_flush_max_dirty_pages
+		= srv_buf_pool_flush_max_dirty_pages;
+	export_vars.innodb_buffer_pool_flush_neighbor_pages
+		= srv_buf_pool_flush_neighbor_pages;
+	export_vars.innodb_buffer_pool_flush_LRU_batch_scanned
+		= srv_buf_pool_flush_LRU_batch_scanned;
+	export_vars.innodb_buffer_pool_flush_LRU_page_count
+		= srv_buf_pool_flush_LRU_page_count;
+	export_vars.innodb_buffer_pool_LRU_search_scanned
+		= srv_buf_pool_LRU_search_scanned;
+	export_vars.innodb_buffer_pool_LRU_unzip_search_scanned
+		= srv_buf_pool_LRU_unzip_search_scanned;
+	export_vars.innodb_buffer_pool_LRU_get_free_search
+		= srv_buf_pool_LRU_get_free_search;
+
 	mutex_exit(&srv_innodb_monitor_mutex);
 }
 
@@ -2691,6 +2752,7 @@ srv_master_thread(
 	ulint		n_ios_very_old;
 	ulint		n_pend_ios;
 	ulint		next_itr_time;
+	ibool		max_dirty_pages_flush = FALSE;
 	ulint		i;
 
 #ifdef UNIV_DEBUG_THREAD_CREATION
@@ -2819,6 +2881,8 @@ loop:
 			n_pages_flushed = buf_flush_list(
 				PCT_IO(100), IB_ULONGLONG_MAX);
 
+			srv_buf_pool_flush_max_dirty_pages += n_pages_flushed;
+
 		} else if (srv_adaptive_flushing) {
 
 			/* Try to keep the rate of flushing of dirty
@@ -2834,6 +2898,9 @@ loop:
 					buf_flush_list(
 						n_flush,
 						IB_ULONGLONG_MAX);
+
+				srv_buf_pool_flush_adaptive_pages +=
+					n_pages_flushed;
 			}
 		}
 
@@ -2894,8 +2961,14 @@ loop:
 	    && flush_lsn_limit
 	    && srv_anticipatory_flushing) {
 
+		ulint n_flushed;
+
 		srv_main_thread_op_info = "flushing buffer pool pages";
-		buf_flush_list(PCT_IO(100), flush_lsn_limit);
+		n_flushed = buf_flush_list(PCT_IO(100), flush_lsn_limit);
+
+		if (n_flushed != ULINT_UNDEFINED) {
+			srv_buf_pool_flush_anticipatory_pages += n_flushed;
+		}
 
 		flush_lsn_limit = 0;
 
@@ -2935,6 +3008,8 @@ loop:
 
 		n_pages_flushed = buf_flush_list(
 			PCT_IO(100), IB_ULONGLONG_MAX);
+
+		srv_buf_pool_flush_max_dirty_pages += n_pages_flushed;
 	} else if (srv_anticipatory_flushing) {
 		/* Otherwise, we only flush a small number of pages so that
 		we do not unnecessarily use much disk i/o capacity from
@@ -2942,6 +3017,8 @@ loop:
 
 		n_pages_flushed = buf_flush_list(
 			  PCT_IO(10), IB_ULONGLONG_MAX);
+
+		srv_buf_pool_flush_anticipatory_pages += n_pages_flushed;
 	}
 
 	srv_main_thread_op_info = "making checkpoint";
@@ -3052,6 +3129,12 @@ flush_loop:
 	srv_main_thread_op_info = "waiting for buffer pool flush to end";
 	buf_flush_wait_batch_end(NULL, BUF_FLUSH_LIST);
 
+	if (max_dirty_pages_flush) {
+		srv_buf_pool_flush_max_dirty_pages += n_pages_flushed;
+	}
+
+	srv_buf_pool_flush_background_pages += n_pages_flushed;
+
 	/* Flush logs if needed */
 	srv_sync_log_buffer_in_background();
 
@@ -3064,7 +3147,11 @@ flush_loop:
 		/* Try to keep the number of modified pages in the
 		buffer pool under the limit wished by the user */
 
+		max_dirty_pages_flush = TRUE;
+
 		goto flush_loop;
+	} else {
+		max_dirty_pages_flush = FALSE;
 	}
 
 	srv_main_thread_op_info = "reserving kernel mutex";
