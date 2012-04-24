@@ -127,6 +127,10 @@ CONFIGURE_FILE(${CMAKE_BINARY_DIR}/sql/sql_yacc.cc
 CONFIGURE_FILE(${CMAKE_BINARY_DIR}/support-files/mysql-${VERSION}.spec
    ${PACKAGE_DIR}/support-files/mysql-${VERSION}.spec COPYONLY)
 
+# Copy README file
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/README-MySQL
+   ${PACKAGE_DIR}/README COPYONLY)
+
 # Add documentation, if user has specified where to find them
 IF(MYSQL_DOCS_LOCATION)
   MESSAGE("Copying documentation files from " ${MYSQL_DOCS_LOCATION})
