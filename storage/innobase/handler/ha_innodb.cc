@@ -2965,6 +2965,12 @@ retry:
 		trx->mysql_log_file_name = mysql_bin_log_file_name();
 		trx->mysql_log_offset = (ib_int64_t) mysql_bin_log_file_pos();
 
+		if (thd_is_replication_slave_thread(thd)) {
+			trx->mysql_master_log_file_name =
+				mysql_master_log_file_name();
+			trx->mysql_master_log_pos = mysql_master_log_file_pos();
+		}
+
 		/* Don't do write + flush right now. For group commit
 		to work we want to do the flush after releasing the
 		prepare_commit_mutex. */

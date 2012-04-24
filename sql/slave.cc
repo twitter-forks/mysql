@@ -5037,3 +5037,43 @@ template class I_List_iterator<i_string_pair>;
 */
 
 #endif /* HAVE_REPLICATION */
+
+#if defined(HAVE_REPLICATION) && defined(INNODB_COMPATIBILITY_HOOKS)
+
+/**
+  Get the file name of the mater's binlog.
+  @return the name of the binlog file
+*/
+extern "C"
+const char* mysql_master_log_file_name(void)
+{
+  DBUG_ASSERT(active_mi && active_mi->rli.sql_thd == current_thd);
+  return active_mi->rli.group_master_log_name;
+}
+
+/**
+  Get the current position of the master's binlog.
+  @return byte offset from the beginning of the binlog
+*/
+extern "C"
+ulonglong mysql_master_log_file_pos(void)
+{
+  DBUG_ASSERT(active_mi && active_mi->rli.sql_thd == current_thd);
+  return active_mi->rli.future_group_master_log_pos;
+}
+
+#else
+
+extern "C"
+const char* mysql_master_log_file_name(void)
+{
+  return NULL;
+}
+
+extern "C"
+ulonglong mysql_master_log_file_pos(void)
+{
+  return 0;
+}
+
+#endif

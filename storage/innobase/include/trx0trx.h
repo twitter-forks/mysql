@@ -580,6 +580,18 @@ struct trx_struct{
 	ib_int64_t	mysql_log_offset;/* if MySQL binlog is used, this field
 					contains the end offset of the binlog
 					entry */
+	const char*	mysql_master_log_file_name;
+					/* if the database server is a MySQL
+					replication slave, we have here the
+					master binlog name up to which
+					replication has processed; otherwise
+					this is a pointer to a null
+					character */
+	ib_int64_t	mysql_master_log_pos;
+					/* if the database server is a MySQL
+					replication slave, this is the
+					position in the log file up to which
+					replication has processed */
 	/*------------------------------*/
 	ulint		n_mysql_tables_in_use; /* number of Innobase tables
 					used in the processing of the current

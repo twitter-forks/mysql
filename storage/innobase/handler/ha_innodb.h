@@ -252,6 +252,18 @@ const char* mysql_bin_log_file_name(void);
 ulonglong mysql_bin_log_file_pos(void);
 
 /**
+  Get the file name of the mater's binlog.
+  @return the name of the binlog file
+*/
+const char* mysql_master_log_file_name(void);
+
+/**
+  Get the current position of the master's binlog.
+  @return byte offset from the beginning of the binlog
+*/
+ulonglong mysql_master_log_file_pos(void);
+
+/**
   Check if a user thread is a replication slave thread
   @param thd  user thread
   @retval 0 the user thread is not a replication slave thread
