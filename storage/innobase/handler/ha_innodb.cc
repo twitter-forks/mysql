@@ -2774,7 +2774,7 @@ setup_and_prefetch_pages(
 	Item**	args,		/*!< in: Arguments to command. */
 	uint	args_count)	/*!< in: Number of arguments. */
 {
-	ulint	ret;
+	ulint	ret = -1;
 	ulint	space;
 	ulint*	page_nos;
 	ulint   n_stored;
@@ -2788,13 +2788,25 @@ setup_and_prefetch_pages(
 
 	space= args[0]->val_int();
 
+	/* Bail out early if the tablespace does not exist. */
+	if (!fil_tablespace_exists_in_mem(space)) {
+		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
+		return(-1);
+	}
+
+	/* Prevent the tablespace from being deleted while prefetching pages. */
+	if (fil_inc_pending_ops(space)) {
+		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
+		return(-1);
+	}
+
 	/* Get the size of the space in pages. */
 	space_size = fil_space_get_size(space);
 
 	/* Ensure that the file space exists and is a tablespace. */
 	if (!space_size || (fil_space_get_type(space) != FIL_TABLESPACE)) {
 		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
-		return(-1);
+		goto exit;
 	}
 
 	n_stored = args_count - 1;
@@ -2810,13 +2822,16 @@ setup_and_prefetch_pages(
 	if (space_size <= page_nos[n_stored - 1]) {
 		my_error(ER_HTON_CONTROL_INVALID_ARGUMENT, MYF(0));
 		mem_free(page_nos);
-		return(-1);
+		goto exit;
 	}
 
 	/* Read the set of pages into the buffer pool. */
 	ret = buf_read_pages(TRUE, space, 0, page_nos, n_stored);
 
 	mem_free(page_nos);
+
+exit:
+	fil_decr_pending_ops(space);
 
 	return(ret);
 }
