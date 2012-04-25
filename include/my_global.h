@@ -306,12 +306,6 @@ C_MODE_END
 #undef HAVE_INITGROUPS
 #endif
 
-/* gcc/egcs issues */
-
-#if defined(__GNUC) && defined(__EXCEPTIONS)
-#error "Please add -fno-exceptions to CXXFLAGS and reconfigure/recompile"
-#endif
-
 #if defined(_lint) && !defined(lint)
 #define lint
 #endif
