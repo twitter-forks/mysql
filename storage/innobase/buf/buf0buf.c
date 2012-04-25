@@ -2455,7 +2455,7 @@ wait_until_unfixed:
 
 		block->page.buf_fix_count = 1;
 		buf_block_set_io_fix(block, BUF_IO_READ);
-		rw_lock_x_lock_func(&block->lock, 0, file, line);
+		rw_lock_x_lock_inline(&block->lock, 0, file, line);
 
 		UNIV_MEM_INVALID(bpage, sizeof *bpage);
 
@@ -2595,14 +2595,14 @@ wait_until_unfixed:
 		break;
 
 	case RW_S_LATCH:
-		rw_lock_s_lock_func(&(block->lock), 0, file, line);
+		rw_lock_s_lock_inline(&(block->lock), 0, file, line);
 
 		fix_type = MTR_MEMO_PAGE_S_FIX;
 		break;
 
 	default:
 		ut_ad(rw_latch == RW_X_LATCH);
-		rw_lock_x_lock_func(&(block->lock), 0, file, line);
+		rw_lock_x_lock_inline(&(block->lock), 0, file, line);
 
 		fix_type = MTR_MEMO_PAGE_X_FIX;
 		break;
@@ -2682,8 +2682,8 @@ buf_page_optimistic_get(
 						file, line);
 		fix_type = MTR_MEMO_PAGE_S_FIX;
 	} else {
-		success = rw_lock_x_lock_func_nowait(&(block->lock),
-						     file, line);
+		success = rw_lock_x_lock_func_nowait_inline(&(block->lock),
+							    file, line);
 		fix_type = MTR_MEMO_PAGE_X_FIX;
 	}
 
@@ -2812,8 +2812,8 @@ buf_page_get_known_nowait(
 						file, line);
 		fix_type = MTR_MEMO_PAGE_S_FIX;
 	} else {
-		success = rw_lock_x_lock_func_nowait(&(block->lock),
-						     file, line);
+		success = rw_lock_x_lock_func_nowait_inline(&(block->lock),
+							    file, line);
 		fix_type = MTR_MEMO_PAGE_X_FIX;
 	}
 
@@ -2900,8 +2900,8 @@ buf_page_try_get_func(
 		S-latch. */
 
 		fix_type = MTR_MEMO_PAGE_X_FIX;
-		success = rw_lock_x_lock_func_nowait(&block->lock,
-						     file, line);
+		success = rw_lock_x_lock_func_nowait_inline(&block->lock,
+							    file, line);
 	}
 
 	if (!success) {
@@ -4744,34 +4744,32 @@ buf_all_freed(void)
 /*********************************************************************//**
 Checks that there currently are no pending i/o-operations for the buffer
 pool.
-@return	TRUE if there is no pending i/o */
+@return	number of pending i/o */
 UNIV_INTERN
-ibool
-buf_pool_check_no_pending_io(void)
-/*==============================*/
+ulint
+buf_pool_check_num_pending_io(void)
+/*===============================*/
 {
 	ulint		i;
-	ibool		ret = TRUE;
+	ulint		pending_io = 0;
 
 	buf_pool_mutex_enter_all();
 
-	for (i = 0; i < srv_buf_pool_instances && ret; i++) {
+	for (i = 0; i < srv_buf_pool_instances; i++) {
 		const buf_pool_t*	buf_pool;
 
 		buf_pool = buf_pool_from_array(i);
 
-		if (buf_pool->n_pend_reads
-		    + buf_pool->n_flush[BUF_FLUSH_LRU]
-		    + buf_pool->n_flush[BUF_FLUSH_LIST]
-		    + buf_pool->n_flush[BUF_FLUSH_SINGLE_PAGE]) {
+		pending_io += buf_pool->n_pend_reads
+			      + buf_pool->n_flush[BUF_FLUSH_LRU]
+			      + buf_pool->n_flush[BUF_FLUSH_LIST]
+			      + buf_pool->n_flush[BUF_FLUSH_SINGLE_PAGE];
 
-			ret = FALSE;
-		}
 	}
 
 	buf_pool_mutex_exit_all();
 
-	return(ret);
+	return(pending_io);
 }
 
 #if 0
