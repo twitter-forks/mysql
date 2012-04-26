@@ -22,13 +22,35 @@
 */
 
 static bool
-breakpad_dump_callback(const char *dump_path,
-                       const char *minidump_id,
-                       void *,
-                       bool succeeded)
+dump_callback(const char *dump_path,
+              const char *minidump_id,
+              void *,
+              bool succeeded)
 {
   my_safe_printf_stderr("Minidump: %s/%s.dmp\n\n", dump_path, minidump_id);
   return succeeded;
+}
+
+
+/**
+  Detect if Valgrind is being used from test cases.
+
+  @remark Valgrind does not support clone() as used by breakpad.
+
+  @return true if running on Valgrind, false if not.
+*/
+
+static bool
+is_valgrind_test(void)
+{
+  char *env= getenv("VALGRIND_TEST");
+
+  if (env == NULL || *env != '1')
+    return false;
+
+  my_safe_printf_stderr("Minidump skipped (VALGRIND_TEST=1).\n\n");
+
+  return true;
 }
 
 
@@ -40,12 +62,12 @@ breakpad_dump_callback(const char *dump_path,
 
 void my_write_minidump(const char *dump_path)
 {
-  bool status;
+  using google_breakpad::ExceptionHandler;
 
   my_safe_printf_stderr("Attempting to generate minidump information.\n");
 
-  status= google_breakpad::ExceptionHandler::WriteMinidump(dump_path,
-    breakpad_dump_callback, NULL);
+  bool status= is_valgrind_test() ? true :
+               ExceptionHandler::WriteMinidump(dump_path, dump_callback, NULL);
 
   if (! status)
     my_safe_printf_stderr("Minidump failed.\n\n");
