@@ -35,6 +35,11 @@ Created 3/26/1996 Heikki Tuuri
 the terminating NUL character. */
 #define TRX_ID_MAX_LEN		17
 
+/** Maximum length of MySQL binlog file name, in bytes.
+@see trx_sys_mysql_master_log_name
+@see trx_sys_mysql_bin_log_name */
+#define TRX_SYS_MYSQL_LOG_NAME_LEN	512
+
 /** Memory objects */
 /* @{ */
 /** Transaction */

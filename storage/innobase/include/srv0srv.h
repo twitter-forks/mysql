@@ -821,6 +821,9 @@ struct export_var_struct{
 						/*!< srv_buf_pool_LRU_unzip_search_scanned */
 	ulint innodb_buffer_pool_LRU_get_free_search;
 						/*!< srv_buf_pool_LRU_get_free_search */
+	ib_int64_t innodb_mysql_master_log_pos;	/*!< Master binlog file position. */
+	char innodb_mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN + 1];
+						/*!< Master binlog file name. */
 };
 
 /** Thread slot in the thread table */

@@ -1,0 +1,57 @@
+--source include/have_innodb.inc
+--source include/master-slave.inc
+
+--echo ### slave
+connection slave;
+STOP SLAVE;
+--source include/wait_for_slave_to_stop.inc
+
+--echo ### master
+connection master;
+CREATE TABLE t1 (a INT, b INT, PRIMARY KEY(a)) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,0);
+INSERT INTO t1 VALUES (2,0);
+--echo # Get the master position (MASTER_LOG_POS).
+let $master_log_pos= query_get_value(SHOW MASTER STATUS, Position, 1);
+INSERT INTO t1 VALUES (3,0);
+INSERT INTO t1 VALUES (4,0);
+UPDATE t1 SET b = 4;
+save_master_pos;
+
+--echo ### slave
+connection slave;
+
+--echo # Execute the first two INSERT statements.
+--replace_result $master_log_pos MASTER_LOG_POS
+eval START SLAVE UNTIL MASTER_LOG_FILE='master-bin.000001', MASTER_LOG_POS=$master_log_pos;
+source include/wait_for_slave_sql_to_stop.inc;
+
+--echo # Stop and reset the slave.
+STOP SLAVE;
+--source include/wait_for_slave_to_stop.inc
+RESET SLAVE;
+
+--echo # Check that only the first two INSERT statements were executed.
+SELECT * FROM t1 ORDER BY a;
+
+--echo # Get the slave position according to InnoDB.
+let $master_log_pos= query_get_value(SHOW GLOBAL STATUS LIKE 'Innodb_mysql_master_log_pos', Value, 1);
+
+--echo # Restart slave from the retrieved position.
+--replace_result $master_log_pos MASTER_LOG_POS
+eval CHANGE MASTER TO MASTER_LOG_POS=$master_log_pos;
+
+SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;
+START SLAVE;
+--source include/wait_for_slave_to_start.inc
+sync_with_master;
+
+--echo # Check that only the remaining statements were executed.
+SELECT * FROM t1 ORDER BY a;
+
+--echo # Cleanup.
+connection master;
+DROP TABLE t1;
+sync_slave_with_master;
+
+--source include/rpl_end.inc

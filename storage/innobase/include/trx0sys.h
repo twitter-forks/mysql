@@ -324,6 +324,15 @@ void
 trx_sys_print_mysql_master_log_pos(void);
 /*====================================*/
 /*****************************************************************//**
+Get the MySQL master log offset info in the trx system header if
+the magic number shows it is valid. */
+UNIV_INTERN
+void
+trx_sys_get_mysql_master_log_pos(
+/*=============================*/
+	char*		log_name, /*!< out: Master binlog file name. */
+	ib_int64_t*	log_pos); /*!< out: Master binlog file position. */
+/*****************************************************************//**
 Initializes the tablespace tag system. */
 UNIV_INTERN
 void
@@ -495,10 +504,6 @@ rollback segment.  It initialized some arrays with this number of entries.
 We must remember this limit in order to keep file compatibility. */
 #define TRX_SYS_OLD_N_RSEGS		256
 
-/** Maximum length of MySQL binlog file name, in bytes.
-@see trx_sys_mysql_master_log_name
-@see trx_sys_mysql_bin_log_name */
-#define TRX_SYS_MYSQL_LOG_NAME_LEN	512
 /** Contents of TRX_SYS_MYSQL_LOG_MAGIC_N_FLD */
 #define TRX_SYS_MYSQL_LOG_MAGIC_N	873422344
 

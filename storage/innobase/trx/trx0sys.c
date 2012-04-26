@@ -841,6 +841,48 @@ trx_sys_print_mysql_master_log_pos(void)
 	mtr_commit(&mtr);
 }
 
+/*****************************************************************//**
+Get the MySQL master log offset info in the trx system header if
+the magic number shows it is valid. */
+UNIV_INTERN
+void
+trx_sys_get_mysql_master_log_pos(
+/*=============================*/
+	char*		log_name, /*!< out: Master binlog file name. */
+	ib_int64_t*	log_pos)  /*!< out: Master binlog file position. */
+{
+	trx_sysf_t*	sys_header;
+	mtr_t		mtr;
+	ib_int64_t	high, low;
+
+	mtr_start(&mtr);
+
+	sys_header = trx_sysf_get(&mtr);
+
+	if (mach_read_from_4(sys_header + TRX_SYS_MYSQL_MASTER_LOG_INFO
+			     + TRX_SYS_MYSQL_LOG_MAGIC_N_FLD)
+	    != TRX_SYS_MYSQL_LOG_MAGIC_N) {
+
+		mtr_commit(&mtr);
+
+		return;
+	}
+
+	high = mach_read_from_4(sys_header + TRX_SYS_MYSQL_MASTER_LOG_INFO
+				+ TRX_SYS_MYSQL_LOG_OFFSET_HIGH);
+	low  = mach_read_from_4(sys_header + TRX_SYS_MYSQL_MASTER_LOG_INFO
+				+ TRX_SYS_MYSQL_LOG_OFFSET_LOW);
+
+	*log_pos = (high << 32) + low;
+
+	ut_memcpy(log_name,
+		  sys_header + TRX_SYS_MYSQL_MASTER_LOG_INFO
+		  + TRX_SYS_MYSQL_LOG_NAME,
+		  TRX_SYS_MYSQL_LOG_NAME_LEN);
+
+	mtr_commit(&mtr);
+}
+
 /****************************************************************//**
 Looks for a free slot for a rollback segment in the trx system file copy.
 @return	slot index or ULINT_UNDEFINED if not found */

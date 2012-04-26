@@ -82,6 +82,7 @@ Created 10/8/1995 Heikki Tuuri
 #include "row0mysql.h"
 #include "ha_prototypes.h"
 #include "trx0i_s.h"
+#include "trx0sys.h"
 #include "os0sync.h" /* for HAVE_ATOMIC_BUILTINS */
 #include "mysql/plugin.h"
 #include "mysql/service_thd_wait.h"
@@ -2059,9 +2060,17 @@ srv_export_innodb_status(void)
 	ulint		LRU_len;
 	ulint		free_len;
 	ulint		flush_list_len;
+	ib_int64_t	mysql_master_log_pos;
+	char		mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN];
 
 	buf_get_total_stat(&stat);
 	buf_get_total_list_len(&LRU_len, &free_len, &flush_list_len);
+
+	mysql_master_log_pos = 0;
+	memset(mysql_master_log_name, 0, sizeof(mysql_master_log_name));
+
+	trx_sys_get_mysql_master_log_pos(mysql_master_log_name,
+					 &mysql_master_log_pos);
 
 	mutex_enter(&srv_innodb_monitor_mutex);
 
@@ -2174,7 +2183,14 @@ srv_export_innodb_status(void)
 	export_vars.innodb_buffer_pool_LRU_get_free_search
 		= srv_buf_pool_LRU_get_free_search;
 
+	export_vars.innodb_mysql_master_log_pos
+		= mysql_master_log_pos;
+	memcpy(export_vars.innodb_mysql_master_log_name,
+	       mysql_master_log_name, sizeof(mysql_master_log_name));
+	export_vars.innodb_mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN] = 0;
+
 	mutex_exit(&srv_innodb_monitor_mutex);
+
 }
 
 /*********************************************************************//**

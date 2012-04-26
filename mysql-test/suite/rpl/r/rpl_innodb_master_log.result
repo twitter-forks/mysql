@@ -1,0 +1,42 @@
+include/master-slave.inc
+[connection master]
+### slave
+STOP SLAVE;
+include/wait_for_slave_to_stop.inc
+### master
+CREATE TABLE t1 (a INT, b INT, PRIMARY KEY(a)) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,0);
+INSERT INTO t1 VALUES (2,0);
+# Get the master position (MASTER_LOG_POS).
+INSERT INTO t1 VALUES (3,0);
+INSERT INTO t1 VALUES (4,0);
+UPDATE t1 SET b = 4;
+### slave
+# Execute the first two INSERT statements.
+START SLAVE UNTIL MASTER_LOG_FILE='master-bin.000001', MASTER_LOG_POS=MASTER_LOG_POS;
+include/wait_for_slave_sql_to_stop.inc
+# Stop and reset the slave.
+STOP SLAVE;
+include/wait_for_slave_to_stop.inc
+RESET SLAVE;
+# Check that only the first two INSERT statements were executed.
+SELECT * FROM t1 ORDER BY a;
+a	b
+1	0
+2	0
+# Get the slave position according to InnoDB.
+# Restart slave from the retrieved position.
+CHANGE MASTER TO MASTER_LOG_POS=MASTER_LOG_POS;
+SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;
+START SLAVE;
+include/wait_for_slave_to_start.inc
+# Check that only the remaining statements were executed.
+SELECT * FROM t1 ORDER BY a;
+a	b
+1	4
+2	4
+3	4
+4	4
+# Cleanup.
+DROP TABLE t1;
+include/rpl_end.inc
