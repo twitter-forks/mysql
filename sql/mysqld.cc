@@ -623,7 +623,7 @@ SHOW_COMP_OPTION have_geometry, have_rtree_keys;
 SHOW_COMP_OPTION have_crypt, have_compress;
 SHOW_COMP_OPTION have_profiling;
 
-SHOW_COMP_OPTION have_statement_timeout;
+SHOW_COMP_OPTION have_statement_timeout= SHOW_OPTION_DISABLED;
 
 /* Thread specific variables */
 
@@ -1533,6 +1533,8 @@ void clean_up(bool print_message)
   if (have_statement_timeout == SHOW_OPTION_YES)
     my_timer_deinit();
 #endif
+
+  have_statement_timeout= SHOW_OPTION_DISABLED;
 
   /*
     The following lines may never be executed as the main thread may have
@@ -3652,11 +3654,10 @@ static int init_server_components()
     unireg_abort(1);
 
 #ifdef HAVE_MY_TIMER
-  have_statement_timeout= my_timer_init_ext() ?
-                          SHOW_OPTION_DISABLED : SHOW_OPTION_YES;
-
-  if (have_statement_timeout == SHOW_OPTION_DISABLED)
+  if (my_timer_init_ext())
     sql_print_error("Failed to initialize timer component (errno %d).", errno);
+  else
+    have_statement_timeout= SHOW_OPTION_YES;
 #else
   have_statement_timeout= SHOW_OPTION_NO;
 #endif
