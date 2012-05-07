@@ -1196,6 +1196,37 @@ public:
 };
 
 
+class Item_func_utc_extract :public Item_int_func
+{
+public:
+  enum unit_spec { EXTRACT_YMD, EXTRACT_YMDH };
+  Item_func_utc_extract(unit_spec extract_spec, Item *expr)
+    :Item_int_func(expr), m_extract_spec(extract_spec) {}
+  longlong val_int();
+  enum Functype functype() const { return EXTRACT_FUNC; }
+  const char *func_name() const { return "utc_extract"; }
+  void fix_length_and_dec();
+  bool eq(const Item *item, bool binary_cmp) const;
+  void print(String *str, enum_query_type query_type);
+  enum_monotonicity_info get_monotonicity_info() const;
+  longlong val_int_endpoint(bool left_endp, bool *incl_endp);
+  bool check_partition_func_processor(uchar *) { return FALSE; }
+  bool check_valid_arguments_processor(uchar *);
+private:
+  const enum unit_spec m_extract_spec;
+  longlong extract(MYSQL_TIME *);
+  bool get_arg0_timestamp(MYSQL_TIME *);
+  bool get_utc_time(MYSQL_TIME *time)
+  {
+    if (args[0]->type() == FIELD_ITEM &&
+        args[0]->field_type() == MYSQL_TYPE_TIMESTAMP)
+      return get_arg0_timestamp(time);
+    else
+      return get_arg0_date(time, 0);
+  }
+};
+
+
 /* Function prototypes */
 
 bool make_date_time(DATE_TIME_FORMAT *format, MYSQL_TIME *l_time,

@@ -3584,3 +3584,182 @@ bool Item_func_last_day::get_date(MYSQL_TIME *ltime, uint fuzzy_date)
   ltime->time_type= MYSQL_TIMESTAMP_DATE;
   return 0;
 }
+
+
+void Item_func_utc_extract::print(String *str, enum_query_type query_type)
+{
+  str->append(STRING_WITH_LEN("utc_extract("));
+  switch (m_extract_spec) {
+  case EXTRACT_YMD:
+    str->append("YEAR_MONTH_DAY");
+    break;
+  case EXTRACT_YMDH:
+    str->append("YEAR_MONTH_DAY_HOUR");
+    break;
+  }
+  str->append(STRING_WITH_LEN(" from "));
+  args[0]->print(str, query_type);
+  str->append(')');
+}
+
+
+void Item_func_utc_extract::fix_length_and_dec()
+{
+  /* Date might be invalid. */
+  maybe_null= 1;
+
+  switch (m_extract_spec) {
+  case EXTRACT_YMD:
+    max_length=  8; break;
+  case EXTRACT_YMDH:
+    max_length= 10; break;
+  }
+}
+
+
+enum_monotonicity_info Item_func_utc_extract::get_monotonicity_info() const
+{
+  if (args[0]->type() == Item::FIELD_ITEM)
+  {
+    switch (args[0]->field_type()) {
+    case MYSQL_TYPE_DATE:
+    case MONOTONIC_INCREASING:
+    case MYSQL_TYPE_TIMESTAMP:
+      return MONOTONIC_INCREASING_NOT_NULL;
+    default:
+      break;
+    }
+  }
+
+  return NON_MONOTONIC;
+}
+
+
+longlong Item_func_utc_extract::val_int_endpoint(bool, bool *)
+{
+  MYSQL_TIME time;
+
+  DBUG_ASSERT(fixed == 1);
+
+  if (get_utc_time(&time))
+    return LONGLONG_MIN;
+
+  return extract(&time);
+}
+
+
+bool Item_func_utc_extract::check_valid_arguments_processor(uchar *)
+{
+  bool UNINIT_VAR(prereq);
+
+  DBUG_ASSERT(arg_count == 1);
+
+  if (args[0]->type() == FIELD_ITEM &&
+      args[0]->field_type() == MYSQL_TYPE_TIMESTAMP)
+    return false;
+
+  switch (m_extract_spec) {
+  case EXTRACT_YMD:
+    prereq= has_date_args();
+    break;
+  case EXTRACT_YMDH:
+    prereq= has_datetime_args();
+    break;
+  }
+
+  return !prereq;
+}
+
+
+/**
+  Converts a UTC TIMESTAMP value to a broken-down representation (also in UTC).
+
+  @param time   Pointer to broken-down time structure.
+
+  @retval FALSE on success, TRUE otherwise.
+*/
+
+bool Item_func_utc_extract::get_arg0_timestamp(MYSQL_TIME *time)
+{
+  my_time_t value;
+  Item_field *item= (Item_field *) args[0];
+  Field_timestamp *field= (Field_timestamp *) item->field;
+
+  value= field->get_timestamp(&null_value);
+
+  if (null_value)
+    return true;
+
+  my_tz_UTC->gmt_sec_to_TIME(time, value);
+
+  return false;
+}
+
+
+/**
+  Convert a broken-down time representation (in UTC) to an integer in
+  the specified format.
+
+  @param time   Pointer to broken-down time structure.
+
+  @return   Integer value for the specified format.
+*/
+
+longlong Item_func_utc_extract::extract(MYSQL_TIME *time)
+{
+  longlong UNINIT_VAR(value);
+
+  switch (m_extract_spec) {
+  case EXTRACT_YMD:  /* YYYYMMDD */
+    value= time->year  * 10000LL +
+           time->month *   100LL +
+           time->day;
+    break;
+  case EXTRACT_YMDH: /* YYYYMMDDHH */
+    value= time->year  * 1000000LL +
+           time->month *   10000LL +
+           time->day   *     100LL +
+           time->hour;
+    break;
+  };
+
+  return value;
+}
+
+
+/**
+  Convert time value to an integer in the specified format.
+*/
+
+longlong Item_func_utc_extract::val_int()
+{
+  MYSQL_TIME time;
+
+  DBUG_ASSERT(fixed == 1);
+
+  /* Get time in a broken-down representation (also in UTC). */
+  if (get_utc_time(&time))
+    return 0;
+
+  return extract(&time);
+}
+
+
+bool Item_func_utc_extract::eq(const Item *item, bool binary_cmp) const
+{
+  const Item_func_utc_extract *utc_func_item;
+
+  if (this == item)
+    return true;
+
+  if (item->type() != FUNC_ITEM ||
+      functype() != ((Item_func *)item)->functype())
+    return false;
+
+  utc_func_item= (const Item_func_utc_extract *) item;
+
+  if (utc_func_item->m_extract_spec != m_extract_spec)
+    return false;
+
+  return args[0]->eq(utc_func_item->args[0], binary_cmp);
+}

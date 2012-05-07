@@ -388,6 +388,36 @@ CREATE TABLE t1 (a INT)
 PARTITION BY HASH (EXTRACT(YEAR_MONTH FROM a));
 ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
 CREATE TABLE t1 (a TIME)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY FROM a));
+ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
+CREATE TABLE t1 (a DATE)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY FROM a));
+DROP TABLE t1;
+CREATE TABLE t1 (a DATETIME)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY FROM a));
+DROP TABLE t1;
+CREATE TABLE t1 (a VARCHAR(10))
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY FROM a));
+ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
+CREATE TABLE t1 (a INT)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY FROM a));
+ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
+CREATE TABLE t1 (a TIME)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY_HOUR FROM a));
+ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
+CREATE TABLE t1 (a DATE)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY_HOUR FROM a));
+ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
+CREATE TABLE t1 (a DATETIME)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY_HOUR FROM a));
+DROP TABLE t1;
+CREATE TABLE t1 (a VARCHAR(10))
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY_HOUR FROM a));
+ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
+CREATE TABLE t1 (a INT)
+PARTITION BY HASH (UTC_EXTRACT(YEAR_MONTH_DAY_HOUR FROM a));
+ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
+CREATE TABLE t1 (a TIME)
 PARTITION BY HASH (EXTRACT(QUARTER FROM a));
 ERROR HY000: Constant, random or timezone-dependent expressions in (sub)partitioning function are not allowed
 CREATE TABLE t1 (a DATE)

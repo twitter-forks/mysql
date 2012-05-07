@@ -774,6 +774,7 @@ static bool add_create_index (LEX *lex, Key::Keytype type,
   enum Foreign_key::fk_option m_fk_option;
   enum enum_yes_no_unknown m_yes_no_unk;
   Diag_condition_item_name diag_condition_item_name;
+  Item_func_utc_extract::unit_spec utc_extract_unit;
 }
 
 %{
@@ -1367,6 +1368,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  USE_SYM
 %token  USING                         /* SQL-2003-R */
 %token  UTC_DATE_SYM
+%token  UTC_EXTRACT_SYM
 %token  UTC_TIMESTAMP_SYM
 %token  UTC_TIME_SYM
 %token  VALUES                        /* SQL-2003-R */
@@ -1395,6 +1397,8 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  XML_SYM
 %token  XOR
 %token  YEAR_MONTH_SYM
+%token  YEAR_MONTH_DAY_SYM
+%token  YEAR_MONTH_DAY_HOUR_SYM
 %token  YEAR_SYM                      /* SQL-2003-R */
 %token  ZEROFILL
 
@@ -1515,6 +1519,8 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 
 %type <date_time_type> date_time_type;
 %type <interval> interval
+
+%type <utc_extract_unit> interval_utc
 
 %type <interval_time_st> interval_time_stamp
 
@@ -8347,6 +8353,12 @@ function_call_nonkeyword:
             if ($$ == NULL)
               MYSQL_YYABORT;
           }
+        | UTC_EXTRACT_SYM '(' interval_utc FROM expr ')'
+          {
+            $$=new (YYTHD->mem_root) Item_func_utc_extract($3, $5);
+            if ($$ == NULL)
+              MYSQL_YYABORT;
+          }
         | GET_FORMAT '(' date_time_type  ',' expr ')'
           {
             $$= new (YYTHD->mem_root) Item_func_get_format($3, $5);
@@ -9729,6 +9741,11 @@ interval_time_stamp:
         | SECOND_SYM      { $$=INTERVAL_SECOND; }
         | MICROSECOND_SYM { $$=INTERVAL_MICROSECOND; }
         | YEAR_SYM        { $$=INTERVAL_YEAR; }
+        ;
+
+interval_utc:
+          YEAR_MONTH_DAY_SYM      { $$= Item_func_utc_extract::EXTRACT_YMD; }
+        | YEAR_MONTH_DAY_HOUR_SYM { $$= Item_func_utc_extract::EXTRACT_YMDH; }
         ;
 
 date_time_type:

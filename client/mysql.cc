@@ -784,6 +784,8 @@ static COMMANDS commands[] = {
   { "XA", 0, 0, 0, ""},
   { "YEAR", 0, 0, 0, ""},
   { "YEAR_MONTH", 0, 0, 0, ""},
+  { "YEAR_MONTH_DAY", 0, 0, 0, ""},
+  { "YEAR_MONTH_DAY_HOUR", 0, 0, 0, ""},
   { "ZEROFILL", 0, 0, 0, ""},
   { "ABS", 0, 0, 0, ""},
   { "ACOS", 0, 0, 0, ""},

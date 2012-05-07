@@ -102,6 +102,16 @@ let $val3 =  '2006-01-25';
 let $val4 =  '2006-02-05';
 --source suite/parts/inc/partition_supported_sql_funcs.inc
 
+let $sqlfunc = utc_extract(year_month_day from col1) % 60;
+let $valsqlfunc = utc_extract(year_month_day from '1998-11-23');
+let $coltype = timestamp;
+let $infile = part_supported_sql_funcs_int_date.inc;
+let $val1 =  '2006-01-03';
+let $val2 =  '2006-02-17';
+let $val3 =  '2006-01-25';
+let $val4 =  '2006-02-05';
+--source suite/parts/inc/partition_supported_sql_funcs.inc
+
 let $sqlfunc = hour(col1);
 let $valsqlfunc = hour('18:30');
 let $coltype = time;

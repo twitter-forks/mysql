@@ -594,6 +594,7 @@ static SYMBOL symbols[] = {
   { "USE_FRM",		SYM(USE_FRM)},
   { "USING",		SYM(USING)},
   { "UTC_DATE",         SYM(UTC_DATE_SYM)},
+  { "UTC_EXTRACT",      SYM(UTC_EXTRACT_SYM)},
   { "UTC_TIME",         SYM(UTC_TIME_SYM)},
   { "UTC_TIMESTAMP",    SYM(UTC_TIMESTAMP_SYM)},
   { "VALUE",		SYM(VALUE_SYM)},
@@ -620,6 +621,8 @@ static SYMBOL symbols[] = {
   { "XML",              SYM(XML_SYM)}, /* LOAD XML Arnold/Erik */
   { "YEAR",		SYM(YEAR_SYM)},
   { "YEAR_MONTH",	SYM(YEAR_MONTH_SYM)},
+  { "YEAR_MONTH_DAY",   SYM(YEAR_MONTH_DAY_SYM)},
+  { "YEAR_MONTH_DAY_HOUR", SYM(YEAR_MONTH_DAY_HOUR_SYM)},
   { "ZEROFILL",		SYM(ZEROFILL)},
   { "||",		SYM(OR_OR_SYM)}
 };

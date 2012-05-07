@@ -1410,3 +1410,36 @@ explain partitions select * from t1 where a between 10 and 13;
 explain partitions select * from t1 where a between 10 and 10+33;
 
 drop table t0, t1;
+
+--echo #
+--echo # UTC_EXTRACT
+--echo #
+
+SET time_zone = 'UTC';
+
+CREATE TABLE t1 (a INT AUTO_INCREMENT, b TIMESTAMP NOT NULL,
+  PRIMARY KEY (a, b)) ENGINE=MyISAM
+  PARTITION BY LIST (UTC_EXTRACT(YEAR_MONTH_DAY FROM b))
+    (PARTITION `p0` VALUES IN (20010101),
+     PARTITION `p1` VALUES IN (20010102),
+     PARTITION `p2` VALUES IN (20010103),
+     PARTITION `p3` VALUES IN (20010104));
+
+let $hour = 0;
+
+while ($hour < 96)
+{
+  eval INSERT INTO t1 (b) VALUES (TIMESTAMPADD(HOUR, $hour, '2001-01-01 00:00:00'));
+  inc $hour;
+}
+
+SELECT PARTITION_NAME, TABLE_ROWS FROM INFORMATION_SCHEMA.PARTITIONS
+  WHERE TABLE_NAME = 't1';
+
+EXPLAIN PARTITIONS SELECT * FROM t1 WHERE b = '2001-01-2';
+EXPLAIN PARTITIONS SELECT * FROM t1 WHERE b BETWEEN '2001-01-2' AND '2001-01-3';
+EXPLAIN PARTITIONS SELECT * FROM t1 WHERE b >= '2001-01-1' AND b <= '2001-01-3';
+
+DROP TABLE t1;
+
+SET time_zone = DEFAULT;

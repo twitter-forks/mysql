@@ -4147,6 +4147,15 @@ DROP DATABASE IF EXISTS nodb;
 --error ER_BAD_DB_ERROR
 CREATE VIEW nodb.a AS SELECT 1;
 
+--echo #
+--echo # UTC_EXTRACT
+--echo #
+
+CREATE VIEW v1 AS SELECT UTC_EXTRACT(YEAR_MONTH_DAY_HOUR FROM '2000-01-01') AS a;
+SHOW CREATE VIEW v1;
+SELECT * FROM v1;
+DROP VIEW v1;
+
 # Check that all connections opened by test cases in this file are really
 # gone so execution of other tests won't be affected by their presence.
 --source include/wait_until_count_sessions.inc
