@@ -101,3 +101,17 @@ SELECT 1 AS STATUS
   WHERE stats.NUMBER_PAGES_GET <= bp.NUMBER_PAGES_GET;
 
 DROP TABLE stats;
+
+--echo #
+--echo # Assertion failed: (length || !scale), function my_decimal_length_to_precision
+--echo #
+
+--disable_result_log
+
+SELECT 1 FROM INFORMATION_SCHEMA.INNODB_BUFFER_POOL_STATS
+  WHERE CASE (1) WHEN (1) THEN (PAGES_MADE_YOUNG_RATE) ELSE (1) END;
+
+SELECT 1 FROM INFORMATION_SCHEMA.INNODB_BUFFER_POOL_STATS
+  WHERE CASE (1) WHEN (1) THEN (PAGES_WRITTEN_RATE) ELSE (1) END;
+
+--enable_result_log

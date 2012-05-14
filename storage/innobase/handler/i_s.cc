@@ -180,7 +180,7 @@ char*			MYSQL_TYPE_STRING
 (field_length=n)
 
 float			MYSQL_TYPE_FLOAT
-(field_length=0 is ignored)
+(field_length=MAX_FLOAT_STR_LENGTH)
 
 void*			MYSQL_TYPE_LONGLONG
 (field_length=MY_INT64_NUM_DECIMAL_DIGITS, field_flags=MY_I_S_UNSIGNED)
@@ -1988,7 +1988,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_stats_fields_info[] =
 
 #define	IDX_BUF_STATS_PAGE_YOUNG_RATE	12
 	{STRUCT_FLD(field_name,		"PAGES_MADE_YOUNG_RATE"),
-	 STRUCT_FLD(field_length,	0),
+	 STRUCT_FLD(field_length,	MAX_FLOAT_STR_LENGTH),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_FLOAT),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	0),
@@ -1997,7 +1997,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_stats_fields_info[] =
 
 #define	IDX_BUF_STATS_PAGE_NOT_YOUNG_RATE 13
 	{STRUCT_FLD(field_name,		"PAGES_MADE_NOT_YOUNG_RATE"),
-	 STRUCT_FLD(field_length,	0),
+	 STRUCT_FLD(field_length,	MAX_FLOAT_STR_LENGTH),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_FLOAT),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	0),
@@ -2033,7 +2033,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_stats_fields_info[] =
 
 #define	IDX_BUF_STATS_PAGE_READ_RATE	17
 	{STRUCT_FLD(field_name,		"PAGES_READ_RATE"),
-	 STRUCT_FLD(field_length,	0),
+	 STRUCT_FLD(field_length,	MAX_FLOAT_STR_LENGTH),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_FLOAT),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	0),
@@ -2042,7 +2042,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_stats_fields_info[] =
 
 #define	IDX_BUF_STATS_PAGE_CREATE_RATE	18
 	{STRUCT_FLD(field_name,		"PAGES_CREATE_RATE"),
-	 STRUCT_FLD(field_length,	0),
+	 STRUCT_FLD(field_length,	MAX_FLOAT_STR_LENGTH),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_FLOAT),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	0),
@@ -2051,7 +2051,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_stats_fields_info[] =
 
 #define	IDX_BUF_STATS_PAGE_WRITTEN_RATE	19
 	{STRUCT_FLD(field_name,		"PAGES_WRITTEN_RATE"),
-	 STRUCT_FLD(field_length,	0),
+	 STRUCT_FLD(field_length,	MAX_FLOAT_STR_LENGTH),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_FLOAT),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	0),
@@ -2114,7 +2114,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_stats_fields_info[] =
 
 #define	IDX_BUF_STATS_READ_AHEAD_RATE	26
 	{STRUCT_FLD(field_name,		"READ_AHEAD_RATE"),
-	 STRUCT_FLD(field_length,	0),
+	 STRUCT_FLD(field_length,	MAX_FLOAT_STR_LENGTH),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_FLOAT),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	0),
@@ -2123,7 +2123,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_stats_fields_info[] =
 
 #define	IDX_BUF_STATS_READ_AHEAD_EVICT_RATE 27
 	{STRUCT_FLD(field_name,		"READ_AHEAD_EVICTED_RATE"),
-	 STRUCT_FLD(field_length,	0),
+	 STRUCT_FLD(field_length,	MAX_FLOAT_STR_LENGTH),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_FLOAT),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	0),
