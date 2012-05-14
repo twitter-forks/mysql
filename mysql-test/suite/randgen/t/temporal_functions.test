@@ -1,0 +1,15 @@
+--source suite/randgen/include/setup_rqg.inc
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_temporal_functions.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --gendata=$RQG_HOME/conf/temporal/temporal_functions.zz
+  --grammar=$RQG_HOME/conf/temporal/temporal_functions.yy
+  --reporters=Deadlock,ErrorLog,Backtrace
+  --engine=$RQG_ENGINE
+  --queries=100000
+  --duration=600;
+
+--source suite/randgen/include/cleanup.inc

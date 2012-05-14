@@ -1,4 +1,3 @@
 --loose-lock-wait-timeout=1
 --loose-innodb-lock-wait-timeout=1
---transaction-isolation=READ-COMMITTED
 --testcase-timeout=15

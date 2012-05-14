@@ -1,1 +1,2 @@
 rpl_semi_sync : Generates too much output to the error log and also fails occasionally.
+innodb_repeatable_read : Bug#65245: RQG: Query returns different result under REPEATABLE READ
