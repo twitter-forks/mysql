@@ -1,4 +1,2 @@
 --safe-mode
---loose-lock-wait-timeout=1
---loose-innodb-lock-wait-timeout=1
 --testcase-timeout=15

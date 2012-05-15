@@ -1,4 +1,2 @@
---loose-lock-wait-timeout=1
---loose-innodb-lock-wait-timeout=1
 --secure-file-priv=/tmp
 --testcase-timeout=35
