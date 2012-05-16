@@ -1,2 +1,0 @@
-call mtr.add_suppression("Table .* contains .* indexes inside InnoDB, which is different from the number of indexes .* defined in the MySQL");
-call mtr.add_suppression("Deadlock found when trying to get lock; try restarting transaction");
