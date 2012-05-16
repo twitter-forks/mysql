@@ -1,0 +1,13 @@
+CREATE TABLE `direct_messages_1` (
+`id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+`created_at` datetime DEFAULT NULL,
+`sender_id` int(11) DEFAULT NULL,
+`recipient_id` int(11) DEFAULT NULL,
+`text` varchar(255) DEFAULT NULL,
+PRIMARY KEY (`id`),
+KEY `index_direct_messages_on_created_at` (`created_at`),
+KEY `index_direct_messages_on_recipient_id` (`recipient_id`),
+KEY `index_direct_messages_on_sender_id` (`sender_id`)
+) ENGINE=InnoDB CHARSET=utf8;
+CREATE TABLE `direct_messages_2` LIKE `direct_messages_1`;
+DROP TABLE `direct_messages_1`, `direct_messages_2`;

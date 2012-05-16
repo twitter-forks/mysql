@@ -1,0 +1,33 @@
+--source suite/randgen/include/setup_rqg.inc
+
+CREATE TABLE `direct_messages_1` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` datetime DEFAULT NULL,
+  `sender_id` int(11) DEFAULT NULL,
+  `recipient_id` int(11) DEFAULT NULL,
+  `text` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_direct_messages_on_created_at` (`created_at`),
+  KEY `index_direct_messages_on_recipient_id` (`recipient_id`),
+  KEY `index_direct_messages_on_sender_id` (`sender_id`)
+) ENGINE=InnoDB CHARSET=utf8;
+
+CREATE TABLE `direct_messages_2` LIKE `direct_messages_1`;
+
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_direct_messages.log;
+
+exec perl $RQG_HOME/gentest.pl
+  --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
+  --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
+  --grammar=$RQG_HOME/conf/twitter/direct_messages.yy
+  --reporter=Backtrace,ErrorLog
+  --engine=$RQG_ENGINE
+  --queries=1M
+  --rows=10000
+  --seed=time
+  --threads=15
+  --duration=600;
+
+DROP TABLE `direct_messages_1`, `direct_messages_2`;
+
+--source suite/randgen/include/cleanup.inc
