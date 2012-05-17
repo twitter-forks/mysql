@@ -9,7 +9,6 @@ exec perl $RQG_HOME/gentest.pl
   --grammar=$RQG_HOME/conf/runtime/metadata_stability.yy
   --gendata=$RQG_HOME/conf/runtime/metadata_stability.zz
   --validator=SelectStability,QueryProperties
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=InnoDB
   --queries=1M
   --threads=10

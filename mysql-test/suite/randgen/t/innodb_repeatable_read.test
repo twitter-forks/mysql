@@ -9,7 +9,6 @@ exec perl $RQG_HOME/gentest.pl
   --gendata=$RQG_HOME/conf/transactions/transactions.zz
   --grammar=$RQG_HOME/conf/transactions/repeatable_read.yy
   --validator=RepeatableRead
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=InnoDB
   --queries=100000
   --duration=600;

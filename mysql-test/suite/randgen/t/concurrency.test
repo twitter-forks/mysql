@@ -7,8 +7,6 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --gendata=$RQG_HOME/conf/runtime/concurrency_1.zz
   --grammar=$RQG_HOME/conf/runtime/concurrency_1.yy
-  --validators=None
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=$RQG_ENGINE
   --queries=30000
   --duration=600

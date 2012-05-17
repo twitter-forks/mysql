@@ -7,7 +7,6 @@ exec perl $RQG_HOME/gentest.pl
   --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --grammar=$RQG_HOME/conf/runtime/information_schema.yy
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=$RQG_ENGINE
   --queries=100000
   --threads=10

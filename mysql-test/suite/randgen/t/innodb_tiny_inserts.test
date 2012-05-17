@@ -8,7 +8,6 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --gendata=$RQG_HOME/conf/engines/tiny_inserts.zz
   --grammar=$RQG_HOME/conf/engines/tiny_inserts.yy
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=InnoDB
   --queries=10000000
   --duration=600;

@@ -7,7 +7,6 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --gendata=$RQG_HOME/conf/optimizer/range_access.zz
   --grammar=$RQG_HOME/conf/optimizer/optimizer_access_exp.yy
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=$RQG_ENGINE
   --queries=10K
   --threads=1

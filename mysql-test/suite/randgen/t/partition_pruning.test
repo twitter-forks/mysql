@@ -7,7 +7,6 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --gendata=$RQG_HOME/conf/partitioning/partition_pruning.zz
   --grammar=$RQG_HOME/conf/partitioning/partition_pruning.yy
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=$RQG_ENGINE
   --queries=100K
   --threads=1

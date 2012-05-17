@@ -11,7 +11,7 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --grammar=$RQG_HOME/conf/replication/replication_simple.yy
   --gendata=$RQG_HOME/conf/replication/replication_single_engine.zz
-  --reporters=ReplicationSemiSync,Deadlock,Backtrace,ErrorLog
+  --reporters=ReplicationSemiSync
   --validators=None
   --rpl_mode=statement
   --engine=InnoDB
@@ -26,7 +26,7 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --grammar=$RQG_HOME/conf/replication/replication_simple.yy
   --gendata=$RQG_HOME/conf/replication/replication_single_engine.zz
-  --reporters=ReplicationSemiSync,Deadlock,Backtrace,ErrorLog
+  --reporters=ReplicationSemiSync
   --validators=None
   --rpl_mode=row
   --engine=InnoDB

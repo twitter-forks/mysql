@@ -7,7 +7,6 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --gendata=$RQG_HOME/conf/engines/many_indexes.zz
   --grammar=$RQG_HOME/conf/engines/many_indexes.yy
-  --reporter=Backtrace,ErrorLog
   --engine=$RQG_ENGINE
   --queries=1M
   --rows=10000

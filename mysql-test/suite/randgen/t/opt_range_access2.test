@@ -8,7 +8,7 @@ exec perl $RQG_HOME/gentest.pl
   --gendata=$RQG_HOME/conf/optimizer/range_access2.zz
   --grammar=$RQG_HOME/conf/optimizer/range_access2.yy
   --validator=ResultsetComparatorSimplify
-  --reporters=QueryTimeout,Backtrace
+  --reporters=QueryTimeout
   --engine=$RQG_ENGINE
   --queries=1M
   --threads=1

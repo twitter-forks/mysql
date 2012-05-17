@@ -7,7 +7,6 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --gendata=$RQG_HOME/conf/temporal/temporal_functions.zz
   --grammar=$RQG_HOME/conf/temporal/temporal_functions.yy
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=$RQG_ENGINE
   --queries=100000
   --duration=600;

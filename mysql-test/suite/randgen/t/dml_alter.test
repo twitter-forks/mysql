@@ -8,7 +8,6 @@ exec perl $RQG_HOME/gentest.pl
   --logconf=$MYSQLTEST_VARDIR/std_data/randgen/log.conf
   --gendata=$RQG_HOME/conf/engines/maria/maria.zz
   --grammar=$RQG_HOME/conf/engines/maria/maria_dml_alter.yy
-  --reporters=Deadlock,ErrorLog,Backtrace
   --engine=$RQG_ENGINE
   --queries=100000
   --duration=600;
