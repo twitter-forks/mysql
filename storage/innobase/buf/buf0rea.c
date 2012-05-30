@@ -67,7 +67,8 @@ buf_read_page_low(
 /*==============*/
 	ulint*	err,	/*!< out: DB_SUCCESS or DB_TABLESPACE_DELETED if we are
 			trying to read from a non-existent tablespace, or a
-			tablespace which is just now being dropped */
+			tablespace which is just now being dropped, or
+			DB_CORRUPTION if the page is corrupted */
 	ibool	sync,	/*!< in: TRUE if synchronous aio is desired */
 	ulint	mode,	/*!< in: BUF_READ_IBUF_PAGES_ONLY, ...,
 			ORed to OS_AIO_SIMULATED_WAKE_LATER (see below
@@ -158,7 +159,11 @@ buf_read_page_low(
 	if (sync) {
 		/* The i/o is already completed when we arrive from
 		fil_read */
-		buf_page_io_complete(bpage);
+		if (buf_page_io_complete(bpage)) {
+			/* Page corruption on disk. */
+
+			*err = DB_CORRUPTION;
+		}
 	}
 
 	return(1);
@@ -365,6 +370,10 @@ buf_read_page(
 			"InnoDB: but the tablespace does not exist"
 			" or is just being dropped.\n",
 			(ulong) space, (ulong) offset);
+	} else if (err == DB_CORRUPTION) {
+		/* Page has not been read in if it's corrupted. */
+
+		count = 0;
 	}
 
 	/* Flush pages from the end of the LRU list if necessary */

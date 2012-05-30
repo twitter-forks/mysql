@@ -1181,7 +1181,7 @@ buf_page_init_for_read(
 Completes an asynchronous read or write request of a file page to or from
 the buffer pool. */
 UNIV_INTERN
-void
+ibool
 buf_page_io_complete(
 /*=================*/
 	buf_page_t*	bpage);	/*!< in: pointer to the block in question */
