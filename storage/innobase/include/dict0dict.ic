@@ -859,6 +859,7 @@ dict_table_get_low(
 	table = dict_table_check_if_in_cache_low(table_name);
 
 	if (table && table->corrupted) {
+		srv_n_corrupted_table_opens++;
 		fprintf(stderr, "InnoDB: table");
 		ut_print_name(stderr, NULL, TRUE, table->name);
 		if (srv_load_corrupted) {

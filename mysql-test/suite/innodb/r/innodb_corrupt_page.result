@@ -1,0 +1,39 @@
+call mtr.add_suppression("Cannot find or open table test\/t1 from");
+FLUSH STATUS;
+# Create and populate the table to be corrupted
+CREATE TABLE t1 (a INT AUTO_INCREMENT PRIMARY KEY, b TEXT) ENGINE=InnoDB;
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+# Restart server to flush buffers
+SELECT a FROM t1 WHERE a = 2;
+a
+2
+# Inject a single-shot page corruption
+SET SESSION debug = "+d,inject_page_corruption";
+SELECT a FROM t1 WHERE a = 7;
+a
+7
+SET SESSION debug = '';
+SHOW STATUS LIKE "Innodb_corrupted_%";
+Variable_name	Value
+Innodb_corrupted_page_reads	1
+Innodb_corrupted_table_opens	0
+# Close all open instances of t1 (but still preserves InnoDB's dd cache)
+FLUSH TABLE t1;
+# Table is now marked as crashed and can't be opened
+SELECT a FROM t1;
+ERROR 42S02: Table 'test.t1' doesn't exist
+SHOW STATUS LIKE "Innodb_corrupted_%";
+Variable_name	Value
+Innodb_corrupted_page_reads	1
+Innodb_corrupted_table_opens	1
+# Cleanup
+DROP TABLE t1;

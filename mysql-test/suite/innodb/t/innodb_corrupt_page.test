@@ -1,0 +1,47 @@
+#
+# Test reading a corrupted page.
+#
+
+source include/not_embedded.inc;
+source include/have_debug.inc;
+source include/have_innodb.inc;
+
+call mtr.add_suppression("Cannot find or open table test\/t1 from");
+
+FLUSH STATUS;
+
+--echo # Create and populate the table to be corrupted
+CREATE TABLE t1 (a INT AUTO_INCREMENT PRIMARY KEY, b TEXT) ENGINE=InnoDB;
+
+--let $i = 10
+while ($i)
+{
+  INSERT INTO t1 (b) VALUES (REPEAT('abcdefghijklmnopqrstuvwxyz', 200));
+  dec $i;
+}
+
+--echo # Restart server to flush buffers
+source include/restart_mysqld.inc;
+
+SELECT a FROM t1 WHERE a = 2;
+
+--echo # Inject a single-shot page corruption
+SET SESSION debug = "+d,inject_page_corruption";
+
+SELECT a FROM t1 WHERE a = 7;
+
+SET SESSION debug = '';
+
+SHOW STATUS LIKE "Innodb_corrupted_%";
+
+--echo # Close all open instances of t1 (but still preserves InnoDB's dd cache)
+FLUSH TABLE t1;
+
+--echo # Table is now marked as crashed and can't be opened
+--error ER_NO_SUCH_TABLE
+SELECT a FROM t1;
+
+SHOW STATUS LIKE "Innodb_corrupted_%";
+
+--echo # Cleanup
+DROP TABLE t1;

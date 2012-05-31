@@ -1755,6 +1755,7 @@ dict_load_table(
 	ulint		err;
 	const char*	err_msg;
 	mtr_t		mtr;
+	ibool		corrupted = FALSE;
 
 	ut_ad(mutex_own(&(dict_sys->mutex)));
 
@@ -1870,6 +1871,7 @@ err_exit:
 
 			dict_table_remove_from_cache(table);
 			table = NULL;
+			corrupted = TRUE;
 			goto func_exit;
 		} else {
 			dict_index_t*	clust_index;
@@ -1944,6 +1946,12 @@ err_exit:
 #endif /* 0 */
 func_exit:
 	mem_heap_free(heap);
+
+	/* Count the number of attempts to load a corrupted table. */
+	if (corrupted || (table && table->corrupted)) {
+
+		srv_n_corrupted_table_opens++;
+	}
 
 	return(table);
 }

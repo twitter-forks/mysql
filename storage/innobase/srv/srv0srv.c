@@ -478,6 +478,9 @@ UNIV_INTERN ulint		srv_n_lock_deadlock_count	= 0;
 
 UNIV_INTERN ulint		srv_truncated_status_writes	= 0;
 
+UNIV_INTERN ulint	srv_n_corrupted_page_reads	= 0;
+UNIV_INTERN ulint	srv_n_corrupted_table_opens	= 0;
+
 /*
   Set the following to 0 if you want InnoDB to write messages on
   stderr on startup/shutdown
@@ -2188,6 +2191,9 @@ srv_export_innodb_status(void)
 	memcpy(export_vars.innodb_mysql_master_log_name,
 	       mysql_master_log_name, sizeof(mysql_master_log_name));
 	export_vars.innodb_mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN] = 0;
+
+	export_vars.innodb_corrupted_page_reads = srv_n_corrupted_page_reads;
+	export_vars.innodb_corrupted_table_opens = srv_n_corrupted_table_opens;
 
 	mutex_exit(&srv_innodb_monitor_mutex);
 

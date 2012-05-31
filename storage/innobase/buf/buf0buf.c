@@ -506,7 +506,7 @@ buf_page_is_corrupted(
 		/* Stored log sequence numbers at the start and the end
 		of page do not match */
 
-		return(TRUE);
+		goto corrupted;
 	}
 
 #ifndef UNIV_HOTBACKUP
@@ -548,9 +548,12 @@ buf_page_is_corrupted(
 						  + FIL_PAGE_SPACE_OR_CHKSUM);
 
 		if (UNIV_UNLIKELY(zip_size)) {
-			return(checksum_field != BUF_NO_CHECKSUM_MAGIC
-			       && checksum_field
-			       != page_zip_calc_checksum(read_buf, zip_size));
+			if (checksum_field != BUF_NO_CHECKSUM_MAGIC
+			    && checksum_field
+			    != page_zip_calc_checksum(read_buf, zip_size))
+				goto corrupted;
+
+			return(FALSE);
 		}
 
 		old_checksum_field = mach_read_from_4(
@@ -571,7 +574,7 @@ buf_page_is_corrupted(
 		    && old_checksum_field
 		    != buf_calc_page_old_checksum(read_buf)) {
 
-			return(TRUE);
+			goto corrupted;
 		}
 
 		/* InnoDB versions < 4.0.14 and < 4.1.1 stored the space id
@@ -582,11 +585,27 @@ buf_page_is_corrupted(
 		    && checksum_field
 		    != buf_calc_page_new_checksum(read_buf)) {
 
-			return(TRUE);
+			goto corrupted;
 		}
 	}
 
+#ifndef DBUG_OFF
+	/* Inject a single-shot page corruption. */
+	if (DBUG_EVALUATE_IF("inject_page_corruption", TRUE, FALSE)) {
+
+		/* Disable the keyword. */
+		DBUG_SET("-d,inject_page_corruption");
+
+		goto corrupted;
+	}
+#endif
+
 	return(FALSE);
+
+corrupted:
+	srv_n_corrupted_page_reads++;
+
+	return(TRUE);
 }
 
 /********************************************************************//**
