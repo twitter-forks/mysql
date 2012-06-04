@@ -860,7 +860,7 @@ dict_table_get_low(
 
 	if (table && table->corrupted) {
 		srv_n_corrupted_table_opens++;
-		fprintf(stderr, "InnoDB: table");
+		fprintf(stderr, "InnoDB: table ");
 		ut_print_name(stderr, NULL, TRUE, table->name);
 		if (srv_load_corrupted) {
 			fputs(" is corrupted, but"
