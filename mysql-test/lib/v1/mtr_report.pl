@@ -276,7 +276,7 @@ sub mtr_report_stats ($) {
 		# computer is loaded.
 		/Forcing close of thread \d+  user: '.*?'/ or
 
-		/Got error [0-9]* when reading table/ or
+		/Error when reading table/ or
 		/Incorrect definition of table/ or
 		/Incorrect information in file/ or
 		/InnoDB: Warning: we did not need to do crash recovery/ or

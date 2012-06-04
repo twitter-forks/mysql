@@ -12092,13 +12092,8 @@ int report_error(TABLE *table, int error)
     table->status= STATUS_GARBAGE;
     return -1;					// key not found; ok
   }
-  /*
-    Locking reads can legally return also these errors, do not
-    print them to the .err log
-  */
-  if (error != HA_ERR_LOCK_DEADLOCK && error != HA_ERR_LOCK_WAIT_TIMEOUT)
-    sql_print_error("Got error %d when reading table '%s'",
-		    error, table->s->path.str);
+
+  print_handler_error(table, error);
   table->file->print_error(error,MYF(0));
   return 1;
 }

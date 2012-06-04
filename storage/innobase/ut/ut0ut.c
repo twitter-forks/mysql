@@ -623,8 +623,8 @@ returned string is static and should not be freed or modified.
 @return	string, describing the error */
 UNIV_INTERN
 const char*
-ut_strerr(
-/*======*/
+ut_get_strerr(
+/*==========*/
 	enum db_err	num)	/*!< in: error number */
 {
 	switch (num) {
@@ -721,6 +721,24 @@ ut_strerr(
 	/* do not add default: in order to produce a warning if new code
 	is added to the enum but not added here */
 	}
+
+	return(NULL);
+}
+
+/*************************************************************//**
+Convert an error number to a human readable text message. The
+returned string is static and should not be freed or modified.
+@return	string, describing the error. Otherwise, abort. */
+UNIV_INTERN
+const char*
+ut_strerr(
+/*======*/
+	enum db_err	num)	/*!< in: error number */
+{
+	const char *str;
+
+	if ((str = ut_get_strerr(num)))
+		return(str);
 
 	/* we abort here because if unknown error code is given, this could
 	mean that memory corruption has happened and someone's error-code

@@ -83,7 +83,8 @@ static const char *handler_error_messages[]=
   "Too many active concurrent transactions",
   "Index column length exceeds limit",
   "Index corrupted",
-  "Undo record too big"
+  "Undo record too big",
+  "Operation was interrupted"
 };
 
 extern void my_handler_error_register(void);

@@ -2314,4 +2314,6 @@ inline const char *table_case_name(HA_CREATE_INFO *info, const char *name)
   return ((lower_case_table_names == 2 && info->alias) ? info->alias : name);
 }
 
+void print_handler_error(TABLE *, int error);
+
 #endif /* HANDLER_INCLUDED */

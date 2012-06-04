@@ -41,6 +41,8 @@
 #include "probes_mysql.h"
 #include "debug_sync.h"         // DEBUG_SYNC
 
+#include "../mysys/my_handler_errors.h"  // handler_error_messages
+
 #ifdef WITH_PARTITION_STORAGE_ENGINE
 #include "ha_partition.h"
 #endif
@@ -359,6 +361,7 @@ int ha_init_errors(void)
   SETMSG(HA_ERR_TOO_MANY_CONCURRENT_TRXS, ER_DEFAULT(ER_TOO_MANY_CONCURRENT_TRXS));
   SETMSG(HA_ERR_INDEX_COL_TOO_LONG,	ER_DEFAULT(ER_INDEX_COLUMN_TOO_LONG));
   SETMSG(HA_ERR_INDEX_CORRUPT,		ER_DEFAULT(ER_INDEX_CORRUPT));
+  SETMSG(HA_ERR_INTERRUPTED,            "Operation was interrupted");
 
   /* Register the error messages for use with my_error(). */
   return my_error_register(get_handler_errmsgs, HA_ERR_FIRST, HA_ERR_LAST);
@@ -2869,6 +2872,13 @@ void handler::print_error(int error, myf errflag)
     my_error(ER_DROP_INDEX_FK, MYF(0), ptr);
     DBUG_VOID_RETURN;
   }
+  case HA_ERR_INTERRUPTED:
+  {
+    THD *thd= current_thd;
+    DBUG_ASSERT(thd->killed);
+    thd->send_kill_message();
+    DBUG_VOID_RETURN;
+  }
   case HA_ERR_TABLE_NEEDS_UPGRADE:
     textno=ER_TABLE_NEEDS_UPGRADE;
     break;
@@ -2933,6 +2943,37 @@ void handler::print_error(int error, myf errflag)
 bool handler::get_error_message(int error, String* buf)
 {
   return FALSE;
+}
+
+
+/**
+  Print a handler error to the error log.
+
+  @param table  TABLE object for handler.
+  @param error  Error returned by the handler.
+*/
+void print_handler_error(TABLE *table, int error)
+{
+  String str;
+  const char *errmsg;
+
+  /* These errors are expected, do not print them to the error log. */
+  switch (error) {
+  case HA_ERR_LOCK_DEADLOCK:
+  case HA_ERR_LOCK_WAIT_TIMEOUT:
+  case HA_ERR_INTERRUPTED:
+    return;
+  };
+
+  if (error >= HA_ERR_FIRST && error <= HA_ERR_LAST)
+    str.set_ascii(handler_error_messages[error - HA_ERR_FIRST]);
+  else
+    table->file->get_error_message(error, &str);
+
+  errmsg= str.is_empty() ? "Unknown storage engine error" : str.c_ptr();
+
+  sql_print_error("Error when reading table '%s': %s (%d).",
+                  table->s->path.str, errmsg, error);
 }
 
 

@@ -965,6 +965,27 @@ innobase_active_small(void)
 }
 
 /********************************************************************//**
+Set a detailed error message given an InnoDB error code. */
+static inline
+void
+set_detailed_error(
+/*================*/
+	int	error,	/*!< in: InnoDB error code */
+	THD*	thd)	/*!< in: user thread handle or NULL */
+{
+	trx_t*		trx;
+	const char*	str;
+
+	trx = thd_to_trx(thd ? thd : thd_get_current_thd());
+
+	str = ut_get_strerr((enum db_err) error);
+
+	if (trx) {
+		trx_set_detailed_error(trx, str ? str : "");
+	}
+}
+
+/********************************************************************//**
 Converts an InnoDB error code to a MySQL error code and also tells to MySQL
 about a possible transaction rollback inside InnoDB caused by a lock wait
 timeout or a deadlock.
@@ -981,10 +1002,6 @@ convert_error_code_to_mysql(
 	case DB_SUCCESS:
 		return(0);
 
-	case DB_INTERRUPTED:
-		thd_set_kill_status(thd ? thd : thd_get_current_thd());
-		return(-1);
-
 	case DB_FOREIGN_EXCEED_MAX_CASCADE:
 		push_warning_printf(thd, MYSQL_ERROR::WARN_LEVEL_WARN,
 				    HA_ERR_ROW_IS_REFERENCED,
@@ -999,7 +1016,12 @@ convert_error_code_to_mysql(
 
 	case DB_ERROR:
 	default:
+		set_detailed_error(error, thd);
+
 		return(-1); /* unspecified error */
+
+	case DB_INTERRUPTED:
+		return(HA_ERR_INTERRUPTED);
 
 	case DB_DUPLICATE_KEY:
 		/* Be cautious with returning this error, since

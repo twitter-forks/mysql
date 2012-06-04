@@ -174,6 +174,10 @@ public:
     str_charset=cs;
   }
   bool set_ascii(const char *str, uint32 arg_length);
+  bool set_ascii(const char *str)
+  {
+    return set_ascii(str, (uint32) strlen(str));
+  }
   inline void set_quick(char *str,uint32 arg_length, CHARSET_INFO *cs)
   {
     if (!alloced)

@@ -401,11 +401,23 @@ a limited buffer. */
 /*************************************************************//**
 Convert an error number to a human readable text message. The
 returned string is static and should not be freed or modified.
-@return	string, describing the error */
+@return	string, describing the error. Otherwise, abort if an
+unknown error code is given. */
 UNIV_INTERN
 const char*
 ut_strerr(
 /*======*/
+	enum db_err	num);	/*!< in: error number */
+
+/*************************************************************//**
+Convert an error number to a human readable text message. The
+returned string is static and should not be freed or modified.
+@return	string, describing the error. Otherwise, NULL if an
+unknown error code is given. */
+UNIV_INTERN
+const char*
+ut_get_strerr(
+/*==========*/
 	enum db_err	num);	/*!< in: error number */
 
 #ifndef UNIV_NONINL

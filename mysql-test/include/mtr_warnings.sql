@@ -105,7 +105,7 @@ INSERT INTO global_suppressions VALUES
    computer is loaded.
  */
 
- ("Got error [0-9]* when reading table"),
+ ("Error when reading table"),
  ("Incorrect definition of table"),
  ("Incorrect information in file"),
  ("InnoDB: Warning: we did not need to do crash recovery"),
