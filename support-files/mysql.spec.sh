@@ -223,6 +223,9 @@
 # test for __debug_package
 %define __strip         /bin/true
 
+# Redefine the default post-install macro to not strip binaries
+%define __os_install_post /usr/lib/rpm/brp-compress
+
 # ----------------------------------------------------------------------------
 # Support optional "tcmalloc" library (experimental)
 # ----------------------------------------------------------------------------
