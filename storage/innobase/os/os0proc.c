@@ -192,7 +192,7 @@ skip:
 		fprintf(stderr, "InnoDB: mmap(%lu bytes) failed;"
 			" errno %lu\n",
 			(ulong) size, (ulong) errno);
-		ptr = NULL;
+		return(NULL);
 	} else {
 		os_fast_mutex_lock(&ut_list_mutex);
 		ut_total_allocated_memory += size;
