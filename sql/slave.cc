@@ -2768,6 +2768,8 @@ pthread_handler_t handle_slave_io(void *arg)
   mysql= NULL ;
   retry_count= 0;
 
+  thd= new THD; // note that contructor of THD uses DBUG_ !
+
   mysql_mutex_lock(&mi->run_lock);
   /* Inform waiting threads that slave has started */
   mi->slave_run_id++;
@@ -2776,7 +2778,6 @@ pthread_handler_t handle_slave_io(void *arg)
   mi->events_till_disconnect = disconnect_slave_event_count;
 #endif
 
-  thd= new THD; // note that contructor of THD uses DBUG_ !
   THD_CHECK_SENTRY(thd);
   mi->io_thd = thd;
 
@@ -3189,6 +3190,8 @@ pthread_handler_t handle_slave_sql(void *arg)
   my_thread_init();
   DBUG_ENTER("handle_slave_sql");
 
+  thd = new THD; // note that contructor of THD uses DBUG_ !
+
   DBUG_ASSERT(rli->inited);
   mysql_mutex_lock(&rli->run_lock);
   DBUG_ASSERT(!rli->slave_running);
@@ -3197,7 +3200,6 @@ pthread_handler_t handle_slave_sql(void *arg)
   rli->events_till_abort = abort_slave_event_count;
 #endif
 
-  thd = new THD; // note that contructor of THD uses DBUG_ !
   thd->thread_stack = (char*)&thd; // remember where our stack is
   rli->sql_thd= thd;
   
