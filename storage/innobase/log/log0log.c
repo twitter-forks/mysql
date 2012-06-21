@@ -3087,7 +3087,7 @@ logs_empty_and_mark_files_at_shutdown(void)
 
 	if (srv_print_verbose_log) {
 		ut_print_timestamp(stderr);
-		fprintf(stderr, "  InnoDB: Starting shutdown...\n");
+		fprintf(stderr, " InnoDB: Starting shutdown...\n");
 	}
 	/* Wait until the master thread and all other operations are idle: our
 	algorithm only works if the server is idle at shutdown */

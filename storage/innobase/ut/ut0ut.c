@@ -39,6 +39,8 @@ Created 5/11/1994 Heikki Tuuri
 # include "mysql_com.h" /* NAME_LEN */
 #endif /* UNIV_HOTBACKUP */
 
+#include "os0proc.h" /* os_proc_get_number */
+
 /** A constant to prevent the compiler from optimizing ut_delay() away. */
 UNIV_INTERN ibool	ut_always_false	= FALSE;
 
@@ -232,18 +234,21 @@ ut_print_timestamp(
 /*===============*/
 	FILE*  file) /*!< in: file where to print */
 {
+	ulint proc_number = os_proc_get_number();
+
 #ifdef __WIN__
 	SYSTEMTIME cal_tm;
 
 	GetLocalTime(&cal_tm);
 
-	fprintf(file,"%02d%02d%02d %2d:%02d:%02d",
-		(int)cal_tm.wYear % 100,
+	fprintf(file, "%d-%02d-%02d %02d:%02d:%02d %lu",
+		(int)cal_tm.wYear,
 		(int)cal_tm.wMonth,
 		(int)cal_tm.wDay,
 		(int)cal_tm.wHour,
 		(int)cal_tm.wMinute,
-		(int)cal_tm.wSecond);
+		(int)cal_tm.wSecond,
+		proc_number);
 #else
 	struct tm  cal_tm;
 	struct tm* cal_tm_ptr;
@@ -257,13 +262,14 @@ ut_print_timestamp(
 #else
 	cal_tm_ptr = localtime(&tm);
 #endif
-	fprintf(file,"%02d%02d%02d %2d:%02d:%02d",
-		cal_tm_ptr->tm_year % 100,
+	fprintf(file, "%d-%02d-%02d %02d:%02d:%02d %lu",
+		cal_tm_ptr->tm_year + 1900,
 		cal_tm_ptr->tm_mon + 1,
 		cal_tm_ptr->tm_mday,
 		cal_tm_ptr->tm_hour,
 		cal_tm_ptr->tm_min,
-		cal_tm_ptr->tm_sec);
+		cal_tm_ptr->tm_sec,
+		proc_number);
 #endif
 }
 
