@@ -552,7 +552,7 @@ void Log_to_csv_event_handler::cleanup()
 
 bool Log_to_csv_event_handler::
   log_general(THD *thd, time_t event_time, const char *user_host,
-              uint user_host_len, int thread_id,
+              uint user_host_len, my_thread_id thread_id,
               const char *command_type, uint command_type_len,
               const char *sql_text, uint sql_text_len,
               CHARSET_INFO *client_cs)
@@ -958,7 +958,7 @@ bool Log_to_file_event_handler::
 
 bool Log_to_file_event_handler::
   log_general(THD *thd, time_t event_time, const char *user_host,
-              uint user_host_len, int thread_id,
+              uint user_host_len, my_thread_id thread_id,
               const char *command_type, uint command_type_len,
               const char *sql_text, uint sql_text_len,
               CHARSET_INFO *client_cs)
@@ -2554,7 +2554,7 @@ void MYSQL_QUERY_LOG::reopen_file()
 */
 
 bool MYSQL_QUERY_LOG::write(time_t event_time, const char *user_host,
-                            uint user_host_len, int thread_id,
+                            uint user_host_len, my_thread_id thread_id,
                             const char *command_type, uint command_type_len,
                             const char *sql_text, uint sql_text_len)
 {
@@ -2592,8 +2592,7 @@ bool MYSQL_QUERY_LOG::write(time_t event_time, const char *user_host,
         if (my_b_write(&log_file, (uchar*) "\t\t" ,2) < 0)
           goto err;
 
-      /* command_type, thread_id */
-      length= my_snprintf(buff, 32, "%5ld ", (long) thread_id);
+    length= my_snprintf(buff, 32, "%5lu ", thread_id);
 
     if (my_b_write(&log_file, (uchar*) buff, length))
       goto err;
