@@ -2677,8 +2677,10 @@ bool MYSQL_QUERY_LOG::write(THD *thd, time_t current_time,
     int tmp_errno= 0;
     char buff[80], *end;
     char query_time_buff[22+7], lock_time_buff[22+7];
-    uint buff_len;
+    uint buff_len, sql_errno;
     end= buff;
+
+    sql_errno= thd->is_error() ? thd->stmt_da->sql_errno() : 0;
 
     if (!(specialflag & SPECIAL_SHORT_LOG_FORMAT))
     {
@@ -2710,11 +2712,13 @@ bool MYSQL_QUERY_LOG::write(THD *thd, time_t current_time,
     sprintf(query_time_buff, "%.6f", ulonglong2double(query_utime)/1000000.0);
     sprintf(lock_time_buff,  "%.6f", ulonglong2double(lock_utime)/1000000.0);
     if (my_b_printf(&log_file,
-                    "# Query_time: %s  Lock_time: %s"
-                    " Rows_sent: %lu  Rows_examined: %lu\n",
+                    "# Query_time: %s  Lock_time: %s "
+                    " Rows_sent: %lu  Rows_examined: %lu "
+                    " Error_code: %u\n",
                     query_time_buff, lock_time_buff,
                     (ulong) thd->sent_row_count,
-                    (ulong) thd->examined_row_count) == (uint) -1)
+                    (ulong) thd->examined_row_count,
+                    sql_errno) == (uint) -1)
       tmp_errno= errno;
     if (thd->db && strcmp(thd->db, db))
     {						// Database changed

@@ -7,7 +7,7 @@ SET @global_log_output = @@global.log_output;
 
 SET @@session.long_query_time=1;
 
-SET @@global.log_output = 'TABLE';
+SET @@global.log_output = 'TABLE,FILE';
 
 #=========================================
 --echo '----When slow_query_log = OFF----'
@@ -136,6 +136,25 @@ disconnect con2;
 DROP TABLE t1;
 DROP PROCEDURE p1;
 
+--echo #
+--echo # Check that the resulting error code is logged.
+--echo #
+
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT);
+INSERT INTO t1 VALUES (1, 1);
+--error ER_DUP_ENTRY
+INSERT INTO t1 SELECT 1, SLEEP(2);
+DROP TABLE t1;
+
+let SLOW_QUERY_LOG_FILE = `SELECT @@GLOBAL.slow_query_log_file`;
+
+perl;
+  my $log_file = $ENV{'SLOW_QUERY_LOG_FILE'};
+  open(FILE, $log_file) or die("Cannot open '$log_file': $!\n");
+  my $count = grep /Error_code: 1062/, <FILE>;
+  $count or die("Cannot find 'Error_code: 1062' in '$log_file'\n");
+  close(FILE)
+EOF
 
 #==================================================================   Restore
 SET @@global.log_output = @global_log_output;
