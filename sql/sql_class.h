@@ -1552,6 +1552,9 @@ public:
   */
   const char *proc_info;
 
+  /* Abstract method to set a formatted info-string. */
+  virtual void print_proc_info(const char *fmt, ...);
+
   /*
     Used in error messages to tell user in what part of MySQL we found an
     error. E. g. when where= "having clause", if fix_fields() fails, user

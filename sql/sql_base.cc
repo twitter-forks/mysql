@@ -4800,6 +4800,7 @@ bool open_tables(THD *thd, TABLE_LIST **start, uint *counter, uint flags,
   bool error= FALSE;
   MEM_ROOT new_frm_mem;
   bool has_prelocking_list;
+  const char *prev_proc_info= thd->proc_info;
   DBUG_ENTER("open_tables");
 
   /* Accessing data in XA_IDLE or XA_PREPARED is not allowed. */
@@ -5026,6 +5027,7 @@ restart:
 
 err:
   thd_proc_info(thd, 0);
+  thd->proc_info= prev_proc_info;
   free_root(&new_frm_mem, MYF(0));              // Free pre-alloced block
 
   if (error && *table_to_open)

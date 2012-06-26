@@ -1832,19 +1832,25 @@ void Query_cache::invalidate(THD *thd, TABLE_LIST *tables_used,
 
 void Query_cache::invalidate(CHANGED_TABLE_LIST *tables_used)
 {
+  const char *prev_info;
   DBUG_ENTER("Query_cache::invalidate (changed table list)");
   if (is_disabled())
     DBUG_VOID_RETURN;
 
   THD *thd= current_thd;
+
+  prev_info= thd_proc_info(thd, "Invalidating query cache entries (table list)");
+
   for (; tables_used; tables_used= tables_used->next)
   {
-    thd_proc_info(thd, "invalidating query cache entries (table list)");
     invalidate_table(thd, (uchar*) tables_used->key, tables_used->key_length);
     DBUG_PRINT("qcache", ("db: %s  table: %s", tables_used->key,
                           tables_used->key+
                           strlen(tables_used->key)+1));
   }
+
+  thd->proc_info= prev_info;
+
   DBUG_VOID_RETURN;
 }
 
@@ -1861,20 +1867,26 @@ void Query_cache::invalidate(CHANGED_TABLE_LIST *tables_used)
 */
 void Query_cache::invalidate_locked_for_write(TABLE_LIST *tables_used)
 {
+  const char *prev_info;
   DBUG_ENTER("Query_cache::invalidate_locked_for_write");
   if (is_disabled())
     DBUG_VOID_RETURN;
 
   THD *thd= current_thd;
+
+  prev_info= thd_proc_info(thd, "Invalidating query cache entries (table)");
+
   for (; tables_used; tables_used= tables_used->next_local)
   {
-    thd_proc_info(thd, "invalidating query cache entries (table)");
     if (tables_used->lock_type >= TL_WRITE_ALLOW_WRITE &&
         tables_used->table)
     {
       invalidate_table(thd, tables_used->table);
     }
   }
+
+  thd->proc_info= prev_info;
+
   DBUG_VOID_RETURN;
 }
 

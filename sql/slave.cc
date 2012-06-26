@@ -159,6 +159,59 @@ static int terminate_slave_thread(THD *thd,
                                   bool skip_lock);
 static bool check_io_slave_killed(THD *thd, Master_info *mi, const char *info);
 
+/**
+  Thread state for the SQL slave thread.
+*/
+
+class THD_SQL_slave : public THD
+{
+private:
+  char *m_buffer;
+  size_t m_buffer_size;
+
+public:
+  /**
+    Constructor, used to represent slave thread state.
+
+    @param buffer Statically-allocated buffer.
+    @param size   Size of the passed buffer.
+  */
+  THD_SQL_slave(char *buffer, size_t size)
+  : m_buffer(buffer), m_buffer_size(size)
+  {
+    DBUG_ASSERT(buffer && size);
+    memset(m_buffer, 0, m_buffer_size);
+  }
+
+  virtual ~THD_SQL_slave()
+  {
+    m_buffer[0]= '\0';
+  }
+
+  void print_proc_info(const char *fmt, ...);
+};
+
+
+/**
+  Print an information (state) string for this slave thread.
+
+  @param fmt  Specifies how subsequent arguments are converted for output.
+  @param ...  Variable number of arguments.
+*/
+
+void THD_SQL_slave::print_proc_info(const char *fmt, ...)
+{
+  va_list args;
+
+  va_start(args, fmt);
+  my_vsnprintf(m_buffer, m_buffer_size - 1, fmt, args);
+  va_end(args);
+
+  /* Set field directly, profiling is not useful in a slave thread anyway. */
+  proc_info= m_buffer;
+}
+
+
 /*
   Find out which replications threads are running
 
@@ -2510,6 +2563,9 @@ static int exec_relay_log_event(THD* thd, Relay_log_info* rli)
   {
     int exec_res;
 
+    thd->print_proc_info("Executing %s event at position %lu",
+                         ev->get_type_str(), ev->log_pos);
+
     /*
       This tests if the position of the beginning of the current event
       hits the UNTIL barrier.
@@ -3186,11 +3242,15 @@ pthread_handler_t handle_slave_sql(void *arg)
   Relay_log_info* rli = &((Master_info*)arg)->rli;
   const char *errmsg;
 
+  /* Buffer lifetime extends across the entire runtime of the THD handle. */
+  static char proc_info_buf[128]= {0};
+
   // needs to call my_thread_init(), otherwise we get a coredump in DBUG_ stuff
   my_thread_init();
   DBUG_ENTER("handle_slave_sql");
 
-  thd = new THD; // note that contructor of THD uses DBUG_ !
+  // note that contructor of THD uses DBUG_ !
+  thd = new THD_SQL_slave(proc_info_buf, sizeof(proc_info_buf));
 
   DBUG_ASSERT(rli->inited);
   mysql_mutex_lock(&rli->run_lock);

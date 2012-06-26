@@ -885,6 +885,9 @@ THD::THD()
   timer= timer_cache= NULL;
 }
 
+void THD::print_proc_info(const char *, ...)
+{
+}
 
 void THD::push_internal_handler(Internal_error_handler *handler)
 {
