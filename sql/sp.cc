@@ -1111,25 +1111,29 @@ sp_create_routine(THD *thd, int type, sp_head *sp)
     if ((sp->m_type == TYPE_ENUM_FUNCTION) &&
         !trust_function_creators && mysql_bin_log.is_open())
     {
-      if (!sp->m_chistics->detistic)
+      enum enum_sp_data_access access=
+        (sp->m_chistics->daccess == SP_DEFAULT_ACCESS) ?
+        SP_DEFAULT_ACCESS_MAPPING : sp->m_chistics->daccess;
+
+      if (thd->variables.binlog_format == BINLOG_FORMAT_ROW)
+      {
+        push_warning(thd, MYSQL_ERROR::WARN_LEVEL_WARN,
+                     ER_BINLOG_UNSAFE_ROUTINE,
+                     ER(ER_BINLOG_UNSAFE_ROUTINE));
+      }
+      else if (!sp->m_chistics->detistic &&
+               (access == SP_CONTAINS_SQL || access == SP_MODIFIES_SQL_DATA))
       {
 	/*
 	  Note that this test is not perfect; one could use
 	  a non-deterministic read-only function in an update statement.
 	*/
-	enum enum_sp_data_access access=
-	  (sp->m_chistics->daccess == SP_DEFAULT_ACCESS) ?
-	  SP_DEFAULT_ACCESS_MAPPING : sp->m_chistics->daccess;
-	if (access == SP_CONTAINS_SQL ||
-	    access == SP_MODIFIES_SQL_DATA)
-	{
 	  my_message(ER_BINLOG_UNSAFE_ROUTINE,
 		     ER(ER_BINLOG_UNSAFE_ROUTINE), MYF(0));
 	  ret= SP_INTERNAL_ERROR;
 	  goto done;
-	}
       }
-      if (!(thd->security_ctx->master_access & SUPER_ACL))
+      else if (!(thd->security_ctx->master_access & SUPER_ACL))
       {
 	my_message(ER_BINLOG_CREATE_ROUTINE_NEED_SUPER,
 		   ER(ER_BINLOG_CREATE_ROUTINE_NEED_SUPER), MYF(0));
@@ -1347,7 +1351,8 @@ sp_update_routine(THD *thd, int type, sp_name *name, st_sp_chistics *chistics)
   if ((ret= db_find_routine_aux(thd, type, name, table)) == SP_OK)
   {
     if (type == TYPE_ENUM_FUNCTION && ! trust_function_creators &&
-        mysql_bin_log.is_open() &&
+        (mysql_bin_log.is_open() &&
+         thd->variables.binlog_format != BINLOG_FORMAT_ROW) &&
         (chistics->daccess == SP_CONTAINS_SQL ||
          chistics->daccess == SP_MODIFIES_SQL_DATA))
     {

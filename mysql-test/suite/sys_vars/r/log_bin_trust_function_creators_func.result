@@ -19,16 +19,28 @@ INSERT INTO t2 VALUES (a);
 END IF;
 RETURN 1;
 END|
-ERROR HY000: This function has none of DETERMINISTIC, NO SQL, or READS SQL DATA in its declaration and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
-## Creating new function f1 fails because non-super user ##
-CREATE FUNCTION f1(a INT) RETURNS INT DETERMINISTIC
+SET @mysql_errno = $mysql_errno;
+SELECT (@@binlog_format <> 'ROW' AND @mysql_errno = 1418)
+OR (@@binlog_format  = 'ROW' AND @mysql_errno = 0)
+AS `ER_BINLOG_UNSAFE_ROUTINE binlog_format check`;
+ER_BINLOG_UNSAFE_ROUTINE binlog_format check
+1
+## Creating new function f2 fails because non-super user ##
+CREATE FUNCTION f2(a INT) RETURNS INT DETERMINISTIC
 BEGIN
 IF (a < 3) THEN
 INSERT INTO t2 VALUES (a);
 END IF;
 RETURN 1;
 END|
-ERROR HY000: You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+SET @mysql_errno = $mysql_errno;
+SELECT (@@binlog_format <> 'ROW' AND @mysql_errno = 1419)
+OR (@@binlog_format  = 'ROW' AND @mysql_errno = 0)
+AS `ER_BINLOG_UNSAFE_ROUTINE binlog_format check`;
+ER_BINLOG_UNSAFE_ROUTINE binlog_format check
+1
+DROP FUNCTION IF EXISTS f1;
+DROP FUNCTION IF EXISTS f2;
 ## Creating new function f1 succeeds ##
 CREATE FUNCTION f1(a INT) RETURNS INT DETERMINISTIC
 BEGIN

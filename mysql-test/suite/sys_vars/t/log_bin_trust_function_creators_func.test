@@ -49,9 +49,11 @@ connection test_con1;
 
 SELECT @@log_bin_trust_function_creators;
 
+--disable_warnings
+
 --echo ##  Creating new function f1 fails because no DETERMINISTIC ###
 delimiter |;
---error ER_BINLOG_UNSAFE_ROUTINE
+--error 0, ER_BINLOG_UNSAFE_ROUTINE
 CREATE FUNCTION f1(a INT) RETURNS INT
 BEGIN
    IF (a < 3) THEN
@@ -61,10 +63,17 @@ BEGIN
 END|
 delimiter ;|
 
---echo ## Creating new function f1 fails because non-super user ##
+--replace_regex /= [0-9]*/= $mysql_errno/
+eval SET @mysql_errno = $mysql_errno;
+
+SELECT (@@binlog_format <> 'ROW' AND @mysql_errno = 1418)
+    OR (@@binlog_format  = 'ROW' AND @mysql_errno = 0)
+    AS `ER_BINLOG_UNSAFE_ROUTINE binlog_format check`;
+
+--echo ## Creating new function f2 fails because non-super user ##
 delimiter |;
---error ER_BINLOG_CREATE_ROUTINE_NEED_SUPER
-CREATE FUNCTION f1(a INT) RETURNS INT DETERMINISTIC
+--error 0, ER_BINLOG_CREATE_ROUTINE_NEED_SUPER
+CREATE FUNCTION f2(a INT) RETURNS INT DETERMINISTIC
 BEGIN
    IF (a < 3) THEN
     INSERT INTO t2 VALUES (a);
@@ -73,7 +82,17 @@ BEGIN
 END|
 delimiter ;|
 
+--replace_regex /= [0-9]*/= $mysql_errno/
+eval SET @mysql_errno = $mysql_errno;
+
+SELECT (@@binlog_format <> 'ROW' AND @mysql_errno = 1419)
+    OR (@@binlog_format  = 'ROW' AND @mysql_errno = 0)
+    AS `ER_BINLOG_UNSAFE_ROUTINE binlog_format check`;
+
 connection default;
+
+DROP FUNCTION IF EXISTS f1;
+DROP FUNCTION IF EXISTS f2;
 
 --echo ## Creating new function f1 succeeds ##
 delimiter |;
@@ -85,6 +104,8 @@ BEGIN
   RETURN 1;
 END|
 delimiter ;|
+
+--enable_warnings
 
 --echo ## Creating new table t1 ##
 CREATE TABLE t1 (a INT);
