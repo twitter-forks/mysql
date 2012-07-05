@@ -78,6 +78,7 @@ utf8_esperanto_ci	utf8	209		#	#
 utf8_hungarian_ci	utf8	210		#	#
 utf8_sinhala_ci	utf8	211		#	#
 utf8_general_mysql500_ci	utf8	223		#	#
+utf8_general_cs	utf8	254		#	#
 ucs2_general_ci	ucs2	35	Yes	#	#
 ucs2_bin	ucs2	90		#	#
 ucs2_unicode_ci	ucs2	128		#	#
