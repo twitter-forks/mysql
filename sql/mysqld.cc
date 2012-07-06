@@ -1051,7 +1051,7 @@ static void close_connections(void)
   {
     if (ip_sock != INVALID_SOCKET)
     {
-      (void) shutdown(ip_sock, SHUT_RDWR);
+      (void) mysql_socket_shutdown(ip_sock, SHUT_RDWR);
       (void) closesocket(ip_sock);
       ip_sock= INVALID_SOCKET;
     }
@@ -1083,7 +1083,7 @@ static void close_connections(void)
 #ifdef HAVE_SYS_UN_H
   if (unix_sock != INVALID_SOCKET)
   {
-    (void) shutdown(unix_sock, SHUT_RDWR);
+    (void) mysql_socket_shutdown(unix_sock, SHUT_RDWR);
     (void) closesocket(unix_sock);
     (void) unlink(mysqld_unix_port);
     unix_sock= INVALID_SOCKET;
@@ -1190,14 +1190,14 @@ static void close_server_sock()
   {
     ip_sock=INVALID_SOCKET;
     DBUG_PRINT("info",("calling shutdown on TCP/IP socket"));
-    (void) shutdown(tmp_sock, SHUT_RDWR);
+    (void) mysql_socket_shutdown(tmp_sock, SHUT_RDWR);
   }
   tmp_sock=unix_sock;
   if (tmp_sock != INVALID_SOCKET)
   {
     unix_sock=INVALID_SOCKET;
     DBUG_PRINT("info",("calling shutdown on unix socket"));
-    (void) shutdown(tmp_sock, SHUT_RDWR);
+    (void) mysql_socket_shutdown(tmp_sock, SHUT_RDWR);
     (void) unlink(mysqld_unix_port);
   }
   DBUG_VOID_RETURN;
@@ -1778,6 +1778,48 @@ static void set_root(const char *path)
 }
 
 
+static my_socket create_socket(const struct addrinfo *addrinfo_list,
+                               int addr_family,
+                               struct addrinfo **use_addrinfo)
+{
+  my_socket sock= INVALID_SOCKET;
+
+  for (const struct addrinfo *cur_ai= addrinfo_list; cur_ai != NULL;
+       cur_ai= cur_ai->ai_next)
+  {
+    if (cur_ai->ai_family != addr_family)
+      continue;
+
+    sock= socket(cur_ai->ai_family, cur_ai->ai_socktype, cur_ai->ai_protocol);
+
+    char ip_addr[INET6_ADDRSTRLEN];
+
+    if (vio_get_normalized_ip_string(cur_ai->ai_addr, cur_ai->ai_addrlen,
+                                     ip_addr, sizeof (ip_addr)))
+    {
+      ip_addr[0]= 0;
+    }
+
+    if (sock == INVALID_SOCKET)
+    {
+      sql_print_error("Failed to create a socket for %s '%s': errno: %d.",
+                      (addr_family == AF_INET) ? "IPv4" : "IPv6",
+                      (const char *) ip_addr,
+                      (int) socket_errno);
+      continue;
+    }
+
+    sql_print_information("Server socket created on IP: '%s'.",
+                          (const char *) ip_addr);
+
+    *use_addrinfo= (struct addrinfo *)cur_ai;
+    return sock;
+  }
+
+  return INVALID_SOCKET;
+}
+
+
 static void network_init(void)
 {
 #ifdef HAVE_SYS_UN_H
@@ -1801,42 +1843,70 @@ static void network_init(void)
   {
     report_port= mysqld_port;
   }
-  DBUG_ASSERT(report_port != 0);
+
+#ifndef DBUG_OFF
+  if (!opt_disable_networking)
+    DBUG_ASSERT(report_port != 0);
+#endif
+
   if (mysqld_port != 0 && !opt_disable_networking && !opt_bootstrap)
   {
     struct addrinfo *ai, *a;
     struct addrinfo hints;
-    int error;
-    DBUG_PRINT("general",("IP Socket is %d",mysqld_port));
 
+    sql_print_information("Server hostname (bind-address): '%s'; port: %d",
+                          my_bind_addr_str, mysqld_port);
+
+    // Get list of IP-addresses associated with the server hostname.
     bzero(&hints, sizeof (hints));
     hints.ai_flags= AI_PASSIVE;
     hints.ai_socktype= SOCK_STREAM;
     hints.ai_family= AF_UNSPEC;
 
     my_snprintf(port_buf, NI_MAXSERV, "%d", mysqld_port);
-    error= getaddrinfo(my_bind_addr_str, port_buf, &hints, &ai);
-    if (error != 0)
+    if (getaddrinfo(my_bind_addr_str, port_buf, &hints, &ai))
     {
-      DBUG_PRINT("error",("Got error: %d from getaddrinfo()", error));
       sql_perror(ER_DEFAULT(ER_IPSOCK_ERROR));  /* purecov: tested */
+      sql_print_error("Can't start server: cannot resolve hostname!");
       unireg_abort(1);				/* purecov: tested */
     }
 
-    for (a= ai; a != NULL; a= a->ai_next)
+    // Log all the IP-addresses.
+    for (struct addrinfo *cur_ai= ai; cur_ai != NULL; cur_ai= cur_ai->ai_next)
     {
-      ip_sock= socket(a->ai_family, a->ai_socktype, a->ai_protocol);
-      if (ip_sock != INVALID_SOCKET)
-        break;
+      char ip_addr[INET6_ADDRSTRLEN];
+
+      if (vio_get_normalized_ip_string(cur_ai->ai_addr, cur_ai->ai_addrlen,
+                                       ip_addr, sizeof (ip_addr)))
+      {
+        sql_print_error("Fails to print out IP-address.");
+        continue;
+      }
+
+      sql_print_information("  - '%s' resolves to '%s';",
+                            my_bind_addr_str, ip_addr);
     }
+
+    /*
+      If the 'bind-address' option specifies the hostname, which resolves to
+      multiple IP-address, use the following rule:
+      - if there are IPv4-addresses, use the first IPv4-address
+      returned by getaddrinfo();
+      - if there are IPv6-addresses, use the first IPv6-address
+      returned by getaddrinfo();
+    */
+
+    ip_sock= create_socket(ai, AF_INET, &a);
 
     if (ip_sock == INVALID_SOCKET)
-    {
-      DBUG_PRINT("error",("Got error: %d from socket()",socket_errno));
-      sql_perror(ER_DEFAULT(ER_IPSOCK_ERROR));  /* purecov: tested */
-      unireg_abort(1);				/* purecov: tested */
-    }
+      ip_sock= create_socket(ai, AF_INET6, &a);
 
+    // Report user-error if we failed to create a socket.
+    if (ip_sock == INVALID_SOCKET)
+    {
+      sql_perror(ER_DEFAULT(ER_IPSOCK_ERROR));  /* purecov: tested */
+      unireg_abort(1);                          /* purecov: tested */
+    }
 #ifndef __WIN__
     /*
       We should not use SO_REUSEADDR on windows as this would enable a
@@ -5214,7 +5284,7 @@ void handle_connections_sockets()
 	  if (req.sink)
 	    ((void (*)(int))req.sink)(req.fd);
 
-	  (void) shutdown(new_sock, SHUT_RDWR);
+	  (void) mysql_socket_shutdown(new_sock, SHUT_RDWR);
 	  (void) closesocket(new_sock);
 	  continue;
 	}
@@ -5230,7 +5300,7 @@ void handle_connections_sockets()
                   (SOCKET_SIZE_TYPE *)&dummyLen) < 0  )
       {
 	sql_perror("Error on new connection socket");
-	(void) shutdown(new_sock, SHUT_RDWR);
+	(void) mysql_socket_shutdown(new_sock, SHUT_RDWR);
 	(void) closesocket(new_sock);
 	continue;
       }
@@ -5242,7 +5312,7 @@ void handle_connections_sockets()
 
     if (!(thd= new THD))
     {
-      (void) shutdown(new_sock, SHUT_RDWR);
+      (void) mysql_socket_shutdown(new_sock, SHUT_RDWR);
       (void) closesocket(new_sock);
       continue;
     }
@@ -5261,7 +5331,7 @@ void handle_connections_sockets()
         vio_delete(vio_tmp);
       else
       {
-	(void) shutdown(new_sock, SHUT_RDWR);
+	(void) mysql_socket_shutdown(new_sock, SHUT_RDWR);
 	(void) closesocket(new_sock);
       }
       delete thd;
@@ -7052,28 +7122,6 @@ mysqld_get_one_option(int optid,
     break;
   case (int) OPT_SKIP_STACK_TRACE:
     test_flags|=TEST_NO_STACKTRACE;
-    break;
-  case (int) OPT_BIND_ADDRESS:
-    {
-      struct addrinfo *res_lst, hints;    
-
-      bzero(&hints, sizeof(struct addrinfo));
-      hints.ai_socktype= SOCK_STREAM;
-      hints.ai_protocol= IPPROTO_TCP;
-
-      if (getaddrinfo(argument, NULL, &hints, &res_lst) != 0) 
-      {
-        sql_print_error("Can't start server: cannot resolve hostname!");
-        return 1;
-      }
-
-      if (res_lst->ai_next)
-      {
-        sql_print_error("Can't start server: bind-address refers to multiple interfaces!");
-        return 1;
-      }
-      freeaddrinfo(res_lst);
-    }
     break;
   case OPT_CONSOLE:
     if (opt_console)
