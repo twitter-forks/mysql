@@ -3070,7 +3070,7 @@ static int my_strnncoll_utf8_cs(CHARSET_INFO *cs,
                                 my_bool t_is_prefix)
 {
   int s_res,t_res;
-  my_wc_t s_wc,t_wc;
+  my_wc_t UNINIT_VAR(s_wc), UNINIT_VAR(t_wc);
   const uchar *se=s+slen;
   const uchar *te=t+tlen;
   int save_diff = 0;
@@ -3116,7 +3116,7 @@ static int my_strnncollsp_utf8_cs(CHARSET_INFO *cs,
                                   my_bool diff_if_only_endspace_difference)
 {
   int s_res, t_res, res;
-  my_wc_t s_wc, t_wc;
+  my_wc_t UNINIT_VAR(s_wc), UNINIT_VAR(t_wc);
   const uchar *se= s + slen;
   const uchar *te= t + tlen;
   int save_diff= 0;
