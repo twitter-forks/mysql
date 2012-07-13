@@ -4735,6 +4735,32 @@ int THD::binlog_write_table_map(TABLE *table, bool is_transactional)
 }
 
 /**
+  Write a table metadata event to the binary log.
+
+  @param table             a pointer to the table.
+  @param is_transactional  @c true indicates a transactional table,
+                           otherwise @c false a non-transactional.
+
+  @return zero on success, nonzero on failure.
+*/
+int THD::binlog_write_table_metadata(TABLE *table, bool is_transactional)
+{
+  DBUG_ENTER("THD::binlog_write_table_metadata");
+
+  DBUG_ASSERT(binlog_table_maps);
+
+  Table_metadata_log_event event(this, table, is_transactional);
+
+  binlog_cache_mngr *const cache_mngr=
+    (binlog_cache_mngr *) thd_get_ha_data(this, binlog_hton);
+
+  IO_CACHE *cache=
+    cache_mngr->get_binlog_cache_log(use_trans_cache(this, is_transactional));
+
+  DBUG_RETURN(event.write(cache));
+}
+
+/**
   This function retrieves a pending row event from a cache which is
   specified through the parameter @c is_transactional. Respectively, when it
   is @c true, the pending event is returned from the transactional cache.

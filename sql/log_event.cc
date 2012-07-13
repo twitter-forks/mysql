@@ -686,6 +686,7 @@ const char* Log_event::get_type_str(Log_event_type type)
   case BEGIN_LOAD_QUERY_EVENT: return "Begin_load_query";
   case EXECUTE_LOAD_QUERY_EVENT: return "Execute_load_query";
   case INCIDENT_EVENT: return "Incident";
+  case TABLE_METADATA_EVENT: return "Table_metadata";
   default: return "Unknown";				/* impossible */
   }
 }
@@ -1325,6 +1326,9 @@ Log_event* Log_event::read_log_event(const char* buf, uint event_len,
     case TABLE_MAP_EVENT:
       ev = new Table_map_log_event(buf, event_len, description_event);
       break;
+    case TABLE_METADATA_EVENT:
+      ev = new Table_metadata_log_event(buf, event_len, description_event);
+      break;
 #endif
     case BEGIN_LOAD_QUERY_EVENT:
       ev = new Begin_load_query_log_event(buf, event_len, description_event);
@@ -1884,6 +1888,7 @@ log_event_print_value(IO_CACHE *file, const uchar *ptr,
   @param[in] file              IO cache
   @param[in] td                Table definition
   @param[in] print_event_into  Print parameters
+  @param[in] map               Table_map event.
   @param[in] cols_bitmap       Column bitmaps.
   @param[in] value             Pointer to packed row
   @param[in] prefix            Row's SQL clause ("SET", "WHERE", etc)
@@ -1895,6 +1900,7 @@ log_event_print_value(IO_CACHE *file, const uchar *ptr,
 size_t
 Rows_log_event::print_verbose_one_row(IO_CACHE *file, table_def *td,
                                       PRINT_EVENT_INFO *print_event_info,
+                                      Table_map_log_event *map,
                                       MY_BITMAP *cols_bitmap,
                                       const uchar *value, const uchar *prefix)
 {
@@ -1909,19 +1915,27 @@ Rows_log_event::print_verbose_one_row(IO_CACHE *file, table_def *td,
   
   for (size_t i= 0; i < td->size(); i ++)
   {
+    LEX_CSTRING name;
+
     int is_null= (null_bits[null_bit_index / 8] 
                   >> (null_bit_index % 8))  & 0x01;
 
     if (bitmap_is_set(cols_bitmap, i) == 0)
       continue;
-    
+
+    name= map->get_column_name(i);
+
+    if (name.length)
+      my_b_printf(file, "###   %.*b=", name.length, name.str);
+    else
+      my_b_printf(file, "###   @%d=", i + 1);
+
     if (is_null)
     {
-      my_b_printf(file, "###   @%d=NULL", i + 1);
+      my_b_printf(file, "NULL", i + 1);
     }
     else
     {
-      my_b_printf(file, "###   @%d=", i + 1);
       size_t size= log_event_print_value(file, value,
                                          td->type(i), td->field_metadata(i),
                                          typestr, sizeof(typestr));
@@ -2004,7 +2018,7 @@ void Rows_log_event::print_verbose(IO_CACHE *file,
                       map->get_db_name(), map->get_table_name());
     /* Print the first image */
     if (!(length= print_verbose_one_row(file, td, print_event_info,
-                                  &m_cols, value,
+                                  map, &m_cols, value,
                                   (const uchar*) sql_clause1)))
       goto end;
     value+= length;
@@ -2013,7 +2027,7 @@ void Rows_log_event::print_verbose(IO_CACHE *file,
     if (sql_clause2)
     {
       if (!(length= print_verbose_one_row(file, td, print_event_info,
-                                      &m_cols_ai, value,
+                                      map, &m_cols_ai, value,
                                       (const uchar*) sql_clause2)))
         goto end;
       value+= length;
@@ -3861,11 +3875,8 @@ Format_description_log_event(uint8 binlog_ver, const char* server_ver)
     */
     if (post_header_len)
     {
-#ifndef DBUG_OFF
-      // Allows us to sanity-check that all events initialized their
-      // events (see the end of this 'if' block).
-      memset(post_header_len, 255, number_of_event_types*sizeof(uint8));
-#endif
+      /* Zero out reserved/unused event types. */
+      memset(post_header_len, 0, number_of_event_types*sizeof(uint8));
 
       /* Note: all event types must explicitly fill in their lengths here. */
       post_header_len[START_EVENT_V3-1]= START_V3_HEADER_LEN;
@@ -3918,10 +3929,7 @@ Format_description_log_event(uint8 binlog_ver, const char* server_ver)
       post_header_len[INCIDENT_EVENT-1]= INCIDENT_HEADER_LEN;
       post_header_len[HEARTBEAT_LOG_EVENT-1]= 0;
 
-      // Sanity-check that all post header lengths are initialized.
-      int i;
-      for (i=0; i<number_of_event_types; i++)
-        DBUG_ASSERT(post_header_len[i] != 255);
+      post_header_len[TABLE_METADATA_EVENT-1]= TABLE_METADATA_HEADER_LEN;
     }
     break;
 
@@ -8342,6 +8350,10 @@ Table_map_log_event::Table_map_log_event(const char *buf, uint event_len,
   DBUG_PRINT("info",("event_len: %u  common_header_len: %d  post_header_len: %d",
                      event_len, common_header_len, post_header_len));
 
+#ifdef MYSQL_CLIENT
+  m_table_metadata= NULL;
+#endif
+
   /*
     Don't print debug messages when running valgrind since they can
     trigger false warnings.
@@ -8432,6 +8444,9 @@ Table_map_log_event::~Table_map_log_event()
 {
   my_free(m_meta_memory);
   my_free(m_memory);
+#ifdef MYSQL_CLIENT
+  delete m_table_metadata;
+#endif
 }
 
 /*
@@ -8742,7 +8757,559 @@ void Table_map_log_event::print(FILE *, PRINT_EVENT_INFO *print_event_info)
     print_base64(&print_event_info->body_cache, print_event_info, TRUE);
   }
 }
+
+LEX_CSTRING Table_map_log_event::get_column_name(uint column) const
+{
+  LEX_CSTRING empty= {NULL,0};
+
+  if (m_table_metadata && m_table_metadata->get_column_descriptor(column))
+    return m_table_metadata->get_column_descriptor(column)->name;
+
+  return empty;
+}
 #endif
+
+/**************************************************************************
+      Table_metadata_log_event member functions and support functions
+**************************************************************************/
+
+/**
+  Calculate the variable storage length for a given string length.
+
+  @see net_store_length
+
+  @param length The string length.
+
+  @return The required storage for the variable-length string.
+*/
+static unsigned int
+length_of_encoded_string(ulonglong len)
+{
+  /*
+    The prefix length is a 1-, 2-, 3-, or 8-byte integer that represents
+    the length of the string in bytes. See net_store_length for details.
+  */
+  if (len < 251ULL)
+    len+= 1;
+  else if (len < 65536ULL)
+    len+= 3;
+  else if (len < 16777216ULL)
+    len+= 4;
+  else
+    len+= 9;
+
+  return len;
+}
+
+/**
+  Get the length prefix from the head of the data buffer.
+
+  @param buf      Reference to the head of the buffer.
+  @param buf_len  Length of the data buffer.
+
+  @return The length of the encoded string.
+*/
+static uint
+get_string_field_length(const char **buf, uint buf_len)
+{
+  uint len= UINT_MAX;
+  const char *ptr= (*buf)++;
+
+  /*
+    The first byte determines whether the the prefix length is 1-byte
+    (251), or a following 2- (252), 3- (253), or 8-byte (254) integer
+    that represents the length of the string in bytes.
+  */
+  uchar byte= *ptr;
+
+  if (byte < 251)
+  {
+    len= byte;
+  }
+  /* Ensure that the string is nonzero. */
+  else if (byte == 252 && buf_len > 3)
+  {
+    (*buf)+= 2;
+    len= uint2korr(ptr);
+  }
+  /* uint3korr might read up to four bytes. */
+  else if (byte == 253 && buf_len > 4)
+  {
+    (*buf)+= 3;
+    len= uint3korr(ptr);
+  }
+  /* Unlikely, but handle +16KB strings. */
+  else if (byte == 254 && buf_len > 9)
+  {
+    (*buf)+= 8;
+    len= uint8korr(ptr);
+  }
+
+  return len;
+}
+
+#if defined(MYSQL_SERVER)
+
+/**
+  Applies a function object to a column descriptor of each field in an array.
+
+  @param thd          The current thread.
+  @param field_array  Array of fields.
+  @param functor      Function object.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+template<typename Functor>
+static bool
+for_each_field(THD *thd, Field **field_array, Functor &functor)
+{
+  Field *field;
+  ulong length;
+  String type_name_str;
+  CHARSET_INFO *charset= system_charset_info;
+  Table_metadata_binary_format::Column_descriptor descriptor;
+  const LEX_CSTRING *string_array[]=
+    {&descriptor.name, &descriptor.type_name, &descriptor.comment};
+  char type_name_buf[MAX_FIELD_WIDTH];
+
+  for (Field **iter= field_array; (field= *iter); iter++)
+  {
+    length= Table_metadata_binary_format::CD_FIXED_LENGTH;
+
+    /* Reset the internal state/buffer, frees dynamically allocated memory. */
+    type_name_str.set(type_name_buf, sizeof(type_name_buf), charset);
+
+    /* Retrieving the type name might have failed. */
+    if (field->sql_type(type_name_str), thd->is_error())
+      break;
+
+    descriptor.name.str= field->field_name;
+    descriptor.name.length= strlen(field->field_name);
+
+    descriptor.type_name.str= type_name_str.ptr();
+    descriptor.type_name.length= type_name_str.length();
+
+    descriptor.comment.str= field->comment.str;
+    descriptor.comment.length= field->comment.length;
+
+    /* Calculate the final length of the column descriptor. */
+    for (uint i= 0; i < array_elements(string_array); i++)
+      length+= length_of_encoded_string(string_array[i]->length);
+
+    descriptor.length= length;
+    descriptor.type= field->type();
+    descriptor.display_length= field->field_length;
+    descriptor.scale= field->decimals();
+    descriptor.charset= field->charset()->number;
+    descriptor.flags= field->flags;
+
+    if (functor(&descriptor))
+      break;
+  }
+
+  return field;
+}
+
+/**
+  Write the data header of a Table_metadata event.
+
+  @param cache  IO cache.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::write_data_header(IO_CACHE *cache)
+{
+  uchar data_header_buf[DH_FIXED_LENGTH];
+  DBUG_ENTER("Table_metadata_log_event::write_data_header");
+
+  if (!m_is_valid)
+    DBUG_RETURN(true);
+
+  /* Type of table_map_id might not be wide enough for int6store. */
+  ulonglong table_map_id= m_table->s->table_map_id;
+
+  int6store(data_header_buf + DH_TABLE_ID_OFFSET, table_map_id);
+  int2store(data_header_buf + DH_COLUMNS_OFFSET, m_table->s->fields);
+  int2store(data_header_buf + DH_FLAGS_OFFSET, 0);
+
+  DBUG_RETURN(my_b_safe_write(cache, data_header_buf, DH_FIXED_LENGTH));
+}
+
+/** Function object for writing a column descriptor. */
+struct Table_metadata_log_event::Data_body_functor
+{
+  IO_CACHE *m_cache;
+  uchar m_data_buf[CD_FIXED_LENGTH];
+  uchar m_len_buf[sizeof(ulonglong)];
+
+  Data_body_functor(IO_CACHE *cache)
+    : m_cache(cache) {}
+
+  bool operator()(const Column_descriptor *descriptor)
+  { return write(descriptor); }
+
+  bool write(const Column_descriptor *);
+  bool write_length_encoded_string(const LEX_CSTRING *);
+};
+
+/**
+  Write a length-prefixed string to an IO cache.
+
+  @param str    The string.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::Data_body_functor::
+  write_length_encoded_string(const LEX_CSTRING *str)
+{
+  uchar *ptr;
+
+  ptr= net_store_length(m_len_buf, str->length);
+
+  return my_b_safe_write(m_cache, m_len_buf, ptr - m_len_buf) ||
+         my_b_safe_write(m_cache, (const uchar *) str->str, str->length);
+}
+
+/**
+  Write a column description to an IO cache.
+
+  @param descriptor   A column descriptor object.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::Data_body_functor::write(
+  const Column_descriptor *descriptor)
+{
+  const LEX_CSTRING *string_array[]=
+    {&descriptor->name, &descriptor->type_name, &descriptor->comment};
+
+  int4store(m_data_buf + CD_LENGTH_OFFSET, descriptor->length);
+  m_data_buf[CD_TYPE_OFFSET]= descriptor->type;
+  int4store(m_data_buf + CD_DISPLAY_LENGTH_OFFSET, descriptor->display_length);
+  m_data_buf[CD_SCALE_OFFSET]= descriptor->scale;
+  int2store(m_data_buf + CD_CHARSET_OFFSET, descriptor->charset);
+  int2store(m_data_buf + CD_FLAGS_OFFSET, descriptor->flags);
+
+  if (my_b_safe_write(m_cache, m_data_buf, CD_FIXED_LENGTH))
+    return true;
+
+  for (uint i= 0; i < array_elements(string_array); i++)
+    if (write_length_encoded_string(string_array[i]))
+      return true;
+
+  return false;
+}
+
+/**
+  Write the data body of a Table_metadata event.
+
+  @param cache  IO cache.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::write_data_body(IO_CACHE *cache)
+{
+  bool status;
+  Data_body_functor functor(cache);
+  DBUG_ENTER("Table_metadata_log_event::write_data_body");
+
+  status= for_each_field(thd, m_table->field, functor);
+
+  DBUG_RETURN(status);
+}
+
+/** Function object for computing the length of column descriptors. */
+struct Table_metadata_log_event::Data_size_functor
+{
+  int m_length;
+  Data_size_functor(int len) : m_length(len) {}
+  bool operator()(const Column_descriptor *descriptor)
+  { m_length+= descriptor->length; return false; }
+};
+
+/**
+  Write this Table_metadata event to a given IO cache.
+
+  @param cache  IO cache.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+int
+Table_metadata_log_event::get_data_size()
+{
+  Data_size_functor functor(DH_FIXED_LENGTH);
+  DBUG_ENTER("Table_metadata_log_event::get_data_size");
+
+  if (for_each_field(thd, m_table->field, functor))
+    DBUG_RETURN(0);
+
+  m_is_valid= true;
+
+  DBUG_RETURN(functor.m_length);
+}
+
+#endif /* MYSQL_SERVER */
+
+#if defined(MYSQL_SERVER) && defined(HAVE_REPLICATION)
+
+int Table_metadata_log_event::do_update_pos(Relay_log_info *rli)
+{
+  rli->inc_event_relay_log_pos();
+  return 0;
+}
+
+void Table_metadata_log_event::pack_info(Protocol *protocol)
+{
+  size_t len;
+  char buf[32];
+
+  len= my_snprintf(buf, sizeof(buf), "table_id: %lu", get_table_id());
+
+  protocol->store(buf, len, &my_charset_bin);
+}
+
+#endif /* MYSQL_SERVER && HAVE_REPLICATION */
+
+/**
+  Read a Table_metadata event from a data buffer.
+
+  @param event  The event data buffer.
+  @param event_len  Length of the event data buffer.
+  @param description_event Format description event that describes this event.
+
+  @remark The data buffer ownership is transferred to this event.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::read(
+  const char *event,
+  uint event_len,
+  const Format_description_log_event *description_event)
+{
+  uint8   common_header_len;
+  uint8   data_header_len;
+  uint32  data_body_len= 0;
+
+  /* Event header. */
+  common_header_len= description_event->common_header_len;
+  /* Fixed-length data header. */
+  data_header_len= description_event->post_header_len[TABLE_METADATA_EVENT-1];
+
+  /* Size of the variable-length data body. */
+  if (event_len > (common_header_len + data_header_len))
+    data_body_len= event_len - (common_header_len + data_header_len);
+
+  if (!read_data_header(event + common_header_len, data_header_len))
+    read_data_body(event + common_header_len + data_header_len, data_body_len);
+
+  return (m_column_descriptor == NULL);
+}
+
+/**
+  Read the data header of a Table_metadata event.
+
+  @param buf      The data header buffer.
+  @param buf_len  Length of the data header buffer.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::read_data_header(const char *buf, uint buf_len)
+{
+  DBUG_ENTER("Table_metadata_log_event::read_data_header");
+
+  if (buf_len < DH_FIXED_LENGTH)
+    DBUG_RETURN(true);
+
+  m_data_header.table_id= uint6korr(buf + DH_TABLE_ID_OFFSET);
+  m_data_header.columns= uint2korr(buf + DH_COLUMNS_OFFSET);
+  m_data_header.flags= uint2korr(buf + DH_FLAGS_OFFSET);
+
+  DBUG_RETURN(m_data_header.columns == 0);
+}
+
+/**
+  Read a length-prefixed string from a data buffer.
+
+  @param var      Pointer to and length of the string.
+  @param buf      Reference to the data buffer.
+  @param buf_len  Reference to the length of the buffer.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::read_length_encoded_string(
+  LEX_CSTRING *var,
+  const char *buf,
+  uint buf_len)
+{
+  const char *str= buf;
+  DBUG_ENTER("Table_metadata_log_event::read_length_encoded_string");
+
+  if (buf_len == 0)
+    DBUG_RETURN(true);
+
+  var->length= get_string_field_length(&str, buf_len);
+
+  if (var->length == UINT_MAX)
+    DBUG_RETURN(true);
+
+  /* Account for the length prefix. */
+  buf_len-= (str - buf);
+
+  if (var->length > buf_len)
+    DBUG_RETURN(true);
+
+  var->str= str;
+
+  DBUG_RETURN(false);
+}
+
+/**
+  Read a column descriptor portion the event data.
+
+  @param descriptor A column descriptor object.
+  @param buf        The data buffer.
+  @param buf_len    Length of the buffer.
+
+  @return FALSE on success, TRUE otherwise.
+*/
+bool
+Table_metadata_log_event::read_column_descriptor(
+  Column_descriptor *descriptor,
+  const char *buf,
+  uint buf_len)
+{
+  uint index, length;
+  LEX_CSTRING *string_array[]=
+    {&descriptor->name, &descriptor->type_name, &descriptor->comment};
+  DBUG_ENTER("Table_metadata_log_event::read_column_descriptor");
+
+  if (buf_len < CD_FIXED_LENGTH)
+    DBUG_RETURN(true);
+
+  descriptor->length= uint4korr(buf + CD_LENGTH_OFFSET);
+  descriptor->type= *(buf + CD_TYPE_OFFSET);
+  descriptor->display_length= uint4korr(buf + CD_DISPLAY_LENGTH_OFFSET);
+  descriptor->scale= *(buf + CD_SCALE_OFFSET);
+  descriptor->charset= uint2korr(buf + CD_CHARSET_OFFSET);
+  descriptor->flags= uint2korr(buf + CD_FLAGS_OFFSET);
+
+  if (buf_len < descriptor->length)
+    DBUG_RETURN(true);
+
+  buf+= CD_FIXED_LENGTH;
+  buf_len-= CD_FIXED_LENGTH;
+
+  for (index= 0; index < array_elements(string_array); index++)
+  {
+    if (read_length_encoded_string(string_array[index], buf, buf_len))
+      break;
+
+    length= length_of_encoded_string(string_array[index]->length);
+
+    /* Skip over the string data. */
+    buf+= length; buf_len-= length;
+  }
+
+  DBUG_RETURN(index != array_elements(string_array));
+}
+
+/**
+  Read the data body of a table_metadata event.
+
+  @param buf      the data header buffer.
+  @param buf_len  length of the data header buffer.
+
+  @return false on success, true otherwise.
+*/
+void
+Table_metadata_log_event::read_data_body(const char *buf, uint buf_len)
+{
+  uint16 column;
+  Column_descriptor *descriptor;
+  DBUG_ENTER("Table_metadata_log_event::read_data_body");
+
+  m_column_descriptor= (Column_descriptor *)
+    my_malloc(m_data_header.columns * sizeof(Column_descriptor),
+              MYF(MY_ZEROFILL | MY_WME));
+
+  if (m_column_descriptor == NULL)
+    DBUG_VOID_RETURN;
+
+  for (column= 0; column < m_data_header.columns; column++)
+  {
+    descriptor= &m_column_descriptor[column];
+
+    if (read_column_descriptor(descriptor, buf, buf_len))
+      break;
+
+    /* Skip over any unread data. */
+    buf+= descriptor->length; buf_len-= descriptor->length;
+  }
+
+  if (column != m_data_header.columns)
+  {
+    my_free(m_column_descriptor);
+    m_column_descriptor= NULL;
+  }
+
+  DBUG_VOID_RETURN;
+}
+
+#if defined(MYSQL_CLIENT)
+
+/**
+  Print information (header and body) about this event.
+
+  @param stream   Output stream.
+  @param print_event_info   Print context.
+*/
+void
+Table_metadata_log_event::print_helper(
+  FILE *stream,
+  PRINT_EVENT_INFO *print_event_info)
+{
+  Column_descriptor *descriptor;
+  Table_map_log_event *table_map;
+  ulong table_map_id= get_table_id();
+  IO_CACHE *head_cache= &print_event_info->head_cache;
+  IO_CACHE *body_cache= &print_event_info->body_cache;
+  DBUG_ENTER("Table_metadata_log_event::print_helper");
+
+  if (!(table_map= print_event_info->m_table_map.get_table(table_map_id)))
+    table_map= print_event_info->m_table_map_ignored.get_table(table_map_id);
+
+  print_header(head_cache, print_event_info, TRUE);
+
+  if (table_map)
+    my_b_printf(head_cache, "\tTable_metadata: `%s`.`%s` (",
+                table_map->get_db_name(), table_map->get_table_name());
+  else
+    my_b_printf(head_cache, "\tTable_metadata: %lu (", table_map_id);
+
+  for (uint column= 0; column < m_data_header.columns; column++)
+  {
+    descriptor= get_column_descriptor(column);
+    if (column) my_b_write(head_cache, ", ", 2);
+    my_b_printf(head_cache, "`%.*b` %.*b",
+                descriptor->name.length, descriptor->name.str,
+                descriptor->type_name.length, descriptor->type_name.str);
+  }
+
+  my_b_write(head_cache, ")\n", 2);
+
+  print_base64(body_cache, print_event_info, TRUE);
+
+  DBUG_VOID_RETURN;
+}
+
+#endif /* MYSQL_CLIENT */
 
 /**************************************************************************
 	Write_rows_log_event member functions

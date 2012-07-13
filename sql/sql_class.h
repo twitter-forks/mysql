@@ -513,6 +513,7 @@ typedef struct system_variables
 
   ulong protocol_mode;
   ulong max_statement_time;
+  my_bool binlog_row_write_table_metadata;
 } SV;
 
 
@@ -1608,6 +1609,7 @@ public:
   void binlog_start_trans_and_stmt();
   void binlog_set_stmt_begin();
   int binlog_write_table_map(TABLE *table, bool is_transactional);
+  int binlog_write_table_metadata(TABLE *table, bool is_transactional);
   int binlog_write_row(TABLE* table, bool is_transactional,
                        MY_BITMAP const* cols, size_t colcnt,
                        const uchar *buf);

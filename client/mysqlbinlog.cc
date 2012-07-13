@@ -670,6 +670,37 @@ write_event_header_and_base64(Log_event *ev, FILE *result_file,
 
 
 /**
+  Attach a Table_metadata event to its respective Table_map event;
+
+  @param event The Table_metadata event.
+  @param print_event_info Print context.
+
+  @remark Upon successful attachment, the Table_map takes ownership
+          over the Table_metadata event.
+
+  @return false if successful, true otherwise.
+*/
+static bool
+attach_to_table_map_event(Table_metadata_log_event *event,
+                          PRINT_EVENT_INFO *print_event_info)
+{
+  Table_map_log_event *table_map;
+  ulong table_map_id= event->get_table_id();
+  DBUG_ENTER("process_table_metadata_event");
+
+  if (!(table_map= print_event_info->m_table_map.get_table(table_map_id)))
+    table_map= print_event_info->m_table_map_ignored.get_table(table_map_id);
+
+  if (!table_map)
+    DBUG_RETURN(true);
+
+  table_map->set_table_metadata_event(event);
+
+  DBUG_RETURN(false);
+}
+
+
+/**
   Print the given event, and either delete it or delegate the deletion
   to someone else.
 
@@ -901,6 +932,13 @@ Exit_status process_event(PRINT_EVENT_INFO *print_event_info, Log_event *ev,
 
       if (fname)
 	my_free(fname);
+      break;
+    }
+    case TABLE_METADATA_EVENT:
+    {
+      Table_metadata_log_event *event= (Table_metadata_log_event *) ev;
+      destroy_evt= attach_to_table_map_event(event, print_event_info);
+      event->print(result_file, print_event_info);
       break;
     }
     case TABLE_MAP_EVENT:

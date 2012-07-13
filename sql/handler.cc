@@ -5018,6 +5018,10 @@ static int write_locked_table_maps(THD *thd)
           */
           if (unlikely(error))
             DBUG_RETURN(1);
+
+          if (thd->variables.binlog_row_write_table_metadata &&
+              unlikely(thd->binlog_write_table_metadata(table, has_trans)))
+            DBUG_RETURN(1);
         }
       }
     }
