@@ -1,4 +1,4 @@
-/* Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1146,7 +1146,7 @@ Item_in_subselect::single_value_transformer(JOIN *join,
   }
   else
   {
-    Item *item= (Item*) select_lex->item_list.head();
+    Item *item= (Item*) select_lex->item_list.head()->real_item();
 
     if (select_lex->table_list.elements)
     {

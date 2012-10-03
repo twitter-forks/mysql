@@ -1,4 +1,4 @@
-/* Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -565,6 +565,8 @@ JOIN::prepare(Item ***rref_pointer_array,
 			 (having->fix_fields(thd, &having) ||
 			  having->check_cols(1)));
     select_lex->having_fix_field= 0;
+    select_lex->having= having;
+
     if (having_fix_rc || thd->is_error())
       DBUG_RETURN(-1);				/* purecov: inspected */
     thd->lex->allow_sum_func= save_allow_sum_func;
@@ -1514,12 +1516,19 @@ JOIN::optimize()
         DBUG_RETURN(1);
       }
     }
-    
+    /*
+      Calculate a possible 'limit' of table rows for 'GROUP BY': 'need_tmp'
+      implies that there will be more postprocessing so the specified
+      'limit' should not be enforced yet in the call to
+      'test_if_skip_sort_order'.
+    */
+    const ha_rows limit = need_tmp ? HA_POS_ERROR : unit->select_limit_cnt;
+
     if (!(select_options & SELECT_BIG_RESULT) &&
         ((group_list &&
           (!simple_group ||
            !test_if_skip_sort_order(&join_tab[const_tables], group_list,
-                                    unit->select_limit_cnt, 0, 
+                                    limit, 0,
                                     &join_tab[const_tables].table->
                                     keys_in_use_for_group_by))) ||
          select_distinct) &&
@@ -6010,19 +6019,33 @@ get_store_key(THD *thd, KEYUSE *keyuse, table_map used_tables,
 				    key_part->length,
 				    keyuse->val);
   }
-  else if (keyuse->val->type() == Item::FIELD_ITEM ||
-           (keyuse->val->type() == Item::REF_ITEM &&
-            ((Item_ref*)keyuse->val)->ref_type() == Item_ref::OUTER_REF &&
-            (*(Item_ref**)((Item_ref*)keyuse->val)->ref)->ref_type() ==
-             Item_ref::DIRECT_REF && 
-            keyuse->val->real_item()->type() == Item::FIELD_ITEM))
+
+  Item_field *field_item= NULL;
+  if (keyuse->val->type() == Item::FIELD_ITEM)  
+    field_item= static_cast<Item_field*>(keyuse->val->real_item());
+  else if (keyuse->val->type() == Item::REF_ITEM)
+  {
+    Item_ref *item_ref= static_cast<Item_ref*>(keyuse->val);
+    if (item_ref->ref_type() == Item_ref::OUTER_REF)
+    {
+      if ((*item_ref->ref)->type() == Item::FIELD_ITEM)
+        field_item= static_cast<Item_field*>(item_ref->real_item());
+      else if ((*(Item_ref**)(item_ref)->ref)->ref_type()
+               == Item_ref::DIRECT_REF
+               && 
+               item_ref->real_item()->type() == Item::FIELD_ITEM)
+        field_item= static_cast<Item_field*>(item_ref->real_item());
+    }
+  }
+  if (field_item)
     return new store_key_field(thd,
-			       key_part->field,
-			       key_buff + maybe_null,
-			       maybe_null ? key_buff : 0,
-			       key_part->length,
-			       ((Item_field*) keyuse->val->real_item())->field,
-			       keyuse->val->full_name());
+                               key_part->field,
+                               key_buff + maybe_null,
+                               maybe_null ? key_buff : 0,
+                               key_part->length,
+                               field_item->field,
+                               keyuse->val->full_name());
+
   return new store_key_item(thd,
 			    key_part->field,
 			    key_buff + maybe_null,
@@ -13947,8 +13970,6 @@ check_reverse_order:
                                 join_read_first:join_read_last;
         tab->type=JT_NEXT;           // Read with index_first(), index_next()
 
-        if (table->covering_keys.is_set(best_key))
-          table->set_keyread(TRUE);
         table->file->ha_index_or_rnd_end();
         if (tab->join->select_options & SELECT_DESCRIBE)
         {
@@ -14085,6 +14106,14 @@ create_sort_index(THD *thd, JOIN *join, ORDER *order,
   table=  tab->table;
   select= tab->select;
 
+  /* 
+    If we have a select->quick object that is created outside of
+    create_sort_index() and this is part of a subquery that
+    potentially can be executed multiple times then we should not
+    delete the quick object on exit from this function.
+  */
+  bool keep_quick= select && select->quick && join->join_tab_save;
+
   /*
     When there is SQL_BIG_RESULT do not sort using index for GROUP BY,
     and thus force sorting on disk unless a group min-max optimization
@@ -14136,6 +14165,7 @@ create_sort_index(THD *thd, JOIN *join, ORDER *order,
 			    get_quick_select_for_ref(thd, table, &tab->ref, 
                                                      tab->found_records))))
 	goto err;
+      DBUG_ASSERT(!keep_quick);
     }
   }
 
@@ -14166,9 +14196,25 @@ create_sort_index(THD *thd, JOIN *join, ORDER *order,
     tablesort_result_cache= table->sort.io_cache;
     table->sort.io_cache= NULL;
 
-    select->cleanup();				// filesort did select
-    tab->select= 0;
-    table->quick_keys.clear_all();  // as far as we cleanup select->quick
+    /*
+      If a quick object was created outside of create_sort_index()
+      that might be reused, then do not call select->cleanup() since
+      it will delete the quick object.
+    */
+    if (!keep_quick)
+    {
+      select->cleanup();
+      /*
+        The select object should now be ready for the next use. If it
+        is re-used then there exists a backup copy of this join tab
+        which has the pointer to it. The join tab will be restored in
+        JOIN::reset(). So here we just delete the pointer to it.
+      */
+      tab->select= NULL;
+      // If we deleted the quick select object we need to clear quick_keys
+      table->quick_keys.clear_all();
+    }
+    // Restore the output resultset
     table->sort.io_cache= tablesort_result_cache;
   }
   tab->select_cond=0;

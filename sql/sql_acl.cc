@@ -7843,8 +7843,6 @@ get_cached_table_access(GRANT_INTERNAL_INFO *grant_internal_info,
 #undef HAVE_OPENSSL
 #ifdef NO_EMBEDDED_ACCESS_CHECKS
 #define initialized 0
-#define decrease_user_connections(X)        /* nothing */
-#define check_for_max_user_connections(X, Y)   0
 #endif
 #endif
 #ifndef HAVE_OPENSSL
@@ -8067,6 +8065,7 @@ static bool send_server_handshake_packet(MPVIO_EXT *mpvio,
   int2store(end + 3, mpvio->server_status[0]);
   int2store(end + 5, mpvio->client_capabilities >> 16);
   end[7]= data_len;
+  DBUG_EXECUTE_IF("poison_srv_handshake_scramble_len", end[7]= -100;);
   bzero(end + 8, 10);
   end+= 18;
   /* write scramble tail */
@@ -9330,7 +9329,7 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
     mpvio.packets_read++;    // take COM_CHANGE_USER packet into account
 
     /* Clear variables that are allocated */
-    thd->user_connect= 0;
+    thd->set_user_connect(NULL);
 
     if (parse_com_change_user_packet(&mpvio, com_change_user_pkt_len))
     {
@@ -9494,11 +9493,11 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
   else
     sctx->skip_grants();
 
-  if (thd->user_connect &&
-      (thd->user_connect->user_resources.conn_per_hour ||
-       thd->user_connect->user_resources.user_conn ||
+  const USER_CONN *uc;
+  if ((uc= thd->get_user_connect()) &&
+      (uc->user_resources.conn_per_hour || uc->user_resources.user_conn ||
        global_system_variables.max_user_connections) &&
-      check_for_max_user_connections(thd, thd->user_connect))
+       check_for_max_user_connections(thd, uc))
   {
     DBUG_RETURN(1); // The error is set in check_for_max_user_connections()
   }
@@ -9520,6 +9519,7 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
     mysql_mutex_unlock(&LOCK_connection_count);
     if (!count_ok)
     {                                         // too many connections
+      release_user_connection(thd);
       my_error(ER_CON_COUNT_ERROR, MYF(0));
       DBUG_RETURN(1);
     }
@@ -9538,11 +9538,7 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
     if (mysql_change_db(thd, &mpvio.db, FALSE))
     {
       /* mysql_change_db() has pushed the error message. */
-      if (thd->user_connect)
-      {
-        decrease_user_connections(thd->user_connect);
-        thd->user_connect= 0;
-      }
+      release_user_connection(thd);
       DBUG_RETURN(1);
     }
   }
@@ -9565,9 +9561,8 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
   thd->net.skip_big_packet= TRUE;
 #endif
 
-  if (thd->user_connect)
-    thd->variables.max_statement_time=
-      thd->user_connect->user_resources.statement_timeout;
+  if (uc)
+    thd->variables.max_statement_time= uc->user_resources.statement_timeout;
 
   /* Ready to handle queries */
   DBUG_RETURN(0);

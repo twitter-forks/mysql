@@ -46,6 +46,7 @@
 #include "sql_base.h"                           // close_cached_tables
 #include "debug_sync.h"                         // DEBUG_SYNC
 
+#include "log_event.h"
 #ifdef WITH_PERFSCHEMA_STORAGE_ENGINE
 #include "../storage/perfschema/pfs_server.h"
 #endif /* WITH_PERFSCHEMA_STORAGE_ENGINE */
@@ -142,7 +143,7 @@ static bool update_keycache_param(THD *thd, KEY_CACHE *key_cache,
 
 #define PFS_TRAILING_PROPERTIES \
   NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(NULL), ON_UPDATE(NULL), \
-  0, NULL, sys_var::PARSE_EARLY
+  NULL, sys_var::PARSE_EARLY
 
 static Sys_var_mybool Sys_pfs_enabled(
        "performance_schema",
@@ -1138,6 +1139,14 @@ static Sys_var_ulong Sys_max_allowed_packet(
        BLOCK_SIZE(1024), NO_MUTEX_GUARD, NOT_IN_BINLOG,
        ON_CHECK(check_max_allowed_packet));
 
+static Sys_var_ulong Sys_slave_max_allowed_packet(
+       "slave_max_allowed_packet",
+       "The maximum packet length to sent successfully from the master to slave.",
+       GLOBAL_VAR(slave_max_allowed_packet), CMD_LINE(REQUIRED_ARG),
+       VALID_RANGE(1024, MAX_MAX_ALLOWED_PACKET),
+       DEFAULT(MAX_MAX_ALLOWED_PACKET),
+       BLOCK_SIZE(1024));
+
 static Sys_var_ulonglong Sys_max_binlog_cache_size(
        "max_binlog_cache_size",
        "Sets the total size of the transactional cache",
@@ -1286,7 +1295,7 @@ static Sys_var_harows Sys_sql_max_join_size(
        SESSION_VAR(max_join_size), NO_CMD_LINE,
        VALID_RANGE(1, HA_POS_ERROR), DEFAULT(HA_POS_ERROR), BLOCK_SIZE(1),
        NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0),
-       ON_UPDATE(fix_max_join_size), DEPRECATED(70000, 0));
+       ON_UPDATE(fix_max_join_size), DEPRECATED(""));
 
 static Sys_var_ulong Sys_max_long_data_size(
        "max_long_data_size",
@@ -1705,7 +1714,7 @@ static Sys_var_ulong Sys_rpl_recovery_rank(
        GLOBAL_VAR(rpl_recovery_rank), CMD_LINE(REQUIRED_ARG),
        VALID_RANGE(0, ULONG_MAX), DEFAULT(0), BLOCK_SIZE(1),
        NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(0),
-       DEPRECATED(70000, 0));
+       DEPRECATED(""));
 
 static Sys_var_ulong Sys_range_alloc_block_size(
        "range_alloc_block_size",
@@ -2335,7 +2344,7 @@ static Sys_var_mybool Sys_engine_condition_pushdown(
        CMD_LINE(OPT_ARG, OPT_ENGINE_CONDITION_PUSHDOWN),
        DEFAULT(TRUE), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(NULL),
        ON_UPDATE(fix_engine_condition_pushdown),
-       DEPRECATED(70000, "'@@optimizer_switch'"));
+       DEPRECATED("'@@optimizer_switch'"));
 
 static Sys_var_plugin Sys_default_storage_engine(
        "default_storage_engine", "The default storage engine for new tables",
@@ -3014,7 +3023,7 @@ static Sys_var_mybool Sys_log(
        "log", "Alias for --general-log. Deprecated",
        GLOBAL_VAR(opt_log), NO_CMD_LINE,
        DEFAULT(FALSE), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0),
-       ON_UPDATE(fix_log_state), DEPRECATED(70000, "'@@general_log'"));
+       ON_UPDATE(fix_log_state), DEPRECATED("'@@general_log'"));
 
 static Sys_var_mybool Sys_slow_query_log(
        "slow_query_log",
@@ -3031,7 +3040,7 @@ static Sys_var_mybool Sys_log_slow(
        "Alias for --slow-query-log. Deprecated",
        GLOBAL_VAR(opt_slow_log), NO_CMD_LINE,
        DEFAULT(FALSE), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0),
-       ON_UPDATE(fix_log_state), DEPRECATED(70000, "'@@slow_query_log'"));
+       ON_UPDATE(fix_log_state), DEPRECATED("'@@slow_query_log'"));
 
 static bool fix_log_state(sys_var *self, THD *thd, enum_var_type type)
 {

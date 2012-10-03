@@ -42,6 +42,7 @@ Created 6/2/1994 Heikki Tuuri
 #include "ibuf0ibuf.h"
 #include "trx0trx.h"
 
+#endif /* UNIV_HOTBACKUP */
 /**************************************************************//**
 Report that an index page is corrupted. */
 UNIV_INTERN
@@ -64,6 +65,7 @@ btr_corruption_report(
 	buf_page_print(buf_block_get_frame(block), 0, 0);
 }
 
+#ifndef UNIV_HOTBACKUP
 #ifdef UNIV_BLOB_DEBUG
 # include "srv0srv.h"
 # include "ut0rbt.h"
@@ -1575,7 +1577,9 @@ btr_page_reorganize_low(
 	dict_index_t*	index,	/*!< in: record descriptor */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
+#ifndef UNIV_HOTBACKUP
 	buf_pool_t*	buf_pool	= buf_pool_from_bpage(&block->page);
+#endif /* !UNIV_HOTBACKUP */
 	page_t*		page		= buf_block_get_frame(block);
 	page_zip_des_t*	page_zip	= buf_block_get_page_zip(block);
 	buf_block_t*	temp_block;
@@ -1840,6 +1844,7 @@ btr_root_raise_and_insert(
 	root = btr_cur_get_page(cursor);
 	root_block = btr_cur_get_block(cursor);
 	root_page_zip = buf_block_get_page_zip(root_block);
+	ut_ad(page_get_n_recs(root) > 0);
 #ifdef UNIV_ZIP_DEBUG
 	ut_a(!root_page_zip || page_zip_validate(root_page_zip, root));
 #endif /* UNIV_ZIP_DEBUG */
@@ -2320,12 +2325,20 @@ btr_insert_on_non_leaf_level_func(
 				    BTR_CONT_MODIFY_TREE,
 				    &cursor, 0, file, line, mtr);
 
-	err = btr_cur_pessimistic_insert(BTR_NO_LOCKING_FLAG
-					 | BTR_KEEP_SYS_FLAG
-					 | BTR_NO_UNDO_LOG_FLAG,
-					 &cursor, tuple, &rec,
-					 &dummy_big_rec, 0, NULL, mtr);
-	ut_a(err == DB_SUCCESS);
+	ut_ad(cursor.flag == BTR_CUR_BINARY);
+
+	err = btr_cur_optimistic_insert(
+		BTR_NO_LOCKING_FLAG | BTR_KEEP_SYS_FLAG
+		| BTR_NO_UNDO_LOG_FLAG, &cursor, tuple, &rec,
+		&dummy_big_rec, 0, NULL, mtr);
+
+	if (err == DB_FAIL) {
+		err = btr_cur_pessimistic_insert(
+			BTR_NO_LOCKING_FLAG | BTR_KEEP_SYS_FLAG
+			| BTR_NO_UNDO_LOG_FLAG,
+			&cursor, tuple, &rec, &dummy_big_rec, 0, NULL, mtr);
+		ut_a(err == DB_SUCCESS);
+	}
 }
 
 /**************************************************************//**

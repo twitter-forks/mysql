@@ -55,8 +55,6 @@
 
 #include <welcome_copyright_notice.h> /* ORACLE_WELCOME_COPYRIGHT_NOTICE */
 
-#include <welcome_copyright_notice.h> /* ORACLE_WELCOME_COPYRIGHT_NOTICE */
-
 /* Exit codes */
 
 #define EX_USAGE 1
@@ -84,6 +82,15 @@
 #define IGNORE_NONE 0x00 /* no ignore */
 #define IGNORE_DATA 0x01 /* don't dump data for this table */
 #define IGNORE_INSERT_DELAYED 0x02 /* table doesn't support INSERT DELAYED */
+
+/* general_log or slow_log tables under mysql database */
+static inline my_bool general_log_or_slow_log_tables(const char *db, 
+                                                     const char *table)
+{
+  return (strcmp(db, "mysql") == 0) &&
+         ((strcmp(table, "general_log") == 0) ||
+          (strcmp(table, "slow_log") == 0));
+}
 
 static void add_load_option(DYNAMIC_STRING *str, const char *option,
                              const char *option_value);
@@ -605,7 +612,7 @@ static void short_usage_sub(void)
 static void usage(void)
 {
   print_version();
-  puts(ORACLE_WELCOME_COPYRIGHT_NOTICE("2000, 2011"));
+  puts(ORACLE_WELCOME_COPYRIGHT_NOTICE("2000"));
   puts("Dumping structure and contents of MySQL databases and tables.");
   short_usage_sub();
   print_defaults("my",load_default_groups);
@@ -2451,6 +2458,7 @@ static uint get_table_structure(char *table, char *db, char *table_type,
                                 "TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s'";
   FILE       *sql_file= md_result_file;
   int        len;
+  my_bool    is_log_table;
   MYSQL_RES  *result;
   MYSQL_ROW  row;
   DBUG_ENTER("get_table_structure");
@@ -2535,9 +2543,12 @@ static uint get_table_structure(char *table, char *db, char *table_type,
       /*
         Even if the "table" is a view, we do a DROP TABLE here.  The
         view-specific code below fills in the DROP VIEW.
+        We will skip the DROP TABLE for general_log and slow_log, since
+        those stmts will fail, in case we apply dump by enabling logging.
        */
-        fprintf(sql_file, "DROP TABLE IF EXISTS %s;\n",
-                opt_quoted_table);
+        if (!general_log_or_slow_log_tables(db, table))
+          fprintf(sql_file, "DROP TABLE IF EXISTS %s;\n",
+                  opt_quoted_table);
         check_io(sql_file);
       }
 
@@ -2545,6 +2556,7 @@ static uint get_table_structure(char *table, char *db, char *table_type,
       if (strcmp(field->name, "View") == 0)
       {
         char *scv_buff= NULL;
+        my_ulonglong n_cols;
 
         verbose_msg("-- It's a view, create dummy table for view\n");
 
@@ -2559,8 +2571,8 @@ static uint get_table_structure(char *table, char *db, char *table_type,
           the same name in order to satisfy views that depend on this view.
           The table will be removed when the actual view is created.
 
-          The properties of each column, aside from the data type, are not
-          preserved in this temporary table, because they are not necessary.
+          The properties of each column, are not preserved in this temporary
+          table, because they are not necessary.
 
           This will not be necessary once we can determine dependencies
           between views and can simply dump them in the appropriate order.
@@ -2587,8 +2599,23 @@ static uint get_table_structure(char *table, char *db, char *table_type,
         else
           my_free(scv_buff);
 
-        if (mysql_num_rows(result))
+        n_cols= mysql_num_rows(result);
+        if (0 != n_cols)
         {
+
+          /*
+            The actual formula is based on the column names and how the .FRM
+            files are stored and is too volatile to be repeated here.
+            Thus we simply warn the user if the columns exceed a limit we
+            know works most of the time.
+          */
+          if (n_cols >= 1000)
+            fprintf(stderr,
+                    "-- Warning: Creating a stand-in table for view %s may"
+                    " fail when replaying the dump file produced because "
+                    "of the number of columns exceeding 1000. Exercise "
+                    "caution when replaying the produced dump file.\n", 
+                    table);
           if (opt_drop)
           {
             /*
@@ -2615,14 +2642,19 @@ static uint get_table_structure(char *table, char *db, char *table_type,
 
           row= mysql_fetch_row(result);
 
-          fprintf(sql_file, "  %s %s", quote_name(row[0], name_buff, 0),
-                  row[1]);
+          /*
+            The actual column type doesn't matter anyway, since the table will
+            be dropped at run time.
+            We do tinyint to avoid hitting the row size limit.
+          */
+          fprintf(sql_file, "  %s tinyint NOT NULL",
+                  quote_name(row[0], name_buff, 0));
 
           while((row= mysql_fetch_row(result)))
           {
             /* col name, col type */
-            fprintf(sql_file, ",\n  %s %s",
-                    quote_name(row[0], name_buff, 0), row[1]);
+            fprintf(sql_file, ",\n  %s tinyint NOT NULL",
+                    quote_name(row[0], name_buff, 0));
           }
 
           /*
@@ -2649,12 +2681,25 @@ static uint get_table_structure(char *table, char *db, char *table_type,
 
       row= mysql_fetch_row(result);
 
-      fprintf(sql_file, (opt_compatible_mode & 3) ? "%s;\n" :
-              "/*!40101 SET @saved_cs_client     = @@character_set_client */;\n"
-              "/*!40101 SET character_set_client = utf8 */;\n"
-              "%s;\n"
-              "/*!40101 SET character_set_client = @saved_cs_client */;\n",
-              row[1]);
+      is_log_table= general_log_or_slow_log_tables(db, table);
+      if (is_log_table)
+        row[1]+= 13; /* strlen("CREATE TABLE ")= 13 */
+      if (opt_compatible_mode & 3)
+      {
+        fprintf(sql_file,
+                is_log_table ? "CREATE TABLE IF NOT EXISTS %s;\n" : "%s;\n",
+                row[1]);
+      }
+      else
+      {
+        fprintf(sql_file,
+                "/*!40101 SET @saved_cs_client     = @@character_set_client */;\n"
+                "/*!40101 SET character_set_client = utf8 */;\n"
+                "%s%s;\n"
+                "/*!40101 SET character_set_client = @saved_cs_client */;\n",
+                is_log_table ? "CREATE TABLE IF NOT EXISTS " : "",
+                row[1]);
+      }
 
       check_io(sql_file);
       mysql_free_result(result);
@@ -4263,6 +4308,22 @@ static int dump_all_tables_in_db(char *database)
   if (opt_xml)
     print_xml_tag(md_result_file, "", "\n", "database", "name=", database, NullS);
 
+  if (strcmp(database, "mysql") == 0)
+  {
+    char table_type[NAME_LEN];
+    char ignore_flag;
+    uint num_fields;
+    num_fields= get_table_structure((char *) "general_log", 
+                                    database, table_type, &ignore_flag);
+    if (num_fields == 0)
+      verbose_msg("-- Warning: get_table_structure() failed with some internal "
+                  "error for 'general_log' table\n");
+    num_fields= get_table_structure((char *) "slow_log", 
+                                    database, table_type, &ignore_flag);
+    if (num_fields == 0)
+      verbose_msg("-- Warning: get_table_structure() failed with some internal "
+                  "error for 'slow_log' table\n");
+  }
   if (lock_tables)
   {
     DYNAMIC_STRING query;

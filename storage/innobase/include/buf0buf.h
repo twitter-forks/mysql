@@ -68,10 +68,9 @@ Created 11/5/1995 Heikki Tuuri
 					position of the block. */
 /* @} */
 
-#define MAX_BUFFER_POOLS_BITS	6	/*!< Number of bits to representing
+#define MAX_BUFFER_POOLS_BITS	6 	/*!< Number of bits to representing
 					a buffer pool ID */
-
-#define MAX_BUFFER_POOLS 	(1 << MAX_BUFFER_POOLS_BITS)
+#define MAX_BUFFER_POOLS	(1 << MAX_BUFFER_POOLS_BITS)
 					/*!< The maximum number of buffer
 					pools that can be defined */
 
@@ -598,34 +597,34 @@ ib_uint64_t
 buf_block_get_modify_clock(
 /*=======================*/
 	buf_block_t*	block);	/*!< in: block */
-#else /* !UNIV_HOTBACKUP */
-# define buf_block_modify_clock_inc(block) ((void) 0)
-#endif /* !UNIV_HOTBACKUP */
 /*******************************************************************//**
 Increments the bufferfix count. */
 UNIV_INLINE
 void
 buf_block_buf_fix_inc_func(
 /*=======================*/
-#ifdef UNIV_SYNC_DEBUG
+# ifdef UNIV_SYNC_DEBUG
 	const char*	file,	/*!< in: file name */
 	ulint		line,	/*!< in: line */
-#endif /* UNIV_SYNC_DEBUG */
+# endif /* UNIV_SYNC_DEBUG */
 	buf_block_t*	block)	/*!< in/out: block to bufferfix */
 	__attribute__((nonnull));
-#ifdef UNIV_SYNC_DEBUG
+# ifdef UNIV_SYNC_DEBUG
 /** Increments the bufferfix count.
 @param b	in/out: block to bufferfix
 @param f	in: file name where requested
 @param l	in: line number where requested */
 # define buf_block_buf_fix_inc(b,f,l) buf_block_buf_fix_inc_func(f,l,b)
-#else /* UNIV_SYNC_DEBUG */
+# else /* UNIV_SYNC_DEBUG */
 /** Increments the bufferfix count.
 @param b	in/out: block to bufferfix
 @param f	in: file name where requested
 @param l	in: line number where requested */
 # define buf_block_buf_fix_inc(b,f,l) buf_block_buf_fix_inc_func(b)
-#endif /* UNIV_SYNC_DEBUG */
+# endif /* UNIV_SYNC_DEBUG */
+#else /* !UNIV_HOTBACKUP */
+# define buf_block_modify_clock_inc(block) ((void) 0)
+#endif /* !UNIV_HOTBACKUP */
 /********************************************************************//**
 Calculates a page checksum which is stored to the page when it is written
 to a file. Note that we must be careful to calculate the same value
@@ -1179,7 +1178,8 @@ buf_page_init_for_read(
 	ulint		offset);/*!< in: page number */
 /********************************************************************//**
 Completes an asynchronous read or write request of a file page to or from
-the buffer pool. */
+the buffer pool.
+@return TRUE if successful */
 UNIV_INTERN
 ibool
 buf_page_io_complete(

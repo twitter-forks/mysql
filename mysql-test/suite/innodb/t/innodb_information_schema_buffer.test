@@ -70,6 +70,10 @@ and PAGE_TYPE="index";
 DROP TABLE infoschema_child;
 DROP TABLE infoschema_parent;
 
+show create table information_schema.innodb_buffer_page;
+show create table information_schema.innodb_buffer_page_lru;
+show create table information_schema.innodb_buffer_pool_stats;
+
 --echo #
 --echo # MYSQL-38: Counters in innodb_buffer_pool_stats seem broken
 --echo #

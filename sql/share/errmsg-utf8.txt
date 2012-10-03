@@ -6355,8 +6355,8 @@ ER_INSIDE_TRANSACTION_PREVENTS_SWITCH_BINLOG_FORMAT
 ER_PATH_LENGTH
   eng "The path specified for %.64s is too long."
 ER_WARN_DEPRECATED_SYNTAX_NO_REPLACEMENT  
-  eng "The syntax '%s' is deprecated and will be removed in MySQL %s."
-  ger "Die Syntax '%s' ist veraltet und wird in MySQL %s entfernt."
+  eng "'%s' is deprecated and will be removed in a future release."
+  ger "'%s' ist veraltet und wird in einer zukünftigen Version entfernt werden."
 
 ER_WRONG_NATIVE_TABLE_STRUCTURE
         eng "Native table '%-.64s'.'%-.64s' has the wrong structure"
@@ -6514,6 +6514,9 @@ ER_TABLE_IN_FK_CHECK
 
 ER_UNSUPPORTED_ENGINE
   eng "Storage engine '%s' does not support system tables. [%s.%s]"
+
+ER_BINLOG_UNSAFE_AUTOINC_NOT_FIRST
+  eng "INSERT into autoincrement field which is not the first part in the composed primary key is unsafe."
 
 #
 #  End of 5.5 error messages.

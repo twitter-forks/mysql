@@ -476,7 +476,8 @@ void mysql_binlog_send(THD* thd, char* log_ident, my_off_t pos,
     heartbeat_ts= &heartbeat_buf;
     set_timespec_nsec(*heartbeat_ts, 0);
   }
-  sql_print_information("Start binlog_dump to slave_server(%d), pos(%s, %lu)",
+  if (global_system_variables.log_warnings > 1)
+    sql_print_information("Start binlog_dump to slave_server(%d), pos(%s, %lu)",
                         thd->server_id, log_ident, (ulong)pos);
   if (RUN_HOOK(binlog_transmit, transmit_start, (thd, flags, log_ident, pos)))
   {
@@ -587,7 +588,7 @@ impossible position";
     this larger than the corresponding packet (query) sent 
     from client to master.
   */
-  thd->variables.max_allowed_packet+= MAX_LOG_EVENT_HEADER;
+  thd->variables.max_allowed_packet= MAX_MAX_ALLOWED_PACKET;
 
   /*
     We can set log_lock now, it does not move (it's a member of
@@ -1737,6 +1738,8 @@ bool mysql_show_binlog_events(THD* thd)
   File file = -1;
   MYSQL_BIN_LOG *binary_log= NULL;
   int old_max_allowed_packet= thd->variables.max_allowed_packet;
+  LOG_INFO linfo;
+
   DBUG_ENTER("mysql_show_binlog_events");
 
   Log_event::init_show_field_list(&field_list);
@@ -1779,7 +1782,6 @@ bool mysql_show_binlog_events(THD* thd)
     char search_file_name[FN_REFLEN], *name;
     const char *log_file_name = lex_mi->log_file_name;
     mysql_mutex_t *log_lock = binary_log->get_log_lock();
-    LOG_INFO linfo;
     Log_event* ev;
 
     unit->set_limit(thd->lex->current_select);
@@ -1871,6 +1873,8 @@ bool mysql_show_binlog_events(THD* thd)
 
     mysql_mutex_unlock(log_lock);
   }
+  // Check that linfo is still on the function scope.
+  DEBUG_SYNC(thd, "after_show_binlog_events");
 
   ret= FALSE;
 

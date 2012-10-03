@@ -250,7 +250,9 @@ ut_print_timestamp(
 		(int)cal_tm.wSecond,
 		proc_number);
 #else
+#ifdef HAVE_LOCALTIME_R
 	struct tm  cal_tm;
+#endif
 	struct tm* cal_tm_ptr;
 	time_t	   tm;
 
@@ -294,7 +296,9 @@ ut_sprintf_timestamp(
 		(int)cal_tm.wMinute,
 		(int)cal_tm.wSecond);
 #else
+#ifdef HAVE_LOCALTIME_R
 	struct tm  cal_tm;
+#endif
 	struct tm* cal_tm_ptr;
 	time_t	   tm;
 
@@ -339,7 +343,9 @@ ut_sprintf_timestamp_without_extra_chars(
 		(int)cal_tm.wMinute,
 		(int)cal_tm.wSecond);
 #else
+#ifdef HAVE_LOCALTIME_R
 	struct tm  cal_tm;
+#endif
 	struct tm* cal_tm_ptr;
 	time_t	   tm;
 
@@ -380,7 +386,9 @@ ut_get_year_month_day(
 	*month = (ulint)cal_tm.wMonth;
 	*day = (ulint)cal_tm.wDay;
 #else
+#ifdef HAVE_LOCALTIME_R
 	struct tm  cal_tm;
+#endif
 	struct tm* cal_tm_ptr;
 	time_t	   tm;
 

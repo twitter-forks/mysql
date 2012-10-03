@@ -473,6 +473,7 @@ ulonglong slave_type_conversions_options;
 ulong thread_cache_size=0;
 ulong binlog_cache_size=0;
 ulonglong  max_binlog_cache_size=0;
+ulong slave_max_allowed_packet= 0;
 ulong binlog_stmt_cache_size=0;
 ulonglong  max_binlog_stmt_cache_size=0;
 ulong query_cache_size=0;
@@ -603,6 +604,21 @@ int bootstrap_error;
 I_List<THD> threads;
 Rpl_filter* rpl_filter;
 Rpl_filter* binlog_filter;
+
+THD *first_global_thread()
+{
+  if (threads.is_empty())
+    return NULL;
+  return threads.head();
+}
+
+THD *next_global_thread(THD *thd)
+{
+  if (threads.is_last(thd))
+    return NULL;
+  struct ilink *next= thd->next;
+  return static_cast<THD*>(next);
+}
 
 struct system_variables global_system_variables;
 struct system_variables max_system_variables;
@@ -1853,9 +1869,13 @@ static void network_init(void)
   {
     struct addrinfo *ai, *a;
     struct addrinfo hints;
+    const char *bind_address= my_bind_addr_str;
+
+    if (!bind_address)
+      bind_address= "0.0.0.0";
 
     sql_print_information("Server hostname (bind-address): '%s'; port: %d",
-                          my_bind_addr_str, mysqld_port);
+                          bind_address, mysqld_port);
 
     // Get list of IP-addresses associated with the server hostname.
     bzero(&hints, sizeof (hints));
@@ -1864,7 +1884,7 @@ static void network_init(void)
     hints.ai_family= AF_UNSPEC;
 
     my_snprintf(port_buf, NI_MAXSERV, "%d", mysqld_port);
-    if (getaddrinfo(my_bind_addr_str, port_buf, &hints, &ai))
+    if (getaddrinfo(bind_address, port_buf, &hints, &ai))
     {
       sql_perror(ER_DEFAULT(ER_IPSOCK_ERROR));  /* purecov: tested */
       sql_print_error("Can't start server: cannot resolve hostname!");
@@ -1884,7 +1904,7 @@ static void network_init(void)
       }
 
       sql_print_information("  - '%s' resolves to '%s';",
-                            my_bind_addr_str, ip_addr);
+                            bind_address, ip_addr);
     }
 
     /*
@@ -5966,7 +5986,7 @@ struct my_option my_long_options[]=
    "will not do updates to tables in databases that start with foo and whose "
    "table names start with bar.",
    0, 0, 0, GET_STR, REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
-  {"safe-mode", OPT_SAFE, "Skip some optimize stages (for testing).",
+  {"safe-mode", OPT_SAFE, "Skip some optimize stages (for testing). Deprecated.",
    0, 0, 0, GET_NO_ARG, NO_ARG, 0, 0, 0, 0, 0, 0},
   {"safe-user-create", 0,
    "Don't allow new user creation by the user who has no write privileges to the mysql.user table.",
@@ -6681,7 +6701,7 @@ static void usage(void)
   if (!default_collation_name)
     default_collation_name= (char*) default_charset_info->name;
   print_version();
-  puts(ORACLE_WELCOME_COPYRIGHT_NOTICE("2000, 2011"));
+  puts(ORACLE_WELCOME_COPYRIGHT_NOTICE("2000"));
   puts("Starts the MySQL database server.\n");
   printf("Usage: %s [OPTIONS]\n", my_progname);
   if (!opt_verbose)
@@ -7103,6 +7123,8 @@ mysqld_get_one_option(int optid,
     delay_key_write_options= DELAY_KEY_WRITE_NONE;
     myisam_recover_options= HA_RECOVER_DEFAULT;
     ha_open_options&= ~(HA_OPEN_DELAY_KEY_WRITE);
+    sql_print_warning("The syntax '--safe-mode' is deprecated and will be "
+                      "removed in a future release.");
     break;
   case (int) OPT_SKIP_PRIOR:
     opt_specialflag|= SPECIAL_NO_PRIOR;

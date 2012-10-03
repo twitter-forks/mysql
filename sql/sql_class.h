@@ -1,4 +1,4 @@
-/* Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+/* Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -1457,6 +1457,8 @@ public:
 
   /* Used to execute base64 coded binlog events in MySQL server */
   Relay_log_info* rli_fake;
+  /* Slave applier execution context */
+  Relay_log_info* rli_slave;
 
   void reset_for_next_command();
   /*
@@ -1977,7 +1979,26 @@ public:
   */
   ha_rows    examined_row_count;
 
-  USER_CONN *user_connect;
+private:
+  USER_CONN *m_user_connect;
+
+public:
+  void set_user_connect(USER_CONN *uc);
+  const USER_CONN* get_user_connect()
+  { return m_user_connect; }
+
+  void increment_user_connections_counter();
+  void decrement_user_connections_counter();
+
+  void increment_con_per_hour_counter();
+
+  void increment_updates_counter();
+
+  void increment_questions_counter();
+
+  void time_out_user_resource_limits();
+
+public:
   CHARSET_INFO *db_charset;
   Warning_info *warning_info;
   Diagnostics_area *stmt_da;

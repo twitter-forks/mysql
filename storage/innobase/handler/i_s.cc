@@ -47,6 +47,7 @@ extern "C" {
 #include "trx0trx.h" /* for TRX_QUE_STATE_STR_MAX_LEN */
 #include "btr0btr.h"
 #include "page0zip.h"
+#include "log0log.h"
 }
 
 /** structure associates a name string with a file page type and/or buffer
@@ -118,9 +119,9 @@ struct buffer_page_info_struct{
 					/*!< Number of records on Page */
 	unsigned	data_size:UNIV_PAGE_SIZE_SHIFT;
 					/*!< Sum of the sizes of the records */
-	ib_uint64_t	newest_mod;	/*!< Log sequence number of
+	lsn_t		newest_mod;	/*!< Log sequence number of
 					the youngest modification */
-	ib_uint64_t	oldest_mod;	/*!< Log sequence number of
+	lsn_t		oldest_mod;	/*!< Log sequence number of
 					the oldest modification */
 	index_id_t	index_id;	/*!< Index ID if a index page */
 };
@@ -129,6 +130,7 @@ typedef struct buffer_page_info_struct	buf_page_info_t;
 
 /** maximum number of buffer page info we would cache. */
 #define MAX_BUF_INFO_CACHED		10000
+
 
 #define OK(expr)		\
 	if ((expr) != 0) {	\
@@ -2642,12 +2644,12 @@ i_s_innodb_buffer_page_fill(
 			page_info->fix_count));
 
 		if (page_info->hashed) {
-                        OK(field_store_string(
-                                fields[IDX_BUFFER_PAGE_HASHED], "YES"));
-                } else {
-                        OK(field_store_string(
-                                fields[IDX_BUFFER_PAGE_HASHED], "NO"));
-                }
+			OK(field_store_string(
+				fields[IDX_BUFFER_PAGE_HASHED], "YES"));
+		} else {
+			OK(field_store_string(
+				fields[IDX_BUFFER_PAGE_HASHED], "NO"));
+		}
 
 		OK(fields[IDX_BUFFER_PAGE_NEWEST_MOD]->store(
 			(longlong) page_info->newest_mod, true));
@@ -2681,6 +2683,7 @@ i_s_innodb_buffer_page_fill(
 
 				table_name = mem_heap_strdup(heap,
 							     index->table_name);
+
 			}
 
 			mutex_exit(&dict_sys->mutex);
@@ -2699,8 +2702,9 @@ i_s_innodb_buffer_page_fill(
 			page_info->data_size));
 
 		OK(fields[IDX_BUFFER_PAGE_ZIP_SIZE]->store(
-			page_info->zip_ssize ?
-				 512 << page_info->zip_ssize : 0));
+			page_info->zip_ssize
+			? (PAGE_ZIP_MIN_SIZE >> 1) << page_info->zip_ssize
+			: 0));
 
 #if BUF_PAGE_STATE_BITS > 3
 # error "BUF_PAGE_STATE_BITS > 3, please ensure that all 1<<BUF_PAGE_STATE_BITS values are checked for"
@@ -2748,6 +2752,10 @@ i_s_innodb_buffer_page_fill(
 		case BUF_IO_WRITE:
 			OK(field_store_string(fields[IDX_BUFFER_PAGE_IO_FIX],
 					      "IO_WRITE"));
+			break;
+		case BUF_IO_PIN:
+			OK(field_store_string(fields[IDX_BUFFER_PAGE_IO_FIX],
+					      "IO_PIN"));
 			break;
 		}
 
@@ -2799,7 +2807,7 @@ i_s_innodb_set_page_type(
 		/* Encountered an unknown page type */
 		page_info->page_type = I_S_PAGE_TYPE_UNKNOWN;
 	} else {
-		/* Make sure we get the righ index into the
+		/* Make sure we get the right index into the
 		i_s_page_type[] array */
 		ut_a(page_type == i_s_page_type[page_type].type_value);
 
@@ -2847,7 +2855,7 @@ i_s_innodb_buffer_page_get_info(
 
 		page_info->space_id = buf_page_get_space(bpage);
 
-		page_info->page_num = buf_page_get_page_no(bpage);;
+		page_info->page_num = buf_page_get_page_no(bpage);
 
 		page_info->flush_type = bpage->flush_type;
 
@@ -3383,7 +3391,6 @@ i_s_innodb_buf_page_lru_fill(
 
 		OK(field_store_string(
 			fields[IDX_BUF_LRU_PAGE_INDEX_NAME], index_name));
-
 		OK(fields[IDX_BUF_LRU_PAGE_NUM_RECS]->store(
 			page_info->num_recs));
 
@@ -3633,7 +3640,7 @@ UNIV_INTERN struct st_mysql_plugin	i_s_innodb_buffer_page_lru =
 
 	/* Plugin flags */
 	/* unsigned long */
-	STRUCT_FLD(flags, 0UL)
+	STRUCT_FLD(flags, 0UL),
 };
 
 /*******************************************************************//**
@@ -3651,3 +3658,5 @@ i_s_common_deinit(
 
 	DBUG_RETURN(0);
 }
+
+

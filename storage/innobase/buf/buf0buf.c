@@ -293,7 +293,6 @@ be effective only if PFS_GROUP_BUFFER_SYNC is defined. */
 
 # endif /* !PFS_SKIP_BUFFER_MUTEX_RWLOCK */
 #endif /* UNIV_PFS_MUTEX || UNIV_PFS_RWLOCK */
-#endif /* !UNIV_HOTBACKUP */
 
 /********************************************************************//**
 Gets the smallest oldest_modification lsn for any page in the pool. Returns
@@ -429,6 +428,7 @@ buf_block_alloc(
 
 	return(block);
 }
+#endif /* !UNIV_HOTBACKUP */
 
 /********************************************************************//**
 Calculates a page checksum which is stored to the page when it is written
@@ -3484,8 +3484,7 @@ buf_mark_space_corrupt(
 /********************************************************************//**
 Completes an asynchronous read or write request of a file page to or from
 the buffer pool.
-@return FALSE if the read or write request completed successfully, TRUE
-otherwise (page is corrupted). */
+@return TRUE if successful */
 UNIV_INTERN
 ibool
 buf_page_io_complete(
@@ -3614,7 +3613,7 @@ corrupt:
 				table as corrupted instead of crashing server */
 				if (bpage->space > TRX_SYS_SPACE
 				    && buf_mark_space_corrupt(bpage)) {
-					return(TRUE);
+					return(FALSE);
 				} else {
 					fputs("InnoDB: Ending processing"
 					      " because of"
@@ -3705,7 +3704,7 @@ corrupt:
 	mutex_exit(buf_page_get_mutex(bpage));
 	buf_pool_mutex_exit(buf_pool);
 
-	return(FALSE);
+	return(TRUE);
 }
 
 /*********************************************************************//**

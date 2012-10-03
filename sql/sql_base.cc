@@ -216,6 +216,7 @@ static bool
 has_write_table_with_auto_increment(TABLE_LIST *tables);
 static bool
 has_write_table_with_auto_increment_and_select(TABLE_LIST *tables);
+static bool has_write_table_auto_increment_not_first_in_pk(TABLE_LIST *tables);
 
 uint cached_open_tables(void)
 {
@@ -4955,8 +4956,6 @@ restart:
     */
     if (thd->locked_tables_mode <= LTM_LOCK_TABLES)
     {
-      bool need_prelocking= FALSE;
-      TABLE_LIST **save_query_tables_last= thd->lex->query_tables_last;
       /*
         Process elements of the prelocking set which are present there
         since parsing stage or were added to it by invocations of
@@ -4969,9 +4968,18 @@ restart:
       for (Sroutine_hash_entry *rt= *sroutine_to_open; rt;
            sroutine_to_open= &rt->next, rt= rt->next)
       {
+        bool need_prelocking= false;
+        TABLE_LIST **save_query_tables_last= thd->lex->query_tables_last;
+
         error= open_and_process_routine(thd, thd->lex, rt, prelocking_strategy,
                                         has_prelocking_list, &ot_ctx,
                                         &need_prelocking);
+
+        if (need_prelocking && ! thd->lex->requires_prelocking())
+          thd->lex->mark_as_requiring_prelocking(save_query_tables_last);
+
+        if (need_prelocking && ! *start)
+          *start= thd->lex->query_tables;
 
         if (error)
         {
@@ -4993,12 +5001,6 @@ restart:
           goto err;
         }
       }
-
-      if (need_prelocking && ! thd->lex->requires_prelocking())
-        thd->lex->mark_as_requiring_prelocking(save_query_tables_last);
-
-      if (need_prelocking && ! *start)
-        *start= thd->lex->query_tables;
     }
   }
 
@@ -5271,6 +5273,12 @@ static bool check_lock_and_start_stmt(THD *thd,
   int error;
   thr_lock_type lock_type;
   DBUG_ENTER("check_lock_and_start_stmt");
+
+  /*
+    Prelocking placeholder is not set for TABLE_LIST that
+    are directly used by TOP level statement.
+  */
+  DBUG_ASSERT(table_list->prelocking_placeholder == false);
 
   /*
     TL_WRITE_DEFAULT and TL_READ_DEFAULT are supposed to be parser only
@@ -5692,6 +5700,12 @@ bool lock_tables(THD *thd, TABLE_LIST *tables, uint count,
     if (thd->variables.binlog_format != BINLOG_FORMAT_ROW && tables &&
         has_write_table_with_auto_increment_and_select(tables))
       thd->lex->set_stmt_unsafe(LEX::BINLOG_STMT_UNSAFE_WRITE_AUTOINC_SELECT);
+    /* Todo: merge all has_write_table_auto_inc with decide_logging_format */
+    if (thd->variables.binlog_format != BINLOG_FORMAT_ROW && tables)
+    {
+      if (has_write_table_auto_increment_not_first_in_pk(tables))
+        thd->lex->set_stmt_unsafe(LEX::BINLOG_STMT_UNSAFE_AUTOINC_NOT_FIRST);
+    }
 
     /* 
      INSERT...ON DUPLICATE KEY UPDATE on a table with more than one unique keys
@@ -9152,6 +9166,32 @@ has_write_table_with_auto_increment_and_select(TABLE_LIST *tables)
       }
   }
   return(has_select && has_auto_increment_tables);
+}
+
+/*
+  Tells if there is a table whose auto_increment column is a part
+  of a compound primary key while is not the first column in
+  the table definition.
+
+  @param tables Table list
+
+  @return true if the table exists, fais if does not.
+*/
+
+static bool
+has_write_table_auto_increment_not_first_in_pk(TABLE_LIST *tables)
+{
+  for (TABLE_LIST *table= tables; table; table= table->next_global)
+  {
+    /* we must do preliminary checks as table->table may be NULL */
+    if (!table->placeholder() &&
+        table->table->found_next_number_field &&
+        (table->lock_type >= TL_WRITE_ALLOW_WRITE)
+        && table->table->s->next_number_keypart != 0)
+      return 1;
+  }
+
+  return 0;
 }
 
 
