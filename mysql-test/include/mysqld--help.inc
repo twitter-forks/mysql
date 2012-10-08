@@ -17,12 +17,12 @@ perl;
   # Variables which we don't want to display in the result file since
   # their paths may vary:
   @skipvars=qw/basedir open-files-limit general-log-file log plugin-dir
-               log-slow-queries pid-file slow-query-log-file
+               log-slow-queries pid-file slow-query-log-file minidump-dir
 			   datadir slave-load-tmpdir tmpdir socket/;
 
   # Plugins which may or may not be there:
   @plugins=qw/innodb ndb archive blackhole federated partition ndbcluster debug temp-pool ssl des-key-file
-              thread-concurrency super-large-pages mutex-deadlock-detector null-audit/;
+              thread-concurrency super-large-pages mutex-deadlock-detector null-audit performance-schema/;
 
   # And substitute the content some environment variables with their
   # names:
