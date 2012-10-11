@@ -119,3 +119,28 @@ SELECT 1 FROM INFORMATION_SCHEMA.INNODB_BUFFER_POOL_STATS
   WHERE CASE (1) WHEN (1) THEN (PAGES_WRITTEN_RATE) ELSE (1) END;
 
 --enable_result_log
+
+--echo #
+--echo # Lightweight I_S table to hold basic information about each page in the BP
+--echo #
+
+SHOW CREATE TABLE information_schema.innodb_buffer_page_basic;
+
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT, c VARCHAR(50));
+
+INSERT INTO t1 VALUES (1,2,'123456789');
+INSERT INTO t1 VALUES (2,3,'123456789');
+
+SELECT COUNT(*) > 0 FROM information_schema.innodb_buffer_page_basic;
+
+SELECT * FROM information_schema.innodb_buffer_page_basic
+  WHERE (space, page_number)
+    NOT IN (SELECT space, page_number FROM information_schema.innodb_buffer_page
+      WHERE page_type IN ("INDEX"));
+
+SELECT * FROM information_schema.innodb_buffer_page
+  WHERE (space, page_number)
+      NOT IN (SELECT space, page_number FROM information_schema.innodb_buffer_page_basic)
+        AND page_type IN ("INDEX");
+
+DROP TABLE t1;

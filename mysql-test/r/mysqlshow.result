@@ -109,9 +109,9 @@ Database: information_schema
 | TRIGGERS                              |
 | USER_PRIVILEGES                       |
 | VIEWS                                 |
-| INNODB_BUFFER_PAGE                    |
-| INNODB_TRX                            |
 | INNODB_BUFFER_POOL_STATS              |
+| INNODB_TRX                            |
+| INNODB_BUFFER_PAGE                    |
 | INNODB_LOCK_WAITS                     |
 | INNODB_CMPMEM                         |
 | INNODB_CMP                            |
@@ -119,6 +119,7 @@ Database: information_schema
 | INNODB_CMPMEM_RESET                   |
 | INNODB_CMP_RESET                      |
 | INNODB_BUFFER_PAGE_LRU                |
+| INNODB_BUFFER_PAGE_BASIC              |
 +---------------------------------------+
 Database: INFORMATION_SCHEMA
 +---------------------------------------+
@@ -154,9 +155,9 @@ Database: INFORMATION_SCHEMA
 | TRIGGERS                              |
 | USER_PRIVILEGES                       |
 | VIEWS                                 |
-| INNODB_BUFFER_PAGE                    |
-| INNODB_TRX                            |
 | INNODB_BUFFER_POOL_STATS              |
+| INNODB_TRX                            |
+| INNODB_BUFFER_PAGE                    |
 | INNODB_LOCK_WAITS                     |
 | INNODB_CMPMEM                         |
 | INNODB_CMP                            |
@@ -164,6 +165,7 @@ Database: INFORMATION_SCHEMA
 | INNODB_CMPMEM_RESET                   |
 | INNODB_CMP_RESET                      |
 | INNODB_BUFFER_PAGE_LRU                |
+| INNODB_BUFFER_PAGE_BASIC              |
 +---------------------------------------+
 Wildcard: inf_rmation_schema
 +--------------------+

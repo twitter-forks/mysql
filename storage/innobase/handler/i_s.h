@@ -38,5 +38,6 @@ extern struct st_mysql_plugin	i_s_innodb_cmpmem_reset;
 extern struct st_mysql_plugin	i_s_innodb_buffer_page;
 extern struct st_mysql_plugin	i_s_innodb_buffer_page_lru;
 extern struct st_mysql_plugin	i_s_innodb_buffer_stats;
+extern struct st_mysql_plugin	i_s_innodb_buffer_page_basic;
 
 #endif /* i_s_h */

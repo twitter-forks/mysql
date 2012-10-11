@@ -3659,4 +3659,268 @@ i_s_common_deinit(
 	DBUG_RETURN(0);
 }
 
+/* Fields of the dynamic table INNODB_BUFFER_POOL_PAGE_BASIC. */
+static ST_FIELD_INFO	i_s_innodb_buffer_page_basic_fields_info[] =
+{
+#define IDX_BP_BASIC_SPACE		0
+	{STRUCT_FLD(field_name,		"SPACE"),
+	 STRUCT_FLD(field_length,	MY_INT32_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		""),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
 
+#define IDX_BP_BASIC_PAGE_NUM		1
+	{STRUCT_FLD(field_name,		"PAGE_NUMBER"),
+	 STRUCT_FLD(field_length,	)MY_INT32_NUM_DECIMAL_DIGITS,
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		""),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+	END_OF_ST_FIELD_INFO
+};
+
+/*******************************************************************//**
+Goes over a specific block from a buffer pool and fetches information
+about tablespace mapped pages of type B-tree
+@return	number of pages whose information was collected */
+static
+int
+i_s_innodb_buffer_page_basic_fetch(
+/*===============================*/
+	const buf_block_t*	block,		/*!< in: buffer block */
+	ulint			n_blocks,	/*!< in: number of blocks */
+	ulint*			page_info)	/*!< in/out: page info buffer */
+{
+	ulint			num_info;
+
+	DBUG_ENTER("i_s_innodb_buffer_page_basic_fetch");
+
+	/* Go through the blocks */
+	for (num_info = 0; n_blocks--; block++) {
+		const buf_page_t*	bpage = &block->page;
+		const byte*		frame;
+
+		/* Only fetch information for buffers that map to a tablespace,
+		that is, buffer page with state BUF_BLOCK_ZIP_PAGE,
+		BUF_BLOCK_ZIP_DIRTY or BUF_BLOCK_FILE_PAGE */
+		if (!buf_page_in_file(bpage))
+			continue;
+
+		if (buf_page_get_state(bpage) == BUF_BLOCK_FILE_PAGE) {
+			block = (const buf_block_t*) bpage;
+			frame = block->frame;
+		} else {
+			ut_ad(bpage->zip.ssize);
+			frame = bpage->zip.data;
+		}
+
+		/* Only fetch information about B-tree pages */
+		if (fil_page_get_type(frame) != FIL_PAGE_INDEX)
+			continue;
+
+		page_info[num_info++] = buf_page_get_space(bpage);
+		page_info[num_info++] = buf_page_get_page_no(bpage);
+	}
+
+	DBUG_RETURN(num_info / 2);
+}
+
+/*******************************************************************//**
+Fill Information Schema table INNODB_BUFFER_PAGE_BASIC with information
+from the nth chunk of the passed buffer pool
+@return	0 on success, 1 on failure */
+static
+int
+i_s_innodb_buffer_page_basic_fill(
+/*==============================*/
+	THD*			thd,		/*!< in: thread */
+	TABLE_LIST*		tables,		/*!< in: table to fill */
+	buf_pool_t*		buf_pool,	/*!< in: buffer pool to scan */
+	ulint			n,		/*!< in: nth chunk in the buffer pool */
+	mem_heap_t*		heap)		/*!< in: temp heap memory */
+{
+	const buf_block_t*	block;
+	TABLE*			table;
+	Field**			fields;
+	ulint*			page_info;
+	ulint			num_page;
+	ulint			chunk_size;
+	ulint			batch_size;
+
+	DBUG_ENTER("i_s_innodb_buffer_page_basic_fill");
+
+	table = tables->table;
+	fields = table->field;
+
+	/* Get buffer block of the nth chunk */
+	block = buf_get_nth_chunk_block(buf_pool, n, &chunk_size);
+
+	/* Cache up to MAX_BUF_INFO_CACHED pages per scan batch */
+	batch_size = ut_min(chunk_size, MAX_BUF_INFO_CACHED);
+
+	/* Buffer to cache the space and page number pairs read from the chunk */
+	page_info = (ulint*) mem_heap_alloc(heap, batch_size * sizeof(ulint) * 2);
+
+	while (chunk_size) {
+		/* Since this is diagnostic buffer pool info printout,
+		we are not required to preserve the overall consistency,
+		so the mutex can be released periodically */
+		buf_pool_mutex_enter(buf_pool);
+
+		/* Fetch information from pages in this buffer chunk */
+		num_page = i_s_innodb_buffer_page_basic_fetch(
+					block, batch_size, page_info);
+
+		buf_pool_mutex_exit(buf_pool);
+
+		block += batch_size;
+		chunk_size -= batch_size;
+		batch_size = ut_min(chunk_size, MAX_BUF_INFO_CACHED);
+
+		/* Fill in the information schema table with information
+		just collected from the buffer chunk scan */
+		for (ulint i = 0; num_page--;) {
+
+			OK(fields[IDX_BP_BASIC_SPACE]->store(page_info[i++]));
+			OK(fields[IDX_BP_BASIC_PAGE_NUM]->store(page_info[i++]));
+
+			if (schema_table_store_record(thd, table)) {
+				DBUG_RETURN(1);
+			}
+		}
+	}
+
+	mem_heap_empty(heap);
+
+	DBUG_RETURN(0);
+}
+
+/*******************************************************************//**
+Fill information about certain specific pages in the InnoDB buffer
+pool to the INFORMATION_SCHEMA table INNODB_BUFFER_PAGE_BASIC
+@return	0 on success, 1 on failure */
+static
+int
+i_s_innodb_buffer_page_basic_fill_table(
+/*====================================*/
+	THD*		thd,		/*!< in: thread */
+	TABLE_LIST*	tables,		/*!< in/out: tables to fill */
+	Item*		)		/*!< in: condition (ignored) */
+{
+	mem_heap_t*		heap;
+	buf_pool_t*		buf_pool;
+	ulint			i, n;
+
+	DBUG_ENTER("i_s_innodb_buffer_page_fill_table");
+
+	/* deny access to user without PROCESS privilege */
+	if (check_global_access(thd, PROCESS_ACL)) {
+		DBUG_RETURN(0);
+	}
+
+	heap = mem_heap_create(MAX_BUF_INFO_CACHED * sizeof(ulint) * 2);
+
+	/* Walk through each buffer pool */
+	for (i = 0; i < srv_buf_pool_instances; i++) {
+		buf_pool = buf_pool_from_array(i);
+
+		/* Go through each chunk of the buffer pool. Currently, there
+		is only one chunk for each buffer pool */
+		for (n = 0; n < buf_pool->n_chunks; n++) {
+
+			/* Fetch information from pages in this buffer pool
+			chunk and fill the I_S table */
+			if (i_s_innodb_buffer_page_basic_fill(thd, tables,
+							buf_pool, n, heap)) {
+				break;
+			}
+		}
+
+		/* If something went wrong, break the loop */
+		if (n < buf_pool->n_chunks) {
+			break;
+		}
+	}
+
+	mem_heap_free(heap);
+
+	DBUG_RETURN(i < srv_buf_pool_instances);
+}
+
+/*******************************************************************//**
+Bind the dynamic table INFORMATION_SCHEMA.INNODB_BUFFER_PAGE_BASIC.
+@return	0 on success, 1 on failure */
+static
+int
+i_s_innodb_buffer_page_basic_init(
+/*==============================*/
+	void*	p)	/*!< in/out: table schema object */
+{
+	ST_SCHEMA_TABLE*	schema;
+
+	DBUG_ENTER("i_s_innodb_buffer_page_basic_init");
+
+	schema = reinterpret_cast<ST_SCHEMA_TABLE*>(p);
+
+	schema->fields_info = i_s_innodb_buffer_page_basic_fields_info;
+	schema->fill_table = i_s_innodb_buffer_page_basic_fill_table;
+
+	DBUG_RETURN(0);
+}
+
+UNIV_INTERN struct st_mysql_plugin	i_s_innodb_buffer_page_basic =
+{
+	/* the plugin type (a MYSQL_XXX_PLUGIN value) */
+	/* int */
+	STRUCT_FLD(type, MYSQL_INFORMATION_SCHEMA_PLUGIN),
+
+	/* pointer to type-specific plugin descriptor */
+	/* void* */
+	STRUCT_FLD(info, &i_s_info),
+
+	/* plugin name */
+	/* const char* */
+	STRUCT_FLD(name, "INNODB_BUFFER_PAGE_BASIC"),
+
+	/* plugin author (for SHOW PLUGINS) */
+	/* const char* */
+	STRUCT_FLD(author, "Twitter, Inc."),
+
+	/* general descriptive text (for SHOW PLUGINS) */
+	/* const char* */
+	STRUCT_FLD(descr, "InnoDB Basic Buffer Page Information"),
+
+	/* the plugin license (PLUGIN_LICENSE_XXX) */
+	/* int */
+	STRUCT_FLD(license, PLUGIN_LICENSE_GPL),
+
+	/* the function to invoke when plugin is loaded */
+	/* int (*)(void*); */
+	STRUCT_FLD(init, i_s_innodb_buffer_page_basic_init),
+
+	/* the function to invoke when plugin is unloaded */
+	/* int (*)(void*); */
+	STRUCT_FLD(deinit, NULL),
+
+	/* plugin version (for SHOW PLUGINS) */
+	/* unsigned int */
+	STRUCT_FLD(version, INNODB_VERSION_SHORT),
+
+	/* struct st_mysql_show_var* */
+	STRUCT_FLD(status_vars, NULL),
+
+	/* struct st_mysql_sys_var** */
+	STRUCT_FLD(system_vars, NULL),
+
+	/* reserved for dependency checking */
+	/* void* */
+	STRUCT_FLD(__reserved1, NULL),
+
+	/* Plugin flags */
+	/* unsigned long */
+	STRUCT_FLD(flags, 0UL),
+};

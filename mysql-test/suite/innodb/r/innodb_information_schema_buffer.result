@@ -168,3 +168,29 @@ SELECT 1 FROM INFORMATION_SCHEMA.INNODB_BUFFER_POOL_STATS
 WHERE CASE (1) WHEN (1) THEN (PAGES_MADE_YOUNG_RATE) ELSE (1) END;
 SELECT 1 FROM INFORMATION_SCHEMA.INNODB_BUFFER_POOL_STATS
 WHERE CASE (1) WHEN (1) THEN (PAGES_WRITTEN_RATE) ELSE (1) END;
+#
+# Lightweight I_S table to hold basic information about each page in the BP
+#
+SHOW CREATE TABLE information_schema.innodb_buffer_page_basic;
+Table	Create Table
+INNODB_BUFFER_PAGE_BASIC	CREATE TEMPORARY TABLE `INNODB_BUFFER_PAGE_BASIC` (
+  `SPACE` int(11) unsigned NOT NULL DEFAULT '0',
+  `PAGE_NUMBER` int(11) unsigned NOT NULL DEFAULT '0'
+) ENGINE=MEMORY DEFAULT CHARSET=utf8
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT, c VARCHAR(50));
+INSERT INTO t1 VALUES (1,2,'123456789');
+INSERT INTO t1 VALUES (2,3,'123456789');
+SELECT COUNT(*) > 0 FROM information_schema.innodb_buffer_page_basic;
+COUNT(*) > 0
+1
+SELECT * FROM information_schema.innodb_buffer_page_basic
+WHERE (space, page_number)
+NOT IN (SELECT space, page_number FROM information_schema.innodb_buffer_page
+WHERE page_type IN ("INDEX"));
+SPACE	PAGE_NUMBER
+SELECT * FROM information_schema.innodb_buffer_page
+WHERE (space, page_number)
+NOT IN (SELECT space, page_number FROM information_schema.innodb_buffer_page_basic)
+AND page_type IN ("INDEX");
+POOL_ID	BLOCK_ID	SPACE	PAGE_NUMBER	PAGE_TYPE	FLUSH_TYPE	FIX_COUNT	IS_HASHED	NEWEST_MODIFICATION	OLDEST_MODIFICATION	ACCESS_TIME	TABLE_NAME	INDEX_NAME	NUMBER_RECORDS	DATA_SIZE	COMPRESSED_SIZE	PAGE_STATE	IO_FIX	IS_OLD	FREE_PAGE_CLOCK
+DROP TABLE t1;
