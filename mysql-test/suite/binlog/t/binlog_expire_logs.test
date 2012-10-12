@@ -1,0 +1,49 @@
+source include/have_log_bin.inc;
+
+--echo #
+--echo # Automatically purge binary logs older than 1 second.
+--echo # Tests expire_logs_days with second resolution.
+--echo #
+
+RESET MASTER;
+
+SET @old_expire_logs_days = @@GLOBAL.expire_logs_days;
+SET @@GLOBAL.expire_logs_days = 1;
+SELECT @@GLOBAL.expire_logs_days;
+
+FLUSH LOGS;
+source include/show_binary_logs.inc;
+
+CREATE TABLE t1 (a INT, b INT);
+
+INSERT INTO t1 VALUES (1, 1);
+SELECT SLEEP(1);
+INSERT INTO t1 VALUES (2, 2);
+
+FLUSH LOGS;
+source include/show_binary_logs.inc;
+
+SET @@GLOBAL.expire_logs_days = 1.15741e-5;
+SELECT @@GLOBAL.expire_logs_days;
+
+INSERT INTO t1 VALUES (1, 1);
+SELECT SLEEP(1);
+INSERT INTO t1 VALUES (2, 2);
+SELECT SLEEP(1);
+INSERT INTO t1 VALUES (3, 3);
+
+let $log_name1= query_get_value(SHOW MASTER STATUS, File, 1);
+FLUSH LOGS;
+let $log_name2 = query_get_value(SHOW BINARY LOGS, Log_name, 1);
+
+disable_query_log;
+eval SET @purged_before = STRCMP("$log_name2", "$log_name1") >= 0;
+enable_query_log;
+
+SELECT @purged_before AS "Logs were automatically removed";
+
+SET @@GLOBAL.expire_logs_days = @old_expire_logs_days;
+
+DROP TABLE t1;
+
+RESET MASTER;

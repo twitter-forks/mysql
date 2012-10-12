@@ -7,7 +7,7 @@ SET @@global.expire_logs_days = 99;
 SET @@global.expire_logs_days = DEFAULT;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-0
+0.000000
 '#---------------------FN_DYNVARS_029_02-------------------------#'
 SET @@global.expire_logs_days = @start_value;
 SELECT @@global.expire_logs_days = 0;
@@ -17,71 +17,86 @@ SELECT @@global.expire_logs_days = 0;
 SET @@global.expire_logs_days = 0;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-0
+0.000000
+SET @@global.expire_logs_days = 0.5;
+SELECT @@global.expire_logs_days;
+@@global.expire_logs_days
+0.500000
 SET @@global.expire_logs_days = 99;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-99
+99.000000
 SET @@global.expire_logs_days = 10;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-10
+10.000000
+SET @@global.expire_logs_days = 10.5010;
+SELECT @@global.expire_logs_days;
+@@global.expire_logs_days
+10.501000
 SET @@global.expire_logs_days = 21;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-21
+21.000000
 '#--------------------FN_DYNVARS_029_04-------------------------#'
 SET @@global.expire_logs_days = -1;
 Warnings:
 Warning	1292	Truncated incorrect expire_logs_days value: '-1'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-0
+0.000000
+SET @@global.expire_logs_days = 99.1;
+Warnings:
+Warning	1292	Truncated incorrect expire_logs_days value: '99.1'
+SELECT @@global.expire_logs_days;
+@@global.expire_logs_days
+99.000000
 SET @@global.expire_logs_days = 100;
 Warnings:
 Warning	1292	Truncated incorrect expire_logs_days value: '100'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-99
+99.000000
 SET @@global.expire_logs_days = 1024;
 Warnings:
 Warning	1292	Truncated incorrect expire_logs_days value: '1024'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-99
+99.000000
 SET @@global.expire_logs_days = 10000.01;
-ERROR 42000: Incorrect argument type to variable 'expire_logs_days'
+Warnings:
+Warning	1292	Truncated incorrect expire_logs_days value: '10000.01'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-99
+99.000000
 SET @@global.expire_logs_days = -1024;
 Warnings:
 Warning	1292	Truncated incorrect expire_logs_days value: '-1024'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-0
+0.000000
 SET @@global.expire_logs_days = 42949672950;
 Warnings:
 Warning	1292	Truncated incorrect expire_logs_days value: '42949672950'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-99
+99.000000
 SET @@global.expire_logs_days = ON;
 ERROR 42000: Incorrect argument type to variable 'expire_logs_days'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-99
+99.000000
 SET @@global.expire_logs_days = 'test';
 ERROR 42000: Incorrect argument type to variable 'expire_logs_days'
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-99
+99.000000
 '#-------------------FN_DYNVARS_029_05----------------------------#'
 SET @@session.expire_logs_days = 0;
 ERROR HY000: Variable 'expire_logs_days' is a GLOBAL variable and should be set with SET GLOBAL
 SELECT @@expire_logs_days;
 @@expire_logs_days
-99
+99.000000
 '#----------------------FN_DYNVARS_029_06------------------------#'
 SELECT @@global.expire_logs_days = VARIABLE_VALUE 
 FROM INFORMATION_SCHEMA.GLOBAL_VARIABLES 
@@ -97,11 +112,11 @@ WHERE VARIABLE_NAME='expire_logs_days';
 SET @@global.expire_logs_days = TRUE;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-1
+1.000000
 SET @@global.expire_logs_days = FALSE;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-0
+0.000000
 '#---------------------FN_DYNVARS_029_08----------------------#'
 SET @@global.expire_logs_days = 1;
 SELECT @@expire_logs_days = @@global.expire_logs_days;
@@ -112,7 +127,7 @@ SET expire_logs_days = 1;
 ERROR HY000: Variable 'expire_logs_days' is a GLOBAL variable and should be set with SET GLOBAL
 SELECT @@expire_logs_days;
 @@expire_logs_days
-1
+1.000000
 SET local.expire_logs_days = 1;
 ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'expire_logs_days = 1' at line 1
 SELECT local.expire_logs_days;
@@ -126,4 +141,4 @@ ERROR 42S22: Unknown column 'expire_logs_days' in 'field list'
 SET @@global.expire_logs_days = @start_value;
 SELECT @@global.expire_logs_days;
 @@global.expire_logs_days
-0
+0.000000

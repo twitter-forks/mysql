@@ -1,0 +1,47 @@
+#
+# Automatically purge binary logs older than 1 second.
+# Tests expire_logs_days with second resolution.
+#
+RESET MASTER;
+SET @old_expire_logs_days = @@GLOBAL.expire_logs_days;
+SET @@GLOBAL.expire_logs_days = 1;
+SELECT @@GLOBAL.expire_logs_days;
+@@GLOBAL.expire_logs_days
+1.000000
+FLUSH LOGS;
+show binary logs;
+Log_name	File_size
+master-bin.000001	#
+master-bin.000002	#
+CREATE TABLE t1 (a INT, b INT);
+INSERT INTO t1 VALUES (1, 1);
+SELECT SLEEP(1);
+SLEEP(1)
+0
+INSERT INTO t1 VALUES (2, 2);
+FLUSH LOGS;
+show binary logs;
+Log_name	File_size
+master-bin.000001	#
+master-bin.000002	#
+master-bin.000003	#
+SET @@GLOBAL.expire_logs_days = 1.15741e-5;
+SELECT @@GLOBAL.expire_logs_days;
+@@GLOBAL.expire_logs_days
+0.000012
+INSERT INTO t1 VALUES (1, 1);
+SELECT SLEEP(1);
+SLEEP(1)
+0
+INSERT INTO t1 VALUES (2, 2);
+SELECT SLEEP(1);
+SLEEP(1)
+0
+INSERT INTO t1 VALUES (3, 3);
+FLUSH LOGS;
+SELECT @purged_before AS "Logs were automatically removed";
+Logs were automatically removed
+1
+SET @@GLOBAL.expire_logs_days = @old_expire_logs_days;
+DROP TABLE t1;
+RESET MASTER;

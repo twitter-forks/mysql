@@ -3,7 +3,7 @@
 # Variable Name: expire_logs_days                                             #
 # Scope: GLOBAL                                                               #
 # Access Type: Dynamic                                                        #
-# Data Type: numeric                                                          #
+# Data Type: decimal                                                          #
 # Default Value:0                                                             #
 # Range:  0-99                                                                #
 #                                                                             #
@@ -65,9 +65,13 @@ SELECT @@global.expire_logs_days = 0;
 
 SET @@global.expire_logs_days = 0;
 SELECT @@global.expire_logs_days;
+SET @@global.expire_logs_days = 0.5;
+SELECT @@global.expire_logs_days;
 SET @@global.expire_logs_days = 99;
 SELECT @@global.expire_logs_days;
 SET @@global.expire_logs_days = 10;
+SELECT @@global.expire_logs_days;
+SET @@global.expire_logs_days = 10.5010;
 SELECT @@global.expire_logs_days;
 SET @@global.expire_logs_days = 21;
 SELECT @@global.expire_logs_days;
@@ -80,11 +84,12 @@ SELECT @@global.expire_logs_days;
 
 SET @@global.expire_logs_days = -1;
 SELECT @@global.expire_logs_days;
+SET @@global.expire_logs_days = 99.1;
+SELECT @@global.expire_logs_days;
 SET @@global.expire_logs_days = 100;
 SELECT @@global.expire_logs_days;
 SET @@global.expire_logs_days = 1024;
 SELECT @@global.expire_logs_days;
---Error ER_WRONG_TYPE_FOR_VAR
 SET @@global.expire_logs_days = 10000.01;
 SELECT @@global.expire_logs_days;
 SET @@global.expire_logs_days = -1024;

@@ -790,12 +790,21 @@ static Sys_var_enum Sys_event_scheduler(
        ON_CHECK(event_scheduler_check), ON_UPDATE(event_scheduler_update));
 #endif
 
-static Sys_var_ulong Sys_expire_logs_days(
+static double expire_logs_days = 0.0;
+
+ulong get_expire_logs_seconds(void)
+{
+  return ulong(expire_logs_days * 24 * 60 * 60);
+}
+
+static Sys_var_double Sys_expire_logs_days(
        "expire_logs_days",
        "If non-zero, binary logs will be purged after expire_logs_days "
-       "days; possible purges happen at startup and at binary log rotation",
-       GLOBAL_VAR(expire_logs_days),
-       CMD_LINE(REQUIRED_ARG), VALID_RANGE(0, 99), DEFAULT(0), BLOCK_SIZE(1));
+       "days; possible purges happen at startup and at binary log rotation. "
+       "The argument can be expressed as a decimal number where the "
+       "fractional part represents the fraction of one day.",
+       GLOBAL_VAR(expire_logs_days), CMD_LINE(REQUIRED_ARG),
+       VALID_RANGE(0, 99), DEFAULT(0));
 
 static Sys_var_mybool Sys_flush(
        "flush", "Flush MyISAM tables to disk between SQL commands",

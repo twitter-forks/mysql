@@ -514,7 +514,6 @@ ulong thread_id=1L,current_pid;
 ulong slow_launch_threads = 0;
 uint sync_binlog_period= 0, sync_relaylog_period= 0,
      sync_relayloginfo_period= 0, sync_masterinfo_period= 0;
-ulong expire_logs_days = 0;
 ulong rpl_recovery_rank=0;
 /**
   Soft upper limit for number of sp_head objects that can be stored
@@ -4076,9 +4075,10 @@ a file name for --log-bin-index option", opt_binlog_index_name);
     unireg_abort(1);
 
 #ifdef HAVE_REPLICATION
-  if (opt_bin_log && expire_logs_days)
+  ulong expire_logs_seconds = get_expire_logs_seconds();
+  if (opt_bin_log && expire_logs_seconds)
   {
-    time_t purge_time= server_start_time - expire_logs_days*24*60*60;
+    time_t purge_time= server_start_time - expire_logs_seconds;
     if (purge_time >= 0)
       mysql_bin_log.purge_logs_before_date(purge_time);
   }

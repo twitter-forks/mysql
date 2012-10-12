@@ -145,7 +145,9 @@ The following options may be given as the first argument:
  --expire-logs-days=# 
  If non-zero, binary logs will be purged after
  expire_logs_days days; possible purges happen at startup
- and at binary log rotation
+ and at binary log rotation. The argument can be expressed
+ as a decimal number where the fractional part represents
+ the fraction of one day.
  --external-locking  Use system (external) locking (disabled by default). 
  With this option enabled you can run myisamchk to test
  (not repair) tables while the MySQL server is running.
