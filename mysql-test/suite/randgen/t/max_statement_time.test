@@ -1,7 +1,7 @@
 --source include/have_statement_timeout.inc
 --source suite/randgen/include/setup_rqg.inc
 
-let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_example.log;
+let RQG_LOG_FILE = $RQG_LOG_DIR/rqg_max_statement_time.log;
 
 exec perl $RQG_HOME/gentest.pl
   --dsn=dbi:mysql:host=127.0.0.1:port=$MASTER_MYPORT:user=root:database=test
