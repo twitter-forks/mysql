@@ -3712,4 +3712,35 @@ const char *set_thd_proc_info(void *thd_arg, const char *info,
 #define thd_proc_info(thd, msg) \
   set_thd_proc_info(thd, msg, __func__, __FILE__, __LINE__)
 
+/**
+  Ensures that a thread state is set when control enters a scope and the
+  thread state is reset automatically when control leaves the scope.
+*/
+struct Scoped_proc_info
+{
+  THD *m_thd;
+  const char *m_prev_proc_info;
+
+  Scoped_proc_info(THD *thd = current_thd)
+    : m_thd(thd), m_prev_proc_info(NULL) {}
+
+  ~Scoped_proc_info() { reset(); }
+
+  void set(const char *info, const char *func, const char *file, uint line)
+  {
+    if (m_thd)
+      m_prev_proc_info= set_thd_proc_info(m_thd, info, func, file, line);
+  }
+
+  void reset()
+  {
+    if (m_thd)
+      set_thd_proc_info(m_thd, m_prev_proc_info, NULL, NULL, 0);
+    m_prev_proc_info = NULL;
+  }
+};
+
+#define scoped_proc_info(state, info) \
+  state.set(info, __func__, __FILE__, __LINE__)
+
 #endif /* SQL_CLASS_INCLUDED */

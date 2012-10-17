@@ -4423,15 +4423,20 @@ err:
 bool MYSQL_BIN_LOG::flush_and_sync(bool *synced)
 {
   int err=0, fd=log_file.file;
+  Scoped_proc_info state;
+
   if (synced)
     *synced= 0;
   mysql_mutex_assert_owner(&LOCK_log);
+  scoped_proc_info(state, "Flushing the binary log I/O cache");
   if (flush_io_cache(&log_file))
     return 1;
   uint sync_period= get_sync_period();
   if (sync_period && ++sync_counter >= sync_period)
   {
     sync_counter= 0;
+    state.reset();
+    scoped_proc_info(state, "Synchronizing the binary log to disk");
     err= mysql_file_sync(fd, MYF(MY_WME));
     if (synced)
       *synced= 1;
@@ -4889,6 +4894,9 @@ MYSQL_BIN_LOG::flush_and_set_pending_rows_event(THD *thd,
   if (Rows_log_event* pending= cache_data->pending())
   {
     IO_CACHE *file= &cache_data->cache_log;
+    Scoped_proc_info state(thd);
+
+    scoped_proc_info(state, "Writing a pending event to the binary log cache");
 
     /*
       Write pending event to the cache.
@@ -4921,6 +4929,9 @@ bool MYSQL_BIN_LOG::write(Log_event *event_info)
   DBUG_ENTER("MYSQL_BIN_LOG::write(Log_event *)");
   binlog_cache_data *cache_data= 0;
   bool is_trans_cache= FALSE;
+  Scoped_proc_info state(thd);
+
+  scoped_proc_info(state, "Writing an event to the binary log");
 
   if (thd->binlog_evt_union.do_union)
   {
@@ -5201,6 +5212,10 @@ int MYSQL_BIN_LOG::rotate(bool force_rotate, bool* check_purge)
 
   if (force_rotate || (my_b_tell(&log_file) >= (my_off_t) max_size))
   {
+    Scoped_proc_info state;
+
+    scoped_proc_info(state, "Rotating the binary log");
+
     if ((error= new_file_without_locking()))
       /** 
          Be conservative... There are possible lost events (eg, 
@@ -5297,7 +5312,10 @@ uint MYSQL_BIN_LOG::next_file_id()
 
 int MYSQL_BIN_LOG::write_cache(IO_CACHE *cache, bool lock_log, bool sync_log)
 {
+  Scoped_proc_info state;
   Mutex_sentry sentry(lock_log ? &LOCK_log : NULL);
+
+  scoped_proc_info(state, "Writing the contents of a cache to the binary log");
 
   if (reinit_io_cache(cache, READ_CACHE, 0, 0, 0))
     return ER_ERROR_ON_WRITE;
@@ -5517,7 +5535,10 @@ bool MYSQL_BIN_LOG::write(THD *thd, IO_CACHE *cache, Log_event *commit_event,
   if (likely(is_open()))                       // Should always be true
   {
     bool check_purge;
-    
+    Scoped_proc_info state(thd);
+
+    scoped_proc_info(state, "Writing a cached log to the binary log");
+
     mysql_mutex_lock(&LOCK_log);
     /*
       We only bother to write to the binary log if there is anything
