@@ -100,7 +100,7 @@ void*
 os_mem_alloc_large(
 /*===============*/
 	ulint*	n,			/*!< in/out: number of bytes */
-	my_bool	populate)		/*!< in: virtual page preallocation */
+	ibool	populate)		/*!< in: virtual page preallocation */
 {
 	void*	ptr;
 	ulint	size;
