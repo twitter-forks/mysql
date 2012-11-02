@@ -170,6 +170,7 @@ class I_P_List_iterator
   const I_P_List<T, B, C, I> *list;
   T *current;
 public:
+  I_P_List_iterator() {}
   I_P_List_iterator(const I_P_List<T, B, C, I> &a)
     : list(&a), current(a.m_first) {}
   I_P_List_iterator(const I_P_List<T, B, C, I> &a, T* current_arg)

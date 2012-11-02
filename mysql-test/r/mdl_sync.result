@@ -2962,3 +2962,86 @@ SET DEBUG_SYNC= 'now SIGNAL continue';
 # Connection default
 DROP TABLE m1, t1, t2;
 SET DEBUG_SYNC= 'RESET';
+#
+# A non-blocking mode for ALTER TABLE
+#
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,1),(2,2),(3,3);
+
+# While rebuilding a table, wait after copying one record.
+
+# connection: con1
+SET debug_sync = "copy_record_between_tables SIGNAL read WAIT_FOR copy EXECUTE 1";
+ALTER TABLE t1 NO_WAIT, ENGINE=InnoDB;
+
+# Attempt to use the table while it's being rebuilt.
+
+# connection: default
+# Wait for first record to be copied.
+SET debug_sync = "now WAIT_FOR read";
+SET debug_sync = "copy_record_between_tables SIGNAL copy";
+# Read from the table.
+SELECT * FROM t1 ORDER BY a;
+a	b
+1	1
+2	2
+3	3
+# Attempt to write to table, should fail.
+INSERT INTO t1 VALUES (4, 4);
+ERROR HY000: Wait on a lock was aborted due to a conflicting lock
+# Read from the table (no side effect from write attempt).
+SELECT * FROM t1 ORDER BY a;
+a	b
+1	1
+2	2
+3	3
+# Attempt a locking read.
+SELECT b FROM t1 WHERE A = 5 FOR UPDATE;
+ERROR HY000: Wait on a lock was aborted due to a conflicting lock
+# Read from the table (no side effect from locking read).
+SELECT * FROM t1 ORDER BY a;
+a	b
+1	1
+2	2
+3	3
+SET debug_sync = "now SIGNAL copy";
+# Reap ALTER TABLE result
+SET DEBUG_SYNC= 'RESET';
+
+# Test that pending lock requests are aborted if the lock
+# is granted to an ALTER TABLE NO_WAIT statement.
+
+# connection: default
+LOCK TABLES t1 WRITE;
+# Add con1 (ALTER TABLE) to the table's lock wait queue.
+# connection: con1
+SET debug_sync = "copy_record_between_tables SIGNAL read WAIT_FOR copy EXECUTE 1";
+ALTER TABLE t1 NO_WAIT, ENGINE=InnoDB;
+# Wait for con1 to be waiting to acquire the lock.
+# connection: default
+# Add con2 (INSERT) to the table's lock wait queue.
+# connection: con2
+INSERT INTO t1 VALUES (4, 4);
+# Wait for con2 to be waiting to acquire the lock.
+# connection: default
+# Unlock table, lock should now be granted to con1 (ALTER).
+UNLOCK TABLES;
+# Wait for con1 to take the lock and copy the first record.
+SET debug_sync = "now WAIT_FOR read";
+SET debug_sync = "copy_record_between_tables SIGNAL copy";
+# Reap con2, INSERT should have been aborted.
+# connection: con2
+ERROR HY000: Wait on a lock was aborted due to a conflicting lock
+# Ensure that the table is still readable.
+# connection: default
+SELECT * FROM t1 ORDER BY a;
+a	b
+1	1
+2	2
+3	3
+SET debug_sync = "now SIGNAL copy";
+# Reap ALTER TABLE result
+# connection: con1
+# Cleanup
+# connection: default
+DROP TABLE t1;

@@ -88,6 +88,9 @@ const char *MDL_key::m_namespace_to_wait_state_name[NAMESPACE_END]=
   "Waiting for commit lock"
 };
 
+#define ER_LOCK_ABORTED_MSG \
+  "Wait on a lock was aborted due to a conflicting lock"
+
 static bool mdl_initialized= 0;
 
 
@@ -377,6 +380,10 @@ public:
   virtual const bitmap_t *incompatible_waiting_types_bitmap() const = 0;
 
   bool has_pending_conflicting_lock(enum_mdl_type type);
+
+  bool has_no_wait_context(const MDL_context *ctx) const;
+
+  void abort_conflicting_lock_requests(void);
 
   bool can_grant_lock(enum_mdl_type type, MDL_context *requstor_ctx,
                       bool ignore_lock_priority) const;
@@ -946,6 +953,7 @@ void MDL_map::remove(MDL_lock *lock)
 MDL_context::MDL_context()
   : m_thd(NULL),
   m_needs_thr_lock_abort(FALSE),
+  m_abort_conflicting_lock_requests(FALSE),
   m_waiting_for(NULL)
 {
   mysql_prlock_init(key_MDL_context_LOCK_waiting_for, &m_LOCK_waiting_for);
@@ -1672,6 +1680,51 @@ bool MDL_lock::has_pending_conflicting_lock(enum_mdl_type type)
 }
 
 
+/**
+  Check if the context of a granted ticket sets a no-wait policy.
+
+  @param ctx  MDL_context for current lock request.
+
+  @return TRUE if there is such a context, FALSE otherwise.
+*/
+
+bool MDL_lock::has_no_wait_context(const MDL_context *ctx) const
+{
+  MDL_ticket *ticket;
+  Ticket_iterator it(m_granted);
+
+  while ((ticket= it++))
+  {
+    MDL_context *octx= ticket->get_ctx();
+
+    if (ctx != octx && octx->get_abort_conflicting_lock_requests())
+      break;
+  }
+
+  return ticket;
+}
+
+
+/**
+  Abort any pending lock requests.
+*/
+
+void MDL_lock::abort_conflicting_lock_requests(void)
+{
+  MDL_ticket *ticket;
+  MDL_lock::Ticket_iterator it;
+
+  mysql_prlock_wrlock(&m_rwlock);
+
+  it.init(m_waiting);
+
+  while ((ticket= it++))
+    ticket->get_ctx()->m_wait.set_status(MDL_wait::ABORTED);
+
+  mysql_prlock_unlock(&m_rwlock);
+}
+
+
 MDL_wait_for_graph_visitor::~MDL_wait_for_graph_visitor()
 {
 }
@@ -2065,6 +2118,15 @@ MDL_context::acquire_lock(MDL_request *mdl_request, ulong lock_wait_timeout)
   */
   lock= ticket->m_lock;
 
+  /* Is a conflicting lock request allowed to wait? */
+  if (lock->has_no_wait_context(this))
+  {
+    mysql_prlock_unlock(&lock->m_rwlock);
+    MDL_ticket::destroy(ticket);
+    my_message(ER_LOCK_ABORTED, ER_LOCK_ABORTED_MSG, MYF(0));
+    return TRUE;
+  }
+
   lock->m_waiting.add_ticket(ticket);
 
   /*
@@ -2131,12 +2193,19 @@ MDL_context::acquire_lock(MDL_request *mdl_request, ulong lock_wait_timeout)
       break;
     case MDL_wait::KILLED:
       break;
+    case MDL_wait::ABORTED:
+      my_message(ER_LOCK_ABORTED, ER_LOCK_ABORTED_MSG, MYF(0));
+      break;
     default:
       DBUG_ASSERT(0);
       break;
     }
     return TRUE;
   }
+
+  /* If this is a NO WAIT context, abort conflicting lock requests. */
+  if (get_abort_conflicting_lock_requests())
+    lock->abort_conflicting_lock_requests();
 
   /*
     We have been granted our request.

@@ -7156,6 +7156,7 @@ copy_data_between_tables(TABLE *from,TABLE *to,
   restore_record(to, s->default_values);        // Create empty record
   while (!(error=info.read_record(&info)))
   {
+    DEBUG_SYNC(thd, "copy_record_between_tables");
     if (thd->killed)
     {
       thd->send_kill_message();

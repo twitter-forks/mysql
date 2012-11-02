@@ -586,7 +586,7 @@ public:
   MDL_wait();
   ~MDL_wait();
 
-  enum enum_wait_status { EMPTY = 0, GRANTED, VICTIM, TIMEOUT, KILLED };
+  enum enum_wait_status { EMPTY = 0, GRANTED, VICTIM, TIMEOUT, KILLED, ABORTED };
 
   bool set_status(enum_wait_status result_arg);
   enum_wait_status get_status();
@@ -701,6 +701,17 @@ public:
   {
     return m_needs_thr_lock_abort;
   }
+
+  void set_abort_conflicting_lock_requests(bool abort_lock_requests)
+  {
+    m_abort_conflicting_lock_requests= abort_lock_requests;
+  }
+
+  bool get_abort_conflicting_lock_requests() const
+  {
+    return m_abort_conflicting_lock_requests;
+  }
+
 public:
   /**
     If our request for a lock is scheduled, or aborted by the deadlock
@@ -774,6 +785,14 @@ private:
     FALSE - Otherwise.
   */
   bool m_needs_thr_lock_abort;
+
+  /**
+    Whether conflicting lock requests are aborted or blocked.
+
+    @remark If TRUE, a conflicting lock request is not allowed
+            to wait until the lock is released.
+  */
+  bool m_abort_conflicting_lock_requests;
 
   /**
     Read-write lock protecting m_waiting_for member.

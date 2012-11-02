@@ -4603,6 +4603,113 @@ SET DEBUG_SYNC= 'RESET';
 disconnect con1;
 disconnect con2;
 
+--echo #
+--echo # A non-blocking mode for ALTER TABLE
+--echo #
+
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,1),(2,2),(3,3);
+
+--echo
+--echo # While rebuilding a table, wait after copying one record.
+--echo
+--echo # connection: con1
+connect(con1,localhost,root,,);
+SET debug_sync = "copy_record_between_tables SIGNAL read WAIT_FOR copy EXECUTE 1";
+send ALTER TABLE t1 NO_WAIT, ENGINE=InnoDB;
+
+--echo
+--echo # Attempt to use the table while it's being rebuilt.
+--echo
+--echo # connection: default
+connection default;
+--echo # Wait for first record to be copied.
+SET debug_sync = "now WAIT_FOR read";
+SET debug_sync = "copy_record_between_tables SIGNAL copy";
+--echo # Read from the table.
+SELECT * FROM t1 ORDER BY a;
+--echo # Attempt to write to table, should fail.
+--error ER_LOCK_ABORTED
+INSERT INTO t1 VALUES (4, 4);
+--echo # Read from the table (no side effect from write attempt).
+SELECT * FROM t1 ORDER BY a;
+--echo # Attempt a locking read.
+--error ER_LOCK_ABORTED
+SELECT b FROM t1 WHERE A = 5 FOR UPDATE;
+--echo # Read from the table (no side effect from locking read).
+SELECT * FROM t1 ORDER BY a;
+SET debug_sync = "now SIGNAL copy";
+
+--echo # Reap ALTER TABLE result
+connection con1;
+reap;
+
+SET DEBUG_SYNC= 'RESET';
+
+--echo
+--echo # Test that pending lock requests are aborted if the lock
+--echo # is granted to an ALTER TABLE NO_WAIT statement.
+--echo
+--echo # connection: default
+connection default;
+LOCK TABLES t1 WRITE;
+
+--echo # Add con1 (ALTER TABLE) to the table's lock wait queue.
+--echo # connection: con1
+connection con1;
+SET debug_sync = "copy_record_between_tables SIGNAL read WAIT_FOR copy EXECUTE 1";
+send ALTER TABLE t1 NO_WAIT, ENGINE=InnoDB;
+
+--echo # Wait for con1 to be waiting to acquire the lock.
+--echo # connection: default
+connection default;
+let $wait_condition=
+  select count(*) = 1 from information_schema.processlist
+  where state = "Waiting for table metadata lock";
+--source include/wait_condition.inc
+
+--echo # Add con2 (INSERT) to the table's lock wait queue.
+--echo # connection: con2
+connect(con2,localhost,root,,);
+send INSERT INTO t1 VALUES (4, 4);
+
+--echo # Wait for con2 to be waiting to acquire the lock.
+--echo # connection: default
+connection default;
+let $wait_condition=
+  select count(*) = 2 from information_schema.processlist
+  where state = "Waiting for table metadata lock";
+--source include/wait_condition.inc
+
+--echo # Unlock table, lock should now be granted to con1 (ALTER).
+UNLOCK TABLES;
+--echo # Wait for con1 to take the lock and copy the first record.
+SET debug_sync = "now WAIT_FOR read";
+SET debug_sync = "copy_record_between_tables SIGNAL copy";
+
+--echo # Reap con2, INSERT should have been aborted.
+--echo # connection: con2
+connection con2;
+--error ER_LOCK_ABORTED
+reap;
+
+--echo # Ensure that the table is still readable.
+--echo # connection: default
+connection default;
+SELECT * FROM t1 ORDER BY a;
+SET debug_sync = "now SIGNAL copy";
+
+--echo # Reap ALTER TABLE result
+--echo # connection: con1
+connection con1;
+reap;
+
+--echo # Cleanup
+--echo # connection: default
+disconnect con1;
+disconnect con2;
+connection default;
+DROP TABLE t1;
 
 # Check that all connections opened by test cases in this file are really
 # gone so execution of other tests won't be affected by their presence.

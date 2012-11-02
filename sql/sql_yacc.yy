@@ -6809,6 +6809,10 @@ alter_list_item:
             LEX *lex=Lex;
             lex->alter_info.flags|= ALTER_ORDER;
           }
+        | NO_WAIT_SYM
+          {
+            Lex->alter_info.flags|= ALTER_NO_WAIT;
+          }
         ;
 
 opt_column:
