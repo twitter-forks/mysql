@@ -169,4 +169,62 @@ SELECT 1 AS STATUS FROM gsv
 
 SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
 
+--echo #
+--echo # InnoDB status variables Innodb_page_{splits,merges,reorganizes}
+--echo #
+
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET GLOBAL innodb_file_per_table = ON;
+
+CREATE TABLE t1 (a BIGINT PRIMARY KEY, b VARCHAR(2048),
+  c VARCHAR(2048)) ENGINE=InnoDB;
+
+SELECT VARIABLE_VALUE INTO @page_splits_1 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_SPLITS';
+
+--echo #
+--echo # Insert a set of records that won't fit on a single page,
+--echo # causing a page to be split.
+--echo #
+
+INSERT INTO t1 VALUES(1, REPEAT('b', 2048), REPEAT('c', 2048));
+INSERT INTO t1 VALUES(2, REPEAT('b', 2048), REPEAT('c', 2048));
+INSERT INTO t1 VALUES(3, REPEAT('b', 2048), REPEAT('c', 2048));
+INSERT INTO t1 VALUES(4, REPEAT('b', 2048), REPEAT('c', 2048));
+
+SELECT VARIABLE_VALUE INTO @page_merges_1 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_MERGES';
+
+SELECT VARIABLE_VALUE INTO @page_reorganizes_1 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_REORGANIZES';
+
+--echo #
+--echo # Reduce the size of a couple of records so that the page
+--echo # fill factor will be below the minimum threshold, causing
+--echo # the page to be merged.
+--echo #
+
+UPDATE t1 SET b = 'b', c = 'c' WHERE a = 3;
+UPDATE t1 SET b = 'b', c = 'c' WHERE a = 4;
+
+SELECT VARIABLE_VALUE INTO @page_merges_2 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_MERGES';
+SELECT VARIABLE_VALUE INTO @page_reorganizes_2 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_REORGANIZES';
+SELECT VARIABLE_VALUE INTO @page_splits_2 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_SPLITS';
+
+--echo #
+--echo # Ensure that the page split/merge/reorganize counters
+--echo # were incremented.
+--echo #
+
+SELECT (@page_merges_2 - @page_merges_1) AS 'INNODB_PAGE_MERGES';
+SELECT (@page_reorganizes_2 - @page_reorganizes_1) AS 'INNODB_PAGE_REORGANIZES';
+SELECT (@page_splits_2 - @page_splits_1) AS 'INNODB_PAGE_SPLITS';
+
+DROP TABLE t1;
+
+SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
+
 DROP VIEW gsv;

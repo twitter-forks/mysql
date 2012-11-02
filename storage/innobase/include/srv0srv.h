@@ -827,6 +827,9 @@ struct export_var_struct{
 						/*!< srv_buf_pool_LRU_unzip_search_scanned */
 	ulint innodb_buffer_pool_LRU_get_free_search;
 						/*!< srv_buf_pool_LRU_get_free_search */
+	ulint innodb_btree_page_reorganize;	/*!< btr_n_page_reorganize */
+	ulint innodb_btree_page_split;		/*!< btr_n_page_split */
+	ulint innodb_btree_page_merge;		/*!< btr_n_page_merge */
 	ib_int64_t innodb_mysql_master_log_pos;	/*!< Master binlog file position. */
 	char innodb_mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN + 1];
 						/*!< Master binlog file name. */

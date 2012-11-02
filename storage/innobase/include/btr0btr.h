@@ -668,6 +668,14 @@ btr_validate_index(
 
 #define BTR_N_LEAF_PAGES	1
 #define BTR_TOTAL_SIZE		2
+
+/** Number of page reorganize operations. */
+extern ulint	btr_n_page_reorganize;
+/** Number of page split operations. */
+extern ulint	btr_n_page_split;
+/** Number of page merge operations. */
+extern ulint	btr_n_page_merge;
+
 #endif /* !UNIV_HOTBACKUP */
 
 #ifndef UNIV_NONINL

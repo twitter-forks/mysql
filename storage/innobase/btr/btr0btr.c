@@ -43,6 +43,14 @@ Created 6/2/1994 Heikki Tuuri
 #include "trx0trx.h"
 
 #endif /* UNIV_HOTBACKUP */
+
+/** Number of page reorganize operations. */
+UNIV_INTERN ulint	btr_n_page_reorganize	= 0;
+/** Number of page split operations. */
+UNIV_INTERN ulint	btr_n_page_split	= 0;
+/** Number of page merge operations. */
+UNIV_INTERN ulint	btr_n_page_merge	= 0;
+
 /**************************************************************//**
 Report that an index page is corrupted. */
 UNIV_INTERN
@@ -1591,6 +1599,8 @@ btr_page_reorganize_low(
 	ulint		max_ins_size2;
 	ibool		success		= FALSE;
 
+	btr_n_page_reorganize++;
+
 	ut_ad(mtr_memo_contains(mtr, block, MTR_MEMO_PAGE_X_FIX));
 	btr_assert_not_corrupted(block, index);
 #ifdef UNIV_ZIP_DEBUG
@@ -2571,6 +2581,8 @@ func_start:
 
 	page_no = buf_block_get_page_no(block);
 
+	btr_n_page_split++;
+
 	/* 1. Decide the split record; split_rec == NULL means that the
 	tuple to be inserted should be the first record on the upper
 	half-page */
@@ -3236,6 +3248,8 @@ btr_compress(
 	ulint		nth_rec = 0; /* remove bogus warning */
 	ulint		max_ins_size;
 	ulint		max_ins_size_reorg;
+
+	btr_n_page_merge++;
 
 	block = btr_cur_get_block(cursor);
 	page = btr_cur_get_page(cursor);

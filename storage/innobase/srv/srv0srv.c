@@ -2195,6 +2195,10 @@ srv_export_innodb_status(void)
 	export_vars.innodb_corrupted_page_reads = srv_n_corrupted_page_reads;
 	export_vars.innodb_corrupted_table_opens = srv_n_corrupted_table_opens;
 
+	export_vars.innodb_btree_page_reorganize = btr_n_page_reorganize;
+	export_vars.innodb_btree_page_split = btr_n_page_split;
+	export_vars.innodb_btree_page_merge = btr_n_page_merge;
+
 	mutex_exit(&srv_innodb_monitor_mutex);
 
 }
