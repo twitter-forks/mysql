@@ -184,7 +184,7 @@ thd_timer_set(THD *thd, thd_timer_t *ttp, unsigned long time)
 thd_timer_t *
 thd_timer_reset(thd_timer_t *ttp)
 {
-  _Bool state= false, pending;
+  int pending, state= 0;
   DBUG_ENTER("thd_timer_reset");
 
   my_timer_reset(&ttp->timer, &state);

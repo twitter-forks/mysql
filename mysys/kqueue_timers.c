@@ -176,7 +176,7 @@ my_timer_set(my_timer_t *timer, unsigned long time)
 */
 
 int
-my_timer_reset(my_timer_t *timer, bool *state)
+my_timer_reset(my_timer_t *timer, int *state)
 {
   int status;
   struct kevent kev;

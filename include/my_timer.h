@@ -58,7 +58,7 @@ int my_timer_create(my_timer_t *timer);
 int my_timer_set(my_timer_t *timer, unsigned long time);
 
 /* Reset the time until the next expiration of the timer. */
-int my_timer_reset(my_timer_t *timer, bool *state);
+int my_timer_reset(my_timer_t *timer, int *state);
 
 /* Delete a timer object. */
 void my_timer_delete(my_timer_t *timer);
