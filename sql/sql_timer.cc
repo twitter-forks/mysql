@@ -46,10 +46,10 @@ thd_timer_create(void)
   thd_timer_t *ttp;
   DBUG_ENTER("thd_timer_create");
 
-  if (! (ttp= (thd_timer_t *) my_malloc(sizeof(*ttp), MYF(MY_WME))))
-    DBUG_RETURN(NULL);
+  ttp= (thd_timer_t *) my_malloc(sizeof(*ttp), MYF(MY_WME | MY_ZEROFILL));
 
-  IF_DBUG(ttp->thd= NULL);
+  if (ttp == NULL)
+    DBUG_RETURN(NULL);
 
   ttp->timer.notify_function= thd_timer_notify_function;
   pthread_mutex_init(&ttp->mutex, MY_MUTEX_INIT_FAST);
@@ -115,7 +115,7 @@ thd_timer_notify_function(my_timer_t *timer)
   /*
     Statement might have finished while the timer notification
     was being delivered. If this is the case, the timer object
-    was detached (orphaned) and has no associted session (thd).
+    was detached (orphaned) and has no associated session (thd).
   */
   bool attached= ttp->thd;
 
@@ -149,14 +149,11 @@ thd_timer_set(THD *thd, thd_timer_t *ttp, unsigned long time)
 {
   DBUG_ENTER("thd_timer_set");
 
-  DBUG_ASSERT(ttp == NULL || ttp->thd == NULL);
-
-  /* Attempt to reuse an existing thread timer object. */
-  if (ttp == NULL)
-    ttp= thd_timer_create();
-
-  if (ttp == NULL)
+  /* Create a new thread timer object if one was not provided. */
+  if (ttp == NULL && (ttp= thd_timer_create()) == NULL)
     DBUG_RETURN(NULL);
+
+  DBUG_ASSERT(ttp->thd == NULL);
 
   /* Mark the notification as pending. */
   ttp->thd= thd;
