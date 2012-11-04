@@ -69,8 +69,7 @@ static void test_create_and_delete(void)
 
 static void test_reset(void)
 {
-  int rc;
-  bool state;
+  int rc, state;
   test_timer_t test;
 
   diag("test_reset");
@@ -91,8 +90,7 @@ static void test_reset(void)
 
 static void test_timer(void)
 {
-  int rc;
-  bool state;
+  int rc, state;
   test_timer_t test;
 
   diag("test_timer");
@@ -123,8 +121,7 @@ static void test_timer(void)
 
 static void timer_set_and_wait(test_timer_t *test, unsigned int fired_count)
 {
-  int rc;
-  bool state;
+  int rc, state;
 
   rc= my_timer_set(&test->timer, 5);
   ok(rc == 0, "my_timer_set");
@@ -163,8 +160,7 @@ static void test_timer_reuse(void)
 
 static void test_independent_timers(void)
 {
-  int rc;
-  bool state;
+  int rc, state;
   test_timer_t test;
 
   diag("test_independent_timers");
@@ -187,8 +183,7 @@ static void test_independent_timers(void)
 
 static void test_timer_no_tap(void)
 {
-  int rc;
-  bool state;
+  int rc, state;
   test_timer_t test;
 
   memset(&test, 0, sizeof(test_timer_t));
