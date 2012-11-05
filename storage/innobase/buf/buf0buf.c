@@ -1691,7 +1691,8 @@ buf_page_set_accessed_make_young(
 					read under mutex protection,
 					or 0 if unknown */
 {
-	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
+	buf_pool_t*	buf_pool	= buf_pool_from_bpage(bpage);
+	ulint		time_ms		= access_time ? 0UL : ut_time_ms();
 
 	ut_ad(!buf_pool_mutex_own(buf_pool));
 	ut_a(buf_page_in_file(bpage));
@@ -1699,9 +1700,9 @@ buf_page_set_accessed_make_young(
 	if (buf_page_peek_if_too_old(bpage)) {
 		buf_pool_mutex_enter(buf_pool);
 		buf_LRU_make_block_young(bpage);
+		buf_page_set_accessed(bpage, time_ms);
 		buf_pool_mutex_exit(buf_pool);
 	} else if (!access_time) {
-		ulint	time_ms = ut_time_ms();
 		buf_pool_mutex_enter(buf_pool);
 		buf_page_set_accessed(bpage, time_ms);
 		buf_pool_mutex_exit(buf_pool);
