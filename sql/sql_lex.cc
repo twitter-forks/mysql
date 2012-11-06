@@ -1653,7 +1653,8 @@ Alter_info::Alter_info(const Alter_info &rhs, MEM_ROOT *mem_root)
   num_parts(rhs.num_parts),
   change_level(rhs.change_level),
   datetime_field(rhs.datetime_field),
-  error_if_not_empty(rhs.error_if_not_empty)
+  error_if_not_empty(rhs.error_if_not_empty),
+  lock_mode(rhs.lock_mode)
 {
   /*
     Make deep copies of used objects.
@@ -1669,6 +1670,26 @@ Alter_info::Alter_info(const Alter_info &rhs, MEM_ROOT *mem_root)
   list_copy_and_replace_each_value(key_list, mem_root);
   list_copy_and_replace_each_value(create_list, mem_root);
   /* partition_names are not deeply copied currently */
+}
+
+
+/**
+  Sets the lock mode for an ALTER TABLE operation, as specified
+  in the LOCK clause
+
+  @param lm String representing the lock mode.
+
+  @return false if the lock mode is supported, true otherwise.
+*/
+bool Alter_info::set_lock_mode(const LEX_STRING *lm)
+{
+  /* Match lock mode name to avoid adding new keywords to the grammar. */
+  if (!my_strcasecmp(system_charset_info, lm->str, "EXCLUSIVE"))
+    lock_mode= ALTER_TABLE_LOCK_EXCLUSIVE;
+  else
+    return true;
+
+  return false;
 }
 
 

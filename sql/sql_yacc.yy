@@ -6813,6 +6813,10 @@ alter_list_item:
           {
             Lex->alter_info.flags|= ALTER_NO_WAIT;
           }
+        | LOCK_SYM opt_equal ident
+          {
+            MYSQL_YYABORT_UNLESS(!Lex->alter_info.set_lock_mode(&$3));
+          }
         ;
 
 opt_column:

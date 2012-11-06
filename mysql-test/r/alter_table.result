@@ -1488,3 +1488,36 @@ CREATE TABLE help_topic (dummy int) ENGINE=innodb;
 ERROR HY000: Storage engine 'InnoDB' does not support system tables. [mysql.help_topic]
 use test;
 # End of Bug#11815557
+#
+# LOCK clause to ALTER TABLE.
+#
+CREATE TABLE t1 (a INT);
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = UNKNOWN;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'UNKNOWN' at line 1
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = EXCL;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'EXCL' at line 1
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = "UNKNOWN";
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '"UNKNOWN"' at line 1
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = "EXCL";
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '"EXCL"' at line 1
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = 'EXCLUSIVE';
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''EXCLUSIVE'' at line 1
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = "EXCLUSIVE";
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '"EXCLUSIVE"' at line 1
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = `EXCLUSIVE`;
+ALTER TABLE t1 CHANGE a a INT NOT NULL, LOCK = EXCLUSIVE;
+ALTER TABLE t1 ADD INDEX idx(a), LOCK = EXCLUSIVE;
+ALTER TABLE t1 DROP INDEX idx, LOCK = EXCLUSIVE;
+# Under LOCK TABLES mode, lock should be upgraded.
+LOCK TABLES t1 READ;
+ALTER TABLE t1 ADD b INT, LOCK = EXCLUSIVE;
+ERROR HY000: Table 't1' was locked with a READ lock and can't be updated
+LOCK TABLES t1 WRITE;
+ALTER TABLE t1 ADD b INT, LOCK = EXCLUSIVE;
+ALTER TABLE t1 ADD INDEX idx(b), LOCK = EXCLUSIVE;
+UNLOCK TABLES;
+# LOCK clause shouldn't affect temporary tables.
+CREATE TEMPORARY TABLE t2 LIKE t1;
+ALTER TABLE t2 ADD c INT, LOCK = EXCLUSIVE;
+DROP TABLE t2;
+DROP TABLE t1;

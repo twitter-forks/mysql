@@ -4711,6 +4711,44 @@ disconnect con2;
 connection default;
 DROP TABLE t1;
 
+--echo
+--echo # NO_WAIT used in conjuction with the LOCK clause.
+--echo
+
+SET DEBUG_SYNC= 'RESET';
+
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,1),(2,2),(3,3);
+
+--echo # While rebuilding a table, wait after copying one record.
+--echo # connection: con1
+connect(con1,localhost,root,,);
+SET debug_sync = "copy_record_between_tables SIGNAL read WAIT_FOR copy EXECUTE 1";
+send ALTER TABLE t1 NO_WAIT, LOCK = EXCLUSIVE, ENGINE=InnoDB;
+
+--echo # connection: default
+connection default;
+--echo # Wait for first record to be copied.
+SET debug_sync = "now WAIT_FOR read";
+SET debug_sync = "copy_record_between_tables SIGNAL copy";
+--echo # Table should be locked in exclusive mode, any attempt
+--echo # to use it should fail.
+--error ER_LOCK_ABORTED
+SELECT * FROM t1 ORDER BY a;
+--error ER_LOCK_ABORTED
+INSERT INTO t1 VALUES (4, 4);
+--echo # Reap ALTER TABLE result
+SET debug_sync = "now SIGNAL copy";
+connection con1;
+reap;
+disconnect con1;
+--echo # Read from table and cleanup.
+connection default;
+SELECT * FROM t1 ORDER BY a;
+DROP TABLE t1;
+
+SET DEBUG_SYNC= 'RESET';
+
 # Check that all connections opened by test cases in this file are really
 # gone so execution of other tests won't be affected by their presence.
 --source include/wait_until_count_sessions.inc

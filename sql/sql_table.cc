@@ -6465,6 +6465,15 @@ bool mysql_alter_table(THD *thd,char *new_db, char *new_name,
     */
   }
 
+  /*
+    If the LOCK clause was used to enforce exclusive access, upgrade the
+    shared lock to an exclusive lock.
+  */
+  if (table->s->tmp_table == NO_TMP_TABLE &&
+      alter_info->lock_mode == ALTER_TABLE_LOCK_EXCLUSIVE &&
+      wait_while_table_is_used(thd, table, HA_EXTRA_FORCE_REOPEN))
+    goto err_new_table_cleanup;
+
   /* Copy the data if necessary. */
   thd->count_cuted_fields= CHECK_FIELD_WARN;	// calc cuted fields
   thd->cuted_fields=0L;

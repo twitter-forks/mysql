@@ -982,6 +982,12 @@ inline bool st_select_lex_unit::is_union ()
 #define ALTER_TRUNCATE_PARTITION (1L << 23)
 #define ALTER_NO_WAIT            (1L << 24)
 
+enum enum_alter_table_lock
+{
+  ALTER_TABLE_LOCK_DEFAULT,
+  ALTER_TABLE_LOCK_EXCLUSIVE
+};
+
 enum enum_alter_table_change_level
 {
   ALTER_TABLE_METADATA_ONLY= 0,
@@ -1029,6 +1035,7 @@ public:
   enum_alter_table_change_level change_level;
   Create_field                 *datetime_field;
   bool                          error_if_not_empty;
+  enum_alter_table_lock         lock_mode;
 
 
   Alter_info() :
@@ -1038,7 +1045,8 @@ public:
     num_parts(0),
     change_level(ALTER_TABLE_METADATA_ONLY),
     datetime_field(NULL),
-    error_if_not_empty(FALSE)
+    error_if_not_empty(FALSE),
+    lock_mode(ALTER_TABLE_LOCK_DEFAULT)
   {}
 
   void reset()
@@ -1055,8 +1063,10 @@ public:
     change_level= ALTER_TABLE_METADATA_ONLY;
     datetime_field= 0;
     error_if_not_empty= FALSE;
+    lock_mode= ALTER_TABLE_LOCK_DEFAULT;
   }
   Alter_info(const Alter_info &rhs, MEM_ROOT *mem_root);
+  bool set_lock_mode(const LEX_STRING *);
 private:
   Alter_info &operator=(const Alter_info &rhs); // not implemented
   Alter_info(const Alter_info &rhs);            // not implemented
