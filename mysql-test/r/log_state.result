@@ -314,12 +314,13 @@ SET @@global.slow_query_log_file = @old_slow_query_log_file;
 #
 SET @old_log_output = @@global.log_output;
 SET GLOBAL log_output = "TABLE";
-SET GLOBAL slow_query_log = ON;
-SET GLOBAL long_query_time = 0.001;
-TRUNCATE TABLE mysql.slow_log;
 CREATE TABLE t1 (a INT);
 CREATE TABLE t2 (b INT, PRIMARY KEY (b));
 INSERT INTO t2 VALUES (3),(4);
+TRUNCATE TABLE mysql.slow_log;
+SET GLOBAL log_output = "TABLE";
+SET GLOBAL long_query_time = 0.001;
+SET GLOBAL slow_query_log = ON;
 INSERT INTO t1 VALUES (1+sleep(.01)),(2);
 INSERT INTO t1 SELECT b+sleep(.01) from t2;
 UPDATE t1 SET a=a+sleep(.01) WHERE a>2;
