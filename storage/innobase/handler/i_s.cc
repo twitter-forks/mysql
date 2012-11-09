@@ -109,6 +109,10 @@ struct buffer_page_info_struct{
 					built on this page */
 	unsigned	is_old:1;	/*!< TRUE if the block is in the old
 					blocks in buf_pool->LRU_old */
+	unsigned	direction:3;	/*!< Last insert direction */
+	unsigned	n_direction:16;	/*!< Number of consecutive inserts
+					to the same direction */
+	ulint		level;		/*!< Level of the page */
 	unsigned	freed_page_clock:31; /*!< the value of
 					buf_pool->freed_page_clock */
 	unsigned	zip_ssize:PAGE_ZIP_SSIZE_BITS;
@@ -2583,6 +2587,33 @@ static ST_FIELD_INFO	i_s_innodb_buffer_page_fields_info[] =
 	 STRUCT_FLD(old_name,		""),
 	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
 
+#define IDX_BUFFER_PAGE_LEVEL		20
+	{STRUCT_FLD(field_name,		"LEVEL"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		""),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_BUFFER_PAGE_DIRECTION	21
+	{STRUCT_FLD(field_name,		"DIRECTION"),
+	 STRUCT_FLD(field_length,	16),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_STRING),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_MAYBE_NULL),
+	 STRUCT_FLD(old_name,		""),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_BUFFER_PAGE_N_DIRECTION	22
+	{STRUCT_FLD(field_name,		"N_DIRECTION"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		""),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
 	END_OF_ST_FIELD_INFO
 };
 
@@ -2765,12 +2796,61 @@ i_s_innodb_buffer_page_fill(
 		OK(fields[IDX_BUFFER_PAGE_FREE_CLOCK]->store(
 			page_info->freed_page_clock));
 
+		OK(fields[IDX_BUFFER_PAGE_LEVEL]->store(
+			page_info->level));
+
+		switch (page_info->direction) {
+		case PAGE_LEFT:
+			state_str = "LEFT";
+			break;
+		case PAGE_RIGHT:
+			state_str = "RIGHT";
+			break;
+		case PAGE_SAME_REC:
+			state_str = "SAME_REC";
+			break;
+		case PAGE_SAME_PAGE:
+			state_str = "SAME_PAGE";
+			break;
+		case PAGE_NO_DIRECTION:
+			state_str = "NO_DIRECTION";
+			break;
+		default:
+			state_str = NULL;
+			break;
+		}
+
+		OK(field_store_string(fields[IDX_BUFFER_PAGE_DIRECTION],
+			state_str));
+
+		OK(fields[IDX_BUFFER_PAGE_N_DIRECTION]->store(
+			page_info->n_direction));
+
 		if (schema_table_store_record(thd, table)) {
 			DBUG_RETURN(1);
 		}
 	}
 
 	DBUG_RETURN(0);
+}
+
+/*******************************************************************//**
+Set the appropriate fields of buffer page information for an index page */
+static
+void
+i_s_innodb_set_page_index_info(
+/*===========================*/
+	const page_t*		page,		/*!< in: index page */
+	buf_page_info_t*	page_info)	/*!< in/out: page info */
+{
+	page_info->index_id	= btr_page_get_index_id(page);
+	page_info->num_recs	= page_get_n_recs(page);
+	page_info->level	= page_header_get_field(page, PAGE_LEVEL);
+	page_info->direction	= page_header_get_field(page, PAGE_DIRECTION);
+	page_info->n_direction	= page_header_get_field(page, PAGE_N_DIRECTION);
+	page_info->data_size	= (ulint)(page_header_get_field(page, PAGE_HEAP_TOP)
+		- (page_is_comp(page) ? PAGE_NEW_SUPREMUM_END : PAGE_OLD_SUPREMUM_END)
+		- page_header_get_field(page, PAGE_GARBAGE));
 }
 
 /*******************************************************************//**
@@ -2793,16 +2873,7 @@ i_s_innodb_set_page_type(
 		in the i_s_page_type[] array is I_S_PAGE_TYPE_INDEX
 		(1) */
 		page_info->page_type = I_S_PAGE_TYPE_INDEX;
-
-		page_info->index_id = btr_page_get_index_id(page);
-
-		page_info->data_size = (ulint)(page_header_get_field(
-			page, PAGE_HEAP_TOP) - (page_is_comp(page)
-						? PAGE_NEW_SUPREMUM_END
-						: PAGE_OLD_SUPREMUM_END)
-			- page_header_get_field(page, PAGE_GARBAGE));
-
-		page_info->num_recs = page_get_n_recs(page);
+		i_s_innodb_set_page_index_info(page, page_info);
 	} else if (page_type >= I_S_PAGE_TYPE_UNKNOWN) {
 		/* Encountered an unknown page type */
 		page_info->page_type = I_S_PAGE_TYPE_UNKNOWN;

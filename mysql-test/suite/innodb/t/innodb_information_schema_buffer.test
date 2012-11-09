@@ -144,3 +144,15 @@ SELECT * FROM information_schema.innodb_buffer_page
         AND page_type IN ("INDEX");
 
 DROP TABLE t1;
+
+--echo #
+--echo # Expose the level of each B-tree page in the buffer pool
+--echo #
+
+CREATE TABLE t1 (a INT PRIMARY KEY AUTO_INCREMENT, b INT) ENGINE=InnoDB;
+INSERT INTO t1 (b) VALUES (1),(2),(3),(4),(5);
+
+SELECT LEVEL, DIRECTION, N_DIRECTION FROM information_schema.innodb_buffer_page
+  WHERE TABLE_NAME = 'test/t1' AND INDEX_NAME = 'PRIMARY';
+
+DROP TABLE t1;
