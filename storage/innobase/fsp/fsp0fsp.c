@@ -103,16 +103,6 @@ typedef	byte	fseg_inode_t;
 
 #define FSEG_MAGIC_N_VALUE	97937874
 
-#define	FSEG_FILLFACTOR		8	/* If this value is x, then if
-					the number of unused but reserved
-					pages in a segment is less than
-					reserved pages * 1/x, and there are
-					at least FSEG_FRAG_LIMIT used pages,
-					then we allow a new empty extent to
-					be added to the segment in
-					fseg_alloc_free_page. Otherwise, we
-					use unused pages of the segment. */
-
 #define FSEG_FRAG_LIMIT		FSEG_FRAG_ARR_N_SLOTS
 					/* If the segment has >= this many
 					used pages, it may be expanded by
@@ -2621,6 +2611,7 @@ fseg_alloc_free_page_low(
 	ib_id_t		seg_id;
 	ulint		used;
 	ulint		reserved;
+	ulint		fill_factor;
 	xdes_t*		descr;		/*!< extent of the hinted page */
 	ulint		ret_page;	/*!< the allocated page offset, FIL_NULL
 					if could not be allocated */
@@ -2651,6 +2642,13 @@ fseg_alloc_free_page_low(
 		descr = xdes_get_descriptor(space, zip_size, hint, mtr);
 	}
 
+	/* If the number of unused but reserved pages in a segment is
+	less than the inverse of the fill factor and there are at least
+	FSEG_FRAG_LIMIT used pages, then we allow a new empty extent to
+	be added to the segment. Otherwise, we use unused pages of the
+	segment. */
+	fill_factor = reserved ? (used * 100) / reserved : 0UL;
+
 	/* In the big if-else below we look for ret_page and ret_descr */
 	/*-------------------------------------------------------------*/
 	if ((xdes_get_state(descr, mtr) == XDES_FSEG)
@@ -2668,7 +2666,7 @@ take_hinted_page:
 		goto got_hinted_page;
 		/*-----------------------------------------------------------*/
 	} else if (xdes_get_state(descr, mtr) == XDES_FREE
-		   && reserved - used < reserved / FSEG_FILLFACTOR
+		   && fill_factor >= srv_segment_fill_factor
 		   && used >= FSEG_FRAG_LIMIT) {
 
 		/* 2. We allocate the free extent from space and can take
@@ -2690,7 +2688,7 @@ take_hinted_page:
 		goto take_hinted_page;
 		/*-----------------------------------------------------------*/
 	} else if ((direction != FSP_NO_DIR)
-		   && ((reserved - used) < reserved / FSEG_FILLFACTOR)
+		   && (fill_factor >= srv_segment_fill_factor)
 		   && (used >= FSEG_FRAG_LIMIT)
 		   && (!!(ret_descr
 			  = fseg_alloc_free_extent(seg_inode,

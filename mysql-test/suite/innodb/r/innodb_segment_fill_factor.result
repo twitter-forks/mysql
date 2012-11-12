@@ -1,0 +1,40 @@
+#
+# Expose the segment fill factor as a configurable setting.
+#
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET @old_innodb_segment_fill_factor = @@GLOBAL.innodb_segment_fill_factor;
+SET GLOBAL innodb_file_per_table = ON;
+CREATE PROCEDURE p1()
+BEGIN
+DECLARE i, c, k INT UNSIGNED DEFAULT 0;
+DECLARE free1, free2 INT UNSIGNED;
+CREATE TABLE t1 (a INT UNSIGNED PRIMARY KEY, b VARCHAR(512)) ENGINE=InnoDB;
+SET c = 1000;
+WHILE i < 2 DO
+WHILE c > 0 DO
+INSERT INTO t1 VALUES (k, REPEAT('b', 512));
+SET c = c - 1;
+SET k = k + 1;
+END WHILE;
+SET c = 1400;
+SET k = 2000;
+SET i = i + 1;
+END WHILE;
+SET free1 = (SELECT DATA_FREE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 't1');
+INSERT INTO t1 VALUES (1500, REPEAT('b', 512));
+INSERT INTO t1 VALUES (1501, REPEAT('b', 512));
+SET free2 = (SELECT DATA_FREE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 't1');
+SELECT (free1 != free2) AS FREE_LIST_USED;
+DROP TABLE t1;
+END|
+SET GLOBAL innodb_segment_fill_factor = 85;
+CALL p1();
+FREE_LIST_USED
+1
+SET GLOBAL innodb_segment_fill_factor = 95;
+CALL p1();
+FREE_LIST_USED
+0
+DROP PROCEDURE p1;
+SET @@GLOBAL.innodb_file_per_table = @old_innodb_file_per_table;
+SET @@GLOBAL.innodb_segment_fill_factor = @old_innodb_segment_fill_factor;

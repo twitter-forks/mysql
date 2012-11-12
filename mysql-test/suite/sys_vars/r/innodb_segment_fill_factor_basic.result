@@ -1,0 +1,89 @@
+SET @old_innodb_segment_fill_factor = @@global.innodb_segment_fill_factor;
+SELECT @old_innodb_segment_fill_factor;
+@old_innodb_segment_fill_factor
+88
+# Default value
+SET @@global.innodb_segment_fill_factor = 0;
+SET @@global.innodb_segment_fill_factor = DEFAULT;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+88
+# Scope
+SET innodb_segment_fill_factor = 1;
+ERROR HY000: Variable 'innodb_segment_fill_factor' is a GLOBAL variable and should be set with SET GLOBAL
+SELECT @@innodb_segment_fill_factor;
+@@innodb_segment_fill_factor
+88
+SET GLOBAL innodb_segment_fill_factor = 0;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+0
+# Min/Max
+SET @@global.innodb_segment_fill_factor = 0;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+0
+SET @@global.innodb_segment_fill_factor = 1;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+1
+SET @@global.innodb_segment_fill_factor = 99;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+99
+SET @@global.innodb_segment_fill_factor = 100;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+100
+SET @@global.innodb_segment_fill_factor = 101;
+Warnings:
+Warning	1292	Truncated incorrect innodb_segment_fill_factor value: '101'
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+100
+# Invalid value
+SET @@global.innodb_segment_fill_factor = -1;
+Warnings:
+Warning	1292	Truncated incorrect innodb_segment_fill_factor value: '-1'
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+0
+SET @@global.innodb_segment_fill_factor = "T";
+ERROR 42000: Incorrect argument type to variable 'innodb_segment_fill_factor'
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+0
+SET @@global.innodb_segment_fill_factor = "Y";
+ERROR 42000: Incorrect argument type to variable 'innodb_segment_fill_factor'
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+0
+SET @@global.innodb_segment_fill_factor = 1001;
+Warnings:
+Warning	1292	Truncated incorrect innodb_segment_fill_factor value: '1001'
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+100
+SET @@global.innodb_segment_fill_factor = OFF;
+ERROR 42000: Incorrect argument type to variable 'innodb_segment_fill_factor'
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+100
+SET @@global.innodb_segment_fill_factor = ON;
+ERROR 42000: Incorrect argument type to variable 'innodb_segment_fill_factor'
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+100
+SET @@global.innodb_segment_fill_factor = TRUE;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+1
+SET @@global.innodb_segment_fill_factor = FALSE;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+0
+# Reset
+SET @@global.innodb_segment_fill_factor = @old_innodb_segment_fill_factor;
+SELECT @@global.innodb_segment_fill_factor;
+@@global.innodb_segment_fill_factor
+88

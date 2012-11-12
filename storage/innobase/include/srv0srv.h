@@ -132,6 +132,8 @@ extern char**	srv_log_group_home_dirs;
 #ifndef UNIV_HOTBACKUP
 extern ulong	srv_auto_extend_increment;
 
+extern ulong	srv_segment_fill_factor;
+
 extern ibool	srv_created_new_raw;
 
 extern ulint	srv_n_log_groups;

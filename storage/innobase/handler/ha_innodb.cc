@@ -11951,6 +11951,14 @@ static MYSQL_SYSVAR_BOOL(anticipatory_flushing, srv_anticipatory_flushing,
   "bandwidth is available for background tasks (see innodb_io_capacity).",
   NULL, NULL, TRUE);
 
+static MYSQL_SYSVAR_ULONG(segment_fill_factor, srv_segment_fill_factor,
+  PLUGIN_VAR_NOCMDARG,
+  "The percentage of space on a segment to be used, reserving the remainder "
+  "as free space for future data growth. When the percentage of used space "
+  "in a segment is greater than the fill factor, InnoDB allocates a new "
+  "extent for the segment.",
+  NULL, NULL, 88, 0, 100, 0);
+
 static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(additional_mem_pool_size),
   MYSQL_SYSVAR(autoextend_increment),
@@ -12027,6 +12035,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
 #endif /* UNIV_DEBUG */
   MYSQL_SYSVAR(flush_dirty_pages_age),
   MYSQL_SYSVAR(anticipatory_flushing),
+  MYSQL_SYSVAR(segment_fill_factor),
   NULL
 };
 

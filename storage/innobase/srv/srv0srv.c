@@ -170,6 +170,10 @@ many pages to it at a time */
 UNIV_INTERN ulong	srv_auto_extend_increment = 8;
 UNIV_INTERN ulint*	srv_data_file_is_raw_partition = NULL;
 
+/* Minimum percentage of pages in a segment to be used before a new
+extent is added to a segment. */
+UNIV_INTERN ulong	srv_segment_fill_factor = 88;
+
 /* If the following is TRUE we do not allow inserts etc. This protects
 the user from forgetting the 'newraw' keyword to my.cnf */
 
