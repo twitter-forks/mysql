@@ -1,0 +1,37 @@
+#
+# Expose the index fill factor as a configurable setting.
+#
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET @old_innodb_index_fill_factor = @@GLOBAL.innodb_index_fill_factor;
+SET GLOBAL innodb_file_per_table = ON;
+SET @innodb_page_size = 16384.0;
+# Create and populate a table.
+CREATE TABLE t1 (a INT UNSIGNED PRIMARY KEY, b INT UNSIGNED) ENGINE=InnoDB;
+# Rebuild index, 40% fill factor.
+SET GLOBAL innodb_index_fill_factor = 40;
+ALTER TABLE t1 ENGINE=InnoDB;
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE
+TABLE_NAME LIKE "%t1" AND PAGE_TYPE = 'index' AND
+CEIL((DATA_SIZE * 100.0) / @innodb_page_size) > @innodb_index_fill_factor;
+COUNT(*)
+0
+# Rebuild index, 80% fill factor.
+SET GLOBAL innodb_index_fill_factor = 80;
+ALTER TABLE t1 ENGINE=InnoDB;
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE
+TABLE_NAME LIKE "%t1" AND PAGE_TYPE = 'index' AND
+CEIL((DATA_SIZE * 100.0) / @innodb_page_size) > @innodb_index_fill_factor;
+COUNT(*)
+0
+# Rebuild index, 100% fill factor.
+SET GLOBAL innodb_index_fill_factor = 100;
+ALTER TABLE t1 ENGINE=InnoDB;
+SELECT COUNT(*) > 0 FROM INFORMATION_SCHEMA.INNODB_BUFFER_PAGE WHERE
+TABLE_NAME LIKE "%t1" AND PAGE_TYPE = 'index' AND
+CEIL((DATA_SIZE * 100.0) / @innodb_page_size) > 50;
+COUNT(*) > 0
+1
+# Cleanup.
+DROP TABLE t1;
+SET @@GLOBAL.innodb_file_per_table = @old_innodb_file_per_table;
+SET @@GLOBAL.innodb_index_fill_factor = @old_innodb_index_fill_factor;

@@ -11959,6 +11959,14 @@ static MYSQL_SYSVAR_ULONG(segment_fill_factor, srv_segment_fill_factor,
   "extent for the segment.",
   NULL, NULL, 88, 0, 100, 0);
 
+static MYSQL_SYSVAR_UINT(index_fill_factor, srv_index_fill_factor,
+  PLUGIN_VAR_NOCMDARG,
+  "The percentage of how much to fill a leaf page when inserting data, "
+  "the remaining space being reserved to accommodate row expansion (e.g. "
+  "update). InnoDB might perform page splits to maintain the percentage "
+  "of free space. Only applies to clustered indexes.",
+  NULL, NULL, 94, 0, 100, 0);
+
 static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(additional_mem_pool_size),
   MYSQL_SYSVAR(autoextend_increment),
@@ -12036,6 +12044,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(flush_dirty_pages_age),
   MYSQL_SYSVAR(anticipatory_flushing),
   MYSQL_SYSVAR(segment_fill_factor),
+  MYSQL_SYSVAR(index_fill_factor),
   NULL
 };
 

@@ -174,6 +174,10 @@ UNIV_INTERN ulint*	srv_data_file_is_raw_partition = NULL;
 extent is added to a segment. */
 UNIV_INTERN ulong	srv_segment_fill_factor = 88;
 
+/* Target percentage for how much to fill leaf pages, reserving the
+remaining space for record growth (e.g. updates). */
+UNIV_INTERN uint	srv_index_fill_factor = 94;
+
 /* If the following is TRUE we do not allow inserts etc. This protects
 the user from forgetting the 'newraw' keyword to my.cnf */
 

@@ -788,7 +788,8 @@ ulint
 dict_index_get_space_reserve(void)
 /*==============================*/
 {
-	return(UNIV_PAGE_SIZE / 16);
+	double reserve_factor = (100UL - srv_index_fill_factor) / 100.0;
+	return((ulint) (UNIV_PAGE_SIZE * reserve_factor));
 }
 
 /**********************************************************************//**
