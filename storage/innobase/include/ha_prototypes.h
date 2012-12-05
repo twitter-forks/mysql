@@ -276,6 +276,16 @@ thd_lock_wait_timeout(
 /*==================*/
 	void*	thd);	/*!< in: thread handle (THD*), or NULL to query
 			the global innodb_lock_wait_timeout */
+
+/******************************************************************//**
+Get the set of flags specified in innodb_index_page_split_mode.
+@return	set of flags that are set */
+ulonglong
+thd_index_page_split(
+/*=================*/
+	void*	thd);	/*!< in: thread handle (THD*), or NULL to query
+			the global innodb_index_page_split_mode */
+
 /******************************************************************//**
 Add up the time waited for the lock for the current query. */
 UNIV_INTERN

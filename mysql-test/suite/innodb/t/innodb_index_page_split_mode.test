@@ -1,0 +1,130 @@
+--echo #
+--echo # Bug#67718: InnoDB drastically under-fills pages in certain conditions
+--echo #
+
+source include/have_innodb.inc;
+
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET GLOBAL innodb_file_per_table = ON;
+
+SET @old_innodb_index_page_split_mode = @@GLOBAL.innodb_index_page_split_mode;
+SET GLOBAL innodb_index_page_split_mode = "symmetric,lower,upper";
+
+CREATE TABLE page_split_test
+(
+  id BIGINT UNSIGNED NOT NULL,
+  payload1 CHAR(255) NOT NULL,
+  payload2 CHAR(255) NOT NULL,
+  payload3 CHAR(255) NOT NULL,
+  payload4 CHAR(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=INNODB;
+
+--echo # Fill up the root page, but don't split it.
+let $i = 1;
+while ($i < 15)
+{
+  eval
+    INSERT INTO page_split_test VALUES ($i, REPEAT("A", 255), REPEAT("B", 255),
+      REPEAT("C", 255), REPEAT("D", 255));
+  inc $i;
+}
+
+--echo # The next insert will trigger the root page to be split into a root
+--echo # non-leaf page and two leaf pages, both about half full.
+
+INSERT INTO page_split_test VALUES (15, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+
+--echo # Insert enough records to fill up the right-most leaf page, but don't
+--echo # split it.
+
+INSERT INTO page_split_test VALUES (16, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+INSERT INTO page_split_test VALUES (17, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+INSERT INTO page_split_test VALUES (18, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+INSERT INTO page_split_test VALUES (19, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+INSERT INTO page_split_test VALUES (20, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+INSERT INTO page_split_test VALUES (21, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+
+--echo # Increase the id by some amount, and insert a few records in descending
+--echo # order from that point. Each row inserted would split the "full" page
+--echo # from above, and create a new page for the single record.
+
+INSERT INTO page_split_test VALUES (30, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+INSERT INTO page_split_test VALUES (29, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+INSERT INTO page_split_test VALUES (28, REPEAT("A", 255), REPEAT("B", 255),
+  REPEAT("C", 255), REPEAT("D", 255));
+
+--echo # Dump the page information about the test table. The right-most page
+--echo # has only one record as the record (key 30) was inserted in ascending
+--echo # order. The remaining nodes are split in half and filled by the later
+--echo # inserts.
+
+SELECT page_number, page_type, number_records
+  FROM information_schema.innodb_buffer_page
+    WHERE table_name = "test/page_split_test" AND index_name = "PRIMARY"
+    ORDER BY page_number;
+
+DROP TABLE page_split_test;
+
+--echo #
+--echo # Test page split behavior when keys are being inserted in order.
+--echo #
+
+CREATE TABLE page_split_test
+(
+  id BIGINT UNSIGNED NOT NULL,
+  payload  CHAR(255) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=INNODB;
+
+--echo # Populate table with 300 rows in ascending key order.
+disable_query_log;
+let $i = 0;
+while ($i < 300)
+{
+  eval INSERT INTO page_split_test VALUES ($i, REPEAT("A", 255));
+  inc $i;
+}
+enable_query_log;
+--echo
+
+--echo # Space utilization is the same across leaf pages, except at the end
+--echo # since it wasn't completely filled up.
+SELECT page_number, page_type, number_records
+  FROM information_schema.innodb_buffer_page
+    WHERE table_name = "test/page_split_test" AND index_name = "PRIMARY"
+    ORDER BY page_number;
+
+TRUNCATE TABLE page_split_test;
+
+--echo # Populate table with 300 rows in descending key order.
+disable_query_log;
+let $i = 300;
+while ($i > 0)
+{
+  eval INSERT INTO page_split_test VALUES ($i, REPEAT("A", 255));
+  dec $i;
+}
+enable_query_log;
+--echo
+
+--echo # Space utilization is the same across leaf pages, except at the end
+--echo # since it wasn't completely filled up.
+SELECT page_number, page_type, number_records
+  FROM information_schema.innodb_buffer_page
+    WHERE table_name = "test/page_split_test" AND index_name = "PRIMARY"
+    ORDER BY page_number;
+
+DROP TABLE page_split_test;
+
+SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
+SET GLOBAL innodb_index_page_split_mode = @old_innodb_index_page_split_mode;

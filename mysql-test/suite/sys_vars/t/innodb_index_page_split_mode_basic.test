@@ -1,0 +1,77 @@
+--source include/have_innodb.inc
+
+SET @old_innodb_index_page_split_mode = @@GLOBAL.innodb_index_page_split_mode;
+SELECT @old_innodb_index_page_split_mode;
+
+--echo #
+--echo # Default value.
+--echo #
+
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+SELECT @@SESSION.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = 'upper';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = 'lower,symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = 'upper,symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = 'upper,lower,symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+
+--echo #
+--echo # Scope.
+--echo #
+
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SET SESSION innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+SELECT @@SESSION.innodb_index_page_split_mode;
+
+SHOW GLOBAL VARIABLES LIKE 'innodb_index_page_split_mode';
+SHOW SESSION VARIABLES LIKE 'innodb_index_page_split_mode';
+
+SELECT * FROM INFORMATION_SCHEMA.GLOBAL_VARIABLES WHERE
+  VARIABLE_NAME = 'innodb_index_page_split_mode';
+
+SELECT * FROM INFORMATION_SCHEMA.SESSION_VARIABLES WHERE
+  VARIABLE_NAME = 'innodb_index_page_split_mode';
+
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SET SESSION innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+SELECT @@SESSION.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SET SESSION innodb_index_page_split_mode = '';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+SELECT @@SESSION.innodb_index_page_split_mode;
+
+SET GLOBAL innodb_index_page_split_mode = '';
+SET SESSION innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+SELECT @@SESSION.innodb_index_page_split_mode;
+
+--echo #
+--echo # Invalid values.
+--echo #
+
+--error ER_WRONG_TYPE_FOR_VAR
+SET GLOBAL innodb_index_page_split_mode = 1.1;
+--error ER_WRONG_TYPE_FOR_VAR
+SET GLOBAL innodb_index_page_split_mode = 1e1;
+--error ER_WRONG_VALUE_FOR_VAR
+SET GLOBAL innodb_index_page_split_mode = 'inexistent';
+
+--echo # Cleanup.
+SET @@GLOBAL.innodb_index_page_split_mode = @old_innodb_index_page_split_mode;
+SELECT @@GLOBAL.innodb_index_page_split_mode;

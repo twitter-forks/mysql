@@ -1,0 +1,100 @@
+SET @old_innodb_index_page_split_mode = @@GLOBAL.innodb_index_page_split_mode;
+SELECT @old_innodb_index_page_split_mode;
+@old_innodb_index_page_split_mode
+
+#
+# Default value.
+#
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+
+SELECT @@SESSION.innodb_index_page_split_mode;
+@@SESSION.innodb_index_page_split_mode
+
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric
+SET GLOBAL innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric,lower
+SET GLOBAL innodb_index_page_split_mode = 'upper';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric,upper
+SET GLOBAL innodb_index_page_split_mode = 'lower,symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric,lower
+SET GLOBAL innodb_index_page_split_mode = 'upper,symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric,upper
+SET GLOBAL innodb_index_page_split_mode = 'upper,lower,symmetric';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric,upper,lower
+#
+# Scope.
+#
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SET SESSION innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric
+SELECT @@SESSION.innodb_index_page_split_mode;
+@@SESSION.innodb_index_page_split_mode
+symmetric,lower
+SHOW GLOBAL VARIABLES LIKE 'innodb_index_page_split_mode';
+Variable_name	Value
+innodb_index_page_split_mode	symmetric
+SHOW SESSION VARIABLES LIKE 'innodb_index_page_split_mode';
+Variable_name	Value
+innodb_index_page_split_mode	symmetric,lower
+SELECT * FROM INFORMATION_SCHEMA.GLOBAL_VARIABLES WHERE
+VARIABLE_NAME = 'innodb_index_page_split_mode';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_INDEX_PAGE_SPLIT_MODE	symmetric
+SELECT * FROM INFORMATION_SCHEMA.SESSION_VARIABLES WHERE
+VARIABLE_NAME = 'innodb_index_page_split_mode';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_INDEX_PAGE_SPLIT_MODE	symmetric,lower
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SET SESSION innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric
+SELECT @@SESSION.innodb_index_page_split_mode;
+@@SESSION.innodb_index_page_split_mode
+symmetric,lower
+SET GLOBAL innodb_index_page_split_mode = 'symmetric';
+SET SESSION innodb_index_page_split_mode = '';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+symmetric
+SELECT @@SESSION.innodb_index_page_split_mode;
+@@SESSION.innodb_index_page_split_mode
+
+SET GLOBAL innodb_index_page_split_mode = '';
+SET SESSION innodb_index_page_split_mode = 'lower';
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+
+SELECT @@SESSION.innodb_index_page_split_mode;
+@@SESSION.innodb_index_page_split_mode
+symmetric,lower
+#
+# Invalid values.
+#
+SET GLOBAL innodb_index_page_split_mode = 1.1;
+ERROR 42000: Incorrect argument type to variable 'innodb_index_page_split_mode'
+SET GLOBAL innodb_index_page_split_mode = 1e1;
+ERROR 42000: Incorrect argument type to variable 'innodb_index_page_split_mode'
+SET GLOBAL innodb_index_page_split_mode = 'inexistent';
+ERROR 42000: Variable 'innodb_index_page_split_mode' can't be set to the value of 'inexistent'
+# Cleanup.
+SET @@GLOBAL.innodb_index_page_split_mode = @old_innodb_index_page_split_mode;
+SELECT @@GLOBAL.innodb_index_page_split_mode;
+@@GLOBAL.innodb_index_page_split_mode
+

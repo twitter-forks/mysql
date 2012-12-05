@@ -92,6 +92,19 @@ insert/delete buffer when the record is not in the buffer pool. */
 buffer when the record is not in the buffer pool. */
 #define BTR_DELETE		8192
 
+/* Flags for page split operations. */
+
+/** When splitting a page, split the data in half (at the middle record). */
+#define BTR_PAGE_SPLIT_SYMMETRIC_FLAG	1
+
+/** When splitting the right-most page on its level, split at the insertion
+point if it's above the largest value in the page. */
+#define BTR_PAGE_SPLIT_UPPER_FLAG	2
+
+/** When splitting the left-most page on its level, split at the insertion
+point if it's below the smallest value in the page. */
+#define BTR_PAGE_SPLIT_LOWER_FLAG	4
+
 #endif /* UNIV_HOTBACKUP */
 
 /**************************************************************//**
@@ -404,6 +417,7 @@ btr_root_raise_and_insert(
 				of the inserted record */
 	const dtuple_t*	tuple,	/*!< in: tuple to insert */
 	ulint		n_ext,	/*!< in: number of externally stored columns */
+	ulint		flags,	/*!< in: page split flags */
 	mtr_t*		mtr);	/*!< in: mtr */
 /*************************************************************//**
 Reorganizes an index page.
@@ -428,6 +442,8 @@ ibool
 btr_page_get_split_rec_to_left(
 /*===========================*/
 	btr_cur_t*	cursor,	/*!< in: cursor at which to insert */
+	mtr_t*		mtr,	/*!< in: mtr */
+	ulint		flags,	/*!< in: page split flags */
 	rec_t**		split_rec);/*!< out: if split recommended,
 				the first record on upper half page,
 				or NULL if tuple should be first */
@@ -440,6 +456,8 @@ ibool
 btr_page_get_split_rec_to_right(
 /*============================*/
 	btr_cur_t*	cursor,	/*!< in: cursor at which to insert */
+	mtr_t*		mtr,	/*!< in: mtr */
+	ulint		flags,	/*!< in: page split flags */
 	rec_t**		split_rec);/*!< out: if split recommended,
 				the first record on upper half page,
 				or NULL if tuple should be first */
@@ -461,6 +479,7 @@ btr_page_split_and_insert(
 				on the predecessor of the inserted record */
 	const dtuple_t*	tuple,	/*!< in: tuple to insert */
 	ulint		n_ext,	/*!< in: number of externally stored columns */
+	ulint		flags,	/*!< in: page split flags */
 	mtr_t*		mtr);	/*!< in: mtr */
 /*******************************************************//**
 Inserts a data tuple to a tree on a non-leaf level. It is assumed

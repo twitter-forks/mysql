@@ -195,6 +195,21 @@ static TYPELIB innodb_stats_method_typelib = {
 	NULL
 };
 
+/** List of values for system variable "innodb_index_page_split_mode". */
+static const char* innodb_index_page_split_mode_names[] = {
+	"symmetric",
+	"upper",
+	"lower",
+	NULL
+};
+
+static TYPELIB innodb_index_page_split_mode_typelib = {
+	array_elements(innodb_index_page_split_mode_names) - 1,
+	"innodb_index_page_split_mode_typelib",
+	innodb_index_page_split_mode_names,
+	NULL
+};
+
 /* The following counter is used to convey information to InnoDB
 about server activity: in selects it is not sensible to call
 srv_active_wake_master_thread after each fetch or search, we only do
@@ -441,6 +456,32 @@ innobase_commit_concurrency_validate(
 	DBUG_RETURN(!(!commit_concurrency == !innobase_commit_concurrency));
 }
 
+/****************************************************************//**
+Expand and update the system variable index_page_split using the
+"saved" value. */
+static
+void
+innodb_index_page_split_mode_update(
+/*================================*/
+	THD*				thd,		/*!< in: thread handle */
+	struct st_mysql_sys_var*	var,		/*!< in: pointer to
+							system variable */
+	void*				var_ptr,	/*!< out: where the
+							formal value goes */
+	const void*			save)		/*!< in: immediate result
+							from check function */
+{
+	ulonglong	flags;
+
+	flags = *(ulonglong *)(save);
+
+	if (flags & (BTR_PAGE_SPLIT_UPPER_FLAG | BTR_PAGE_SPLIT_LOWER_FLAG)) {
+		flags |= BTR_PAGE_SPLIT_SYMMETRIC_FLAG;
+	}
+
+	*(ulonglong *)(var_ptr) = flags;
+}
+
 static MYSQL_THDVAR_BOOL(support_xa, PLUGIN_VAR_OPCMDARG,
   "Enable InnoDB support for the XA two-phase commit",
   /* check_func */ NULL, /* update_func */ NULL,
@@ -459,6 +500,9 @@ static MYSQL_THDVAR_ULONG(lock_wait_timeout, PLUGIN_VAR_RQCMDARG,
   "Timeout in seconds an InnoDB transaction may wait for a lock before being rolled back. Values above 100000000 disable the timeout.",
   NULL, NULL, 50, 1, 1024 * 1024 * 1024, 0);
 
+static MYSQL_THDVAR_SET(index_page_split_mode, PLUGIN_VAR_RQCMDARG,
+  "Index page split behavior.", NULL, innodb_index_page_split_mode_update,
+  0, &innodb_index_page_split_mode_typelib);
 
 static handler *innobase_create_handler(handlerton *hton,
                                         TABLE_SHARE *table,
@@ -897,6 +941,21 @@ thd_lock_wait_timeout(
 	/* According to <mysql/plugin.h>, passing thd == NULL
 	returns the global value of the session variable. */
 	return(THDVAR((THD*) thd, lock_wait_timeout));
+}
+
+/******************************************************************//**
+Get the set of flags specified in innodb_index_page_split_mode.
+@return	set of flags that are set */
+extern "C" UNIV_INTERN
+ulonglong
+thd_index_page_split(
+/*=================*/
+	void*	thd)	/*!< in: thread handle (THD*), or NULL to query
+			the global innodb_index_page_split_mode */
+{
+	/* According to <mysql/plugin.h>, passing thd == NULL
+	returns the global value of the session variable. */
+	return(THDVAR((THD*) thd, index_page_split_mode));
 }
 
 /******************************************************************//**
@@ -12045,6 +12104,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(anticipatory_flushing),
   MYSQL_SYSVAR(segment_fill_factor),
   MYSQL_SYSVAR(index_fill_factor),
+  MYSQL_SYSVAR(index_page_split_mode),
   NULL
 };
 

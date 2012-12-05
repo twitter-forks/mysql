@@ -1834,6 +1834,7 @@ btr_root_raise_and_insert(
 				of the inserted record */
 	const dtuple_t*	tuple,	/*!< in: tuple to insert */
 	ulint		n_ext,	/*!< in: number of externally stored columns */
+	ulint		flags,	/*!< in: page split flags */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
 	dict_index_t*	index;
@@ -1987,7 +1988,7 @@ btr_root_raise_and_insert(
 			PAGE_CUR_LE, page_cursor);
 
 	/* Split the child and insert tuple */
-	return(btr_page_split_and_insert(cursor, tuple, n_ext, mtr));
+	return(btr_page_split_and_insert(cursor, tuple, n_ext, flags, mtr));
 }
 
 /*************************************************************//**
@@ -1999,6 +2000,8 @@ ibool
 btr_page_get_split_rec_to_left(
 /*===========================*/
 	btr_cur_t*	cursor,	/*!< in: cursor at which to insert */
+	mtr_t*		mtr,	/*!< in: mtr */
+	ulint		flags,	/*!< in: page split flags */
 	rec_t**		split_rec) /*!< out: if split recommended,
 				the first record on upper half page,
 				or NULL if tuple to be inserted should
@@ -2011,6 +2014,17 @@ btr_page_get_split_rec_to_left(
 	page = btr_cur_get_page(cursor);
 	insert_point = btr_cur_get_rec(cursor);
 
+	/* No asymmetric page splitting is allowed if the "symmetric" flag is
+	set, except if the "lower" bound flag is also set, in which case the
+	left-most page on its level can be split at the insertion point as an
+	optimization for inserts in descending index order. */
+	if (flags & BTR_PAGE_SPLIT_SYMMETRIC_FLAG) {
+		if (!((flags & BTR_PAGE_SPLIT_LOWER_FLAG)
+		    && btr_page_get_prev(page, mtr) == FIL_NULL)) {
+			return(FALSE);
+		}
+	}
+
 	if (page_header_get_ptr(page, PAGE_LAST_INSERT)
 	    == page_rec_get_next(insert_point)) {
 
@@ -2021,8 +2035,17 @@ btr_page_get_split_rec_to_left(
 		page. Otherwise, we could repeatedly move from page to page
 		lots of records smaller than the convergence point. */
 
-		if (infimum != insert_point
-		    && page_rec_get_next(infimum) != insert_point) {
+		if (flags & BTR_PAGE_SPLIT_SYMMETRIC_FLAG) {
+			/* No asymmetric split if the "lower" bound flag is set
+			and the insert point is not the smallest value in the
+			page (and index). */
+			if (insert_point == infimum) {
+				*split_rec = page_rec_get_next(insert_point);
+			} else {
+				return(FALSE);
+			}
+		} else if (infimum != insert_point
+			   && page_rec_get_next(infimum) != insert_point) {
 
 			*split_rec = insert_point;
 		} else {
@@ -2044,6 +2067,8 @@ ibool
 btr_page_get_split_rec_to_right(
 /*============================*/
 	btr_cur_t*	cursor,	/*!< in: cursor at which to insert */
+	mtr_t*		mtr,	/*!< in: mtr */
+	ulint		flags,	/*!< in: page split flags */
 	rec_t**		split_rec) /*!< out: if split recommended,
 				the first record on upper half page,
 				or NULL if tuple to be inserted should
@@ -2054,6 +2079,17 @@ btr_page_get_split_rec_to_right(
 
 	page = btr_cur_get_page(cursor);
 	insert_point = btr_cur_get_rec(cursor);
+
+	/* No asymmetric page splitting is allowed if the "symmetric" flag is
+	set, except if the "upper" bound flag is also set, in which case the
+	right-most page on its level can be split at the insertion point as an
+	optimization for inserts in ascending index order. */
+	if (flags & BTR_PAGE_SPLIT_SYMMETRIC_FLAG) {
+		if (!((flags & BTR_PAGE_SPLIT_UPPER_FLAG)
+		    && btr_page_get_next(page, mtr) == FIL_NULL)) {
+			return(FALSE);
+		}
+	}
 
 	/* We use eager heuristics: if the new insert would be right after
 	the previous insert on the same page, we assume that there is a
@@ -2066,11 +2102,17 @@ btr_page_get_split_rec_to_right(
 
 		next_rec = page_rec_get_next(insert_point);
 
+		/* A pattern of sequential inserts has been detected. Split
+		at the insert point if it is above the largest value in the
+		page. */
 		if (page_rec_is_supremum(next_rec)) {
 split_at_new:
 			/* Split at the new record to insert */
 			*split_rec = NULL;
-		} else {
+		} else if (!(flags & BTR_PAGE_SPLIT_UPPER_FLAG)) {
+			/* Asymmetrical splitting is allowed. If the insert point
+			is right next to the largest value in the page, split at
+			the insert point. */
 			rec_t*	next_next_rec = page_rec_get_next(next_rec);
 			if (page_rec_is_supremum(next_next_rec)) {
 
@@ -2085,6 +2127,10 @@ split_at_new:
 			page. */
 
 			*split_rec = next_next_rec;
+		} else {
+			/* An insert pattern has been detected but the insert
+			point is not next to the largest value in the page. */
+			return(FALSE);
 		}
 
 		return(TRUE);
@@ -2533,6 +2579,7 @@ btr_page_split_and_insert(
 				on the predecessor of the inserted record */
 	const dtuple_t*	tuple,	/*!< in: tuple to insert */
 	ulint		n_ext,	/*!< in: number of externally stored columns */
+	ulint		flags,	/*!< in: page split flags */
 	mtr_t*		mtr)	/*!< in: mtr */
 {
 	buf_block_t*	block;
@@ -2597,11 +2644,13 @@ func_start:
 			insert_left = btr_page_tuple_smaller(
 				cursor, tuple, offsets, n_uniq, &heap);
 		}
-	} else if (btr_page_get_split_rec_to_right(cursor, &split_rec)) {
+	} else if (btr_page_get_split_rec_to_right(cursor, mtr, flags,
+						   &split_rec)) {
 		direction = FSP_UP;
 		hint_page_no = page_no + 1;
 
-	} else if (btr_page_get_split_rec_to_left(cursor, &split_rec)) {
+	} else if (btr_page_get_split_rec_to_left(cursor, mtr, flags,
+						  &split_rec)) {
 		direction = FSP_DOWN;
 		hint_page_no = page_no - 1;
 		ut_ad(split_rec);

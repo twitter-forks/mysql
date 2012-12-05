@@ -66,6 +66,7 @@ Created 10/16/1994 Heikki Tuuri
 #include "srv0srv.h"
 #include "ibuf0ibuf.h"
 #include "lock0lock.h"
+#include "ha_prototypes.h"
 #include "zlib.h"
 
 /** Buffered B-tree operation types, introduced as part of delete buffering. */
@@ -1149,6 +1150,39 @@ btr_cur_trx_report(
 #endif /* UNIV_DEBUG */
 
 /*************************************************************//**
+Get the index page split flags of a query thread. If no query
+thread is given, the global index page split flags are returned.
+@return the page split flags */
+static
+ulint
+get_page_split_flags(
+/*=================*/
+	que_thr_t*	thr)	/*!< in: query thread or NULL */
+{
+	trx_t*		trx = thr ? thr_get_trx(thr) : NULL;
+
+	return(thd_index_page_split(trx ? trx->mysql_thd : NULL));
+}
+
+/*************************************************************//**
+Decides if the page should be split.
+@return TRUE if split recommended */
+static
+ibool
+btr_page_should_split(
+/*==================*/
+	btr_cur_t*	cursor,	/*!< in: cursor on page after which to insert;
+				cursor stays valid */
+	ulint		flags,	/*!< in: page split flags */
+	mtr_t*		mtr)	/*!< in: mtr */
+{
+	rec_t*		rec;
+
+	return(btr_page_get_split_rec_to_right(cursor, mtr, flags, &rec)
+	       || btr_page_get_split_rec_to_left(cursor, mtr, flags, &rec));
+}
+
+/*************************************************************//**
 Tries to perform an insert to a page in an index tree, next to cursor.
 It is assumed that mtr holds an x-latch on the page. The operation does
 not succeed if there is too little space on the page. If there is just
@@ -1184,7 +1218,6 @@ btr_cur_optimistic_insert(
 	buf_block_t*	block;
 	page_t*		page;
 	ulint		max_size;
-	rec_t*		dummy_rec;
 	ibool		leaf;
 	ibool		reorg;
 	ibool		inherit;
@@ -1281,8 +1314,7 @@ btr_cur_optimistic_insert(
 	    && (page_get_n_recs(page) >= 2)
 	    && UNIV_LIKELY(leaf)
 	    && (dict_index_get_space_reserve() + rec_size > max_size)
-	    && (btr_page_get_split_rec_to_right(cursor, &dummy_rec)
-		|| btr_page_get_split_rec_to_left(cursor, &dummy_rec))) {
+	    && btr_page_should_split(cursor, get_page_split_flags(thr), mtr)) {
 fail:
 		err = DB_FAIL;
 fail_err:
@@ -1453,6 +1485,7 @@ btr_cur_pessimistic_insert(
 	ibool		success;
 	ulint		n_extents	= 0;
 	ulint		n_reserved;
+	ulint		split_flags;
 
 	ut_ad(dtuple_check_typed(entry));
 
@@ -1516,13 +1549,17 @@ btr_cur_pessimistic_insert(
 		}
 	}
 
+	split_flags = get_page_split_flags(thr);
+
 	if (dict_index_get_page(index)
 	    == buf_block_get_page_no(btr_cur_get_block(cursor))) {
 
 		/* The page is the root page */
-		*rec = btr_root_raise_and_insert(cursor, entry, n_ext, mtr);
+		*rec = btr_root_raise_and_insert(cursor, entry, n_ext,
+						 split_flags, mtr);
 	} else {
-		*rec = btr_page_split_and_insert(cursor, entry, n_ext, mtr);
+		*rec = btr_page_split_and_insert(cursor, entry, n_ext,
+						 split_flags, mtr);
 	}
 
 	if (UNIV_LIKELY_NULL(heap)) {
