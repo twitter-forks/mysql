@@ -670,6 +670,8 @@ static SHOW_VAR innodb_status_variables[]= {
   (char*) &export_vars.innodb_buffer_pool_flush_adaptive_pages, SHOW_LONG},
   {"buffer_pool_flush_anticipatory_pages",
   (char*) &export_vars.innodb_buffer_pool_flush_anticipatory_pages, SHOW_LONG},
+  {"buffer_pool_flush_async_page",
+  (char*) &export_vars.innodb_buffer_pool_flush_async_page,	SHOW_LONG},
   {"buffer_pool_flush_background_pages",
   (char*) &export_vars.innodb_buffer_pool_flush_background_pages, SHOW_LONG},
   {"buffer_pool_flush_batch_scanned",

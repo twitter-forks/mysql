@@ -345,6 +345,9 @@ UNIV_INTERN ulint srv_buf_pool_flush_batch_scanned;
 /** Number of pages flushed as part of sync batches. */
 UNIV_INTERN ulint srv_buf_pool_flush_sync_page;
 
+/** Number of pages flushed as part of async batches. */
+UNIV_INTERN ulint srv_buf_pool_flush_async_page;
+
 /** Number of pages flushed as part of adaptive batches. */
 UNIV_INTERN ulint srv_buf_pool_flush_adaptive_pages;
 
@@ -2173,6 +2176,8 @@ srv_export_innodb_status(void)
 		= srv_buf_pool_flush_batch_scanned;
 	export_vars.innodb_buffer_pool_flush_sync_page
 		= srv_buf_pool_flush_sync_page;
+	export_vars.innodb_buffer_pool_flush_async_page
+		= srv_buf_pool_flush_async_page;
 	export_vars.innodb_buffer_pool_flush_adaptive_pages
 		= srv_buf_pool_flush_adaptive_pages;
 	export_vars.innodb_buffer_pool_flush_anticipatory_pages

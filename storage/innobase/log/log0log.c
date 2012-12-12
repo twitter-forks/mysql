@@ -1666,7 +1666,11 @@ log_preflush_pool_modified_pages(
 		return(FALSE);
 	}
 
-	srv_buf_pool_flush_sync_page += n_pages;
+	if (sync) {
+		srv_buf_pool_flush_sync_page += n_pages;
+	} else {
+		srv_buf_pool_flush_async_page += n_pages;
+	}
 
 	return(TRUE);
 }

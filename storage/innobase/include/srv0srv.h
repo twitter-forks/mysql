@@ -353,6 +353,9 @@ extern ulint srv_buf_pool_flush_batch_scanned;
 /** Number of pages flushed as part of sync batches. */
 extern ulint srv_buf_pool_flush_sync_page;
 
+/** Number of pages flushed as part of async batches. */
+extern ulint srv_buf_pool_flush_async_page;
+
 /** Number of pages flushed as part of adaptive batches. */
 extern ulint srv_buf_pool_flush_adaptive_pages;
 
@@ -810,6 +813,8 @@ struct export_var_struct{
 						/*!< srv_buf_pool_flush_batch_scanned */
 	ulint innodb_buffer_pool_flush_sync_page;
 						/*!< srv_buf_pool_flush_sync_page */
+	ulint innodb_buffer_pool_flush_async_page;
+						/*!< srv_buf_pool_flush_async_page */
 	ulint innodb_buffer_pool_flush_adaptive_pages;
 						/*!< srv_buf_pool_flush_adaptive_pages */
 	ulint innodb_buffer_pool_flush_anticipatory_pages;
