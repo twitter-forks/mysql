@@ -2404,21 +2404,24 @@ fseg_n_reserved_pages_low(
 				more than reserved) */
 	mtr_t*		mtr)	/*!< in: mtr handle */
 {
-	ulint	ret;
+	ulint	resvd;
+	ulint	n_frag;
 
 	ut_ad(inode && used && mtr);
 	ut_ad(mtr_memo_contains_page(mtr, inode, MTR_MEMO_PAGE_X_FIX));
 
+	n_frag = fseg_get_n_frag_pages(inode, mtr);
+
 	*used = mtr_read_ulint(inode + FSEG_NOT_FULL_N_USED, MLOG_4BYTES, mtr)
 		+ FSP_EXTENT_SIZE * flst_get_len(inode + FSEG_FULL, mtr)
-		+ fseg_get_n_frag_pages(inode, mtr);
+		+ n_frag;
 
-	ret = fseg_get_n_frag_pages(inode, mtr)
-		+ FSP_EXTENT_SIZE * flst_get_len(inode + FSEG_FREE, mtr)
+	resvd = FSP_EXTENT_SIZE * flst_get_len(inode + FSEG_FREE, mtr)
 		+ FSP_EXTENT_SIZE * flst_get_len(inode + FSEG_NOT_FULL, mtr)
-		+ FSP_EXTENT_SIZE * flst_get_len(inode + FSEG_FULL, mtr);
+		+ FSP_EXTENT_SIZE * flst_get_len(inode + FSEG_FULL, mtr)
+		+ n_frag;
 
-	return(ret);
+	return(resvd);
 }
 
 /**********************************************************************//**
