@@ -19,15 +19,17 @@
 --source include/master-slave.inc
 
 connection slave;
---let $connection_id=`SELECT id FROM information_schema.processlist where state LIKE 'Waiting for master to send event'`
+let $wait_condition=
+  SELECT @slave_id := (SELECT id FROM INFORMATION_SCHEMA.PROCESSLIST
+                       WHERE state = 'Waiting for master to send event');
+--source include/wait_condition_sp.inc
 
 set @time_before_kill := (select CURRENT_TIMESTAMP);
 
 --echo [Time before the query]
 --echo [Connection ID of the slave I/O thread found]
 
---replace_regex /kill [0-9]*/kill <connection_id>/
---eval kill $connection_id
+kill @slave_id;
 
 set @time_after_kill := (select CURRENT_TIMESTAMP);
 
