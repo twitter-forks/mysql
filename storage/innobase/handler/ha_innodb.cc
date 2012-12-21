@@ -12028,6 +12028,11 @@ static MYSQL_SYSVAR_UINT(index_fill_factor, srv_index_fill_factor,
   "of free space. Only applies to clustered indexes.",
   NULL, NULL, 94, 0, 100, 0);
 
+static MYSQL_SYSVAR_BOOL(lease_fragment_extents, srv_lease_fragment_extents,
+  PLUGIN_VAR_NOCMDARG,
+  "If a free fragment extent is available, allow it to be allocated to "
+  "a segment.", NULL, NULL, FALSE);
+
 static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(additional_mem_pool_size),
   MYSQL_SYSVAR(autoextend_increment),
@@ -12107,6 +12112,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(segment_fill_factor),
   MYSQL_SYSVAR(index_fill_factor),
   MYSQL_SYSVAR(index_page_split_mode),
+  MYSQL_SYSVAR(lease_fragment_extents),
   NULL
 };
 

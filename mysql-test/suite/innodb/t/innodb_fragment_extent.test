@@ -1,0 +1,81 @@
+--source include/have_innodb.inc
+--source include/have_innodb_ruby.inc
+
+--echo #
+--echo # Test that fragment extents can be fully used.
+--echo #
+--echo
+
+--echo # Setup.
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET @old_innodb_lease_fragment_extents = @@GLOBAL.innodb_lease_fragment_extents;
+
+let $MYSQLD_DATADIR= `select @@datadir`;
+
+SET GLOBAL innodb_file_per_table = ON;
+SET GLOBAL innodb_lease_fragment_extents = ON;
+
+CREATE VIEW buffer_pool AS
+  SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) AS PAGES_DIRTY FROM
+    INFORMATION_SCHEMA.GLOBAL_STATUS WHERE
+      VARIABLE_NAME = 'INNODB_BUFFER_POOL_PAGES_DIRTY';
+
+CREATE TABLE t1 (a BIGINT PRIMARY KEY, b VARCHAR(1024), c VARCHAR(1024))
+  ENGINE=InnoDB;
+
+delimiter |;
+
+CREATE PROCEDURE p1(k BIGINT, c BIGINT)
+BEGIN
+  SET autocommit = OFF;
+  WHILE c > 0 DO
+    INSERT INTO t1 VALUES (k, REPEAT('b', 1024), REPEAT('c', 1024));
+    IF (k MOD 1024 = 0) THEN COMMIT; END IF;
+    SET k = k + 1;
+    SET c = c - 1;
+  END WHILE;
+  SET autocommit = ON;
+END|
+
+delimiter ;|
+
+--echo # Populate table so that more than 16384 pages are used.
+CALL p1(0, 130000);
+
+# Wait for dirty pages to be flushed to disk.
+let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
+--source include/wait_condition.inc
+
+--echo # The free_frag list should now only contain one extent.
+--exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd list-summary -L free_frag
+
+--echo # Show that the fragment extent was leased and its pages used.
+--exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd space-page-type-regions
+
+--echo # Delete rows so that the fragment extent becomes unused.
+DELETE FROM t1 WHERE a >= 114400;
+
+# Wait for dirty pages to be flushed to disk.
+let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
+--source include/wait_condition.inc
+
+--echo # Show that the fragment extent is returned to the free_frag list.
+--exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd list-summary -L free_frag
+
+--echo # Repopulate table.
+CALL p1(114400, 15600);
+
+# Wait for dirty pages to be flushed to disk.
+let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
+--source include/wait_condition.inc
+
+--echo # Show that the fragment extent can be reused.
+--exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd list-summary -L free_frag
+
+--echo # Cleanup.
+DROP TABLE t1;
+DROP PROCEDURE p1;
+DROP VIEW buffer_pool;
+
+SET @@GLOBAL.innodb_file_per_table = @old_innodb_file_per_table;
+SET @@GLOBAL.innodb_lease_fragment_extents = @old_innodb_lease_fragment_extents;

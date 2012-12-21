@@ -178,6 +178,10 @@ UNIV_INTERN ulong	srv_segment_fill_factor = 88;
 remaining space for record growth (e.g. updates). */
 UNIV_INTERN uint	srv_index_fill_factor = 94;
 
+/* Allocate a free fragment to a segment before taking an extent
+from the segment/space free list. */
+UNIV_INTERN my_bool	srv_lease_fragment_extents = FALSE;
+
 /* If the following is TRUE we do not allow inserts etc. This protects
 the user from forgetting the 'newraw' keyword to my.cnf */
 

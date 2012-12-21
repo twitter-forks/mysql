@@ -3052,6 +3052,8 @@ void do_exec(struct st_command *command)
           command->first_argument, ds_res.str);
     }
 
+    var_set_int("$exec_exit_status", status);
+
     DBUG_PRINT("info",
                ("error: %d, status: %d", error, status));
 
@@ -3077,6 +3079,10 @@ void do_exec(struct st_command *command)
     dynstr_free(&ds_cmd);
     die("command \"%s\" succeeded - should have failed with errno %d...",
         command->first_argument, command->expected_errors.err[0].code.errnum);
+  }
+  else
+  {
+    var_set_int("$exec_exit_status", error);
   }
 
   dynstr_free(&ds_cmd);

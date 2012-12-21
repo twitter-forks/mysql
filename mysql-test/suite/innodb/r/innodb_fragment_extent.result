@@ -1,0 +1,60 @@
+#
+# Test that fragment extents can be fully used.
+#
+
+# Setup.
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET @old_innodb_lease_fragment_extents = @@GLOBAL.innodb_lease_fragment_extents;
+SET GLOBAL innodb_file_per_table = ON;
+SET GLOBAL innodb_lease_fragment_extents = ON;
+CREATE VIEW buffer_pool AS
+SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) AS PAGES_DIRTY FROM
+INFORMATION_SCHEMA.GLOBAL_STATUS WHERE
+VARIABLE_NAME = 'INNODB_BUFFER_POOL_PAGES_DIRTY';
+CREATE TABLE t1 (a BIGINT PRIMARY KEY, b VARCHAR(1024), c VARCHAR(1024))
+ENGINE=InnoDB;
+CREATE PROCEDURE p1(k BIGINT, c BIGINT)
+BEGIN
+SET autocommit = OFF;
+WHILE c > 0 DO
+INSERT INTO t1 VALUES (k, REPEAT('b', 1024), REPEAT('c', 1024));
+IF (k MOD 1024 = 0) THEN COMMIT; END IF;
+SET k = k + 1;
+SET c = c - 1;
+END WHILE;
+SET autocommit = ON;
+END|
+# Populate table so that more than 16384 pages are used.
+CALL p1(0, 130000);
+# The free_frag list should now only contain one extent.
+start_page  bitmap                                                          
+0           ##########################################################......
+# Show that the fragment extent was leased and its pages used.
+start       end         count       type                
+0           0           1           FSP_HDR             
+1           1           1           IBUF_BITMAP         
+2           2           1           INODE               
+3           57          55          INDEX               
+58          63          6           ALLOCATED           
+64          16383       16320       INDEX               
+16384       16384       1           XDES                
+16385       16385       1           IBUF_BITMAP         
+16386       18605       2220        INDEX               
+18606       19455       850         ALLOCATED           
+# Delete rows so that the fragment extent becomes unused.
+DELETE FROM t1 WHERE a >= 114400;
+# Show that the fragment extent is returned to the free_frag list.
+start_page  bitmap                                                          
+0           ########################################################........
+16384       ##..............................................................
+# Repopulate table.
+CALL p1(114400, 15600);
+# Show that the fragment extent can be reused.
+start_page  bitmap                                                          
+0           ##########################################################......
+# Cleanup.
+DROP TABLE t1;
+DROP PROCEDURE p1;
+DROP VIEW buffer_pool;
+SET @@GLOBAL.innodb_file_per_table = @old_innodb_file_per_table;
+SET @@GLOBAL.innodb_lease_fragment_extents = @old_innodb_lease_fragment_extents;

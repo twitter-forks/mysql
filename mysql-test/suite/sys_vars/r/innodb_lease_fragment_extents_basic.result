@@ -1,0 +1,92 @@
+SET @start_global_value = @@global.innodb_lease_fragment_extents;
+SELECT @start_global_value;
+@start_global_value
+0
+Valid values are 'ON' and 'OFF'
+SELECT @@GLOBAL.innodb_lease_fragment_extents IN (0, 1);
+@@GLOBAL.innodb_lease_fragment_extents IN (0, 1)
+1
+SELECT @@GLOBAL.innodb_lease_fragment_extents;
+@@GLOBAL.innodb_lease_fragment_extents
+0
+SELECT @@SESSION.innodb_lease_fragment_extents;
+ERROR HY000: Variable 'innodb_lease_fragment_extents' is a GLOBAL variable
+SHOW GLOBAL VARIABLES LIKE 'innodb_lease_fragment_extents';
+Variable_name	Value
+innodb_lease_fragment_extents	OFF
+SHOW SESSION VARIABLES LIKE 'innodb_lease_fragment_extents';
+Variable_name	Value
+innodb_lease_fragment_extents	OFF
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	OFF
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	OFF
+SET GLOBAL innodb_lease_fragment_extents='OFF';
+SELECT @@GLOBAL.innodb_lease_fragment_extents;
+@@GLOBAL.innodb_lease_fragment_extents
+0
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	OFF
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	OFF
+SET @@GLOBAL.innodb_lease_fragment_extents=1;
+SELECT @@GLOBAL.innodb_lease_fragment_extents;
+@@GLOBAL.innodb_lease_fragment_extents
+1
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	ON
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	ON
+SET GLOBAL innodb_lease_fragment_extents=0;
+SELECT @@GLOBAL.innodb_lease_fragment_extents;
+@@GLOBAL.innodb_lease_fragment_extents
+0
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	OFF
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	OFF
+SET @@GLOBAL.innodb_lease_fragment_extents='ON';
+SELECT @@GLOBAL.innodb_lease_fragment_extents;
+@@GLOBAL.innodb_lease_fragment_extents
+1
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	ON
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	ON
+SET SESSION innodb_lease_fragment_extents='OFF';
+ERROR HY000: Variable 'innodb_lease_fragment_extents' is a GLOBAL variable and should be set with SET GLOBAL
+SET @@SESSION.innodb_lease_fragment_extents='ON';
+ERROR HY000: Variable 'innodb_lease_fragment_extents' is a GLOBAL variable and should be set with SET GLOBAL
+SET GLOBAL innodb_lease_fragment_extents=1.1;
+ERROR 42000: Incorrect argument type to variable 'innodb_lease_fragment_extents'
+SET GLOBAL innodb_lease_fragment_extents=1e1;
+ERROR 42000: Incorrect argument type to variable 'innodb_lease_fragment_extents'
+SET GLOBAL innodb_lease_fragment_extents=2;
+ERROR 42000: Variable 'innodb_lease_fragment_extents' can't be set to the value of '2'
+NOTE: The following should fail with ER_WRONG_VALUE_FOR_VAR (BUG#50643)
+SET GLOBAL innodb_lease_fragment_extents=-3;
+SELECT @@GLOBAL.innodb_lease_fragment_extents;
+@@GLOBAL.innodb_lease_fragment_extents
+1
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	ON
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_lease_fragment_extents';
+VARIABLE_NAME	VARIABLE_VALUE
+INNODB_LEASE_FRAGMENT_EXTENTS	ON
+SET GLOBAL innodb_lease_fragment_extents='AUTO';
+ERROR 42000: Variable 'innodb_lease_fragment_extents' can't be set to the value of 'AUTO'
+SET @@GLOBAL.innodb_lease_fragment_extents = @start_global_value;
+SELECT @@GLOBAL.innodb_lease_fragment_extents;
+@@GLOBAL.innodb_lease_fragment_extents
+0
