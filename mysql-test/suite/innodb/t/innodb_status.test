@@ -225,6 +225,72 @@ SELECT (@page_splits_2 - @page_splits_1) AS 'INNODB_PAGE_SPLITS';
 
 DROP TABLE t1;
 
+--echo #
+--echo # Export insert buffer statistics
+--echo #
+
+SET @old_innodb_change_buffering_debug = @@innodb_change_buffering_debug;
+SET GLOBAL innodb_change_buffering_debug = 1;
+
+CREATE TABLE t1 (a INT AUTO_INCREMENT, b INT, c INT,
+  PRIMARY KEY (a), INDEX (b)) ENGINE=InnoDB;
+
+--echo # Collect status values for later comparison.
+SELECT VARIABLE_VALUE INTO @merged_delete_marks FROM gsv
+  WHERE VARIABLE_NAME = 'INNODB_IBUF_MERGED_DELETE_MARKS';
+SELECT VARIABLE_VALUE INTO @merged_inserts FROM gsv
+  WHERE VARIABLE_NAME = 'INNODB_IBUF_MERGED_INSERTS';
+SELECT VARIABLE_VALUE INTO @merged_pages FROM gsv
+  WHERE VARIABLE_NAME = 'INNODB_IBUF_MERGED_PAGES';
+
+--echo # Populate table so that insert buffering is used.
+INSERT INTO t1 VALUES (0, 1, 1);
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+
+--echo # Perform changes that are buffered.
+BEGIN;
+DELETE FROM t1 WHERE a = 1;
+INSERT INTO t1 VALUES (1, 2, 1);
+SELECT b FROM t1 LIMIT 3;
+ROLLBACK;
+
+--echo # Wait for status values to be updated.
+let $wait_condition=
+  SELECT COUNT(*) > 0 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_IBUF_MERGED_DELETE_MARKS' AND
+  VARIABLE_VALUE > @merged_delete_marks;
+--source include/wait_condition.inc
+
+let $wait_condition=
+  SELECT COUNT(*) > 0 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_IBUF_MERGED_INSERTS' AND
+  VARIABLE_VALUE > @merged_inserts;
+--source include/wait_condition.inc
+
+let $wait_condition=
+  SELECT COUNT(*) > 0 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_IBUF_MERGED_PAGES' AND
+  VARIABLE_VALUE > @merged_pages;
+--source include/wait_condition.inc
+
+DROP TABLE t1;
+
+SET GLOBAL innodb_change_buffering_debug = @old_innodb_change_buffering_debug;
+
+--echo #
+--echo # Cleanup
+--echo #
+
 SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
 
 DROP VIEW gsv;

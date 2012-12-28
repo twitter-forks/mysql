@@ -172,5 +172,48 @@ SELECT (@page_splits_2 - @page_splits_1) AS 'INNODB_PAGE_SPLITS';
 INNODB_PAGE_SPLITS
 1
 DROP TABLE t1;
+#
+# Export insert buffer statistics
+#
+SET @old_innodb_change_buffering_debug = @@innodb_change_buffering_debug;
+SET GLOBAL innodb_change_buffering_debug = 1;
+CREATE TABLE t1 (a INT AUTO_INCREMENT, b INT, c INT,
+PRIMARY KEY (a), INDEX (b)) ENGINE=InnoDB;
+# Collect status values for later comparison.
+SELECT VARIABLE_VALUE INTO @merged_delete_marks FROM gsv
+WHERE VARIABLE_NAME = 'INNODB_IBUF_MERGED_DELETE_MARKS';
+SELECT VARIABLE_VALUE INTO @merged_inserts FROM gsv
+WHERE VARIABLE_NAME = 'INNODB_IBUF_MERGED_INSERTS';
+SELECT VARIABLE_VALUE INTO @merged_pages FROM gsv
+WHERE VARIABLE_NAME = 'INNODB_IBUF_MERGED_PAGES';
+# Populate table so that insert buffering is used.
+INSERT INTO t1 VALUES (0, 1, 1);
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+# Perform changes that are buffered.
+BEGIN;
+DELETE FROM t1 WHERE a = 1;
+INSERT INTO t1 VALUES (1, 2, 1);
+SELECT b FROM t1 LIMIT 3;
+b
+1
+1
+1
+ROLLBACK;
+# Wait for status values to be updated.
+DROP TABLE t1;
+SET GLOBAL innodb_change_buffering_debug = @old_innodb_change_buffering_debug;
+#
+# Cleanup
+#
 SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
 DROP VIEW gsv;

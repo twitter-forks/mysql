@@ -4744,16 +4744,16 @@ reset_bit:
 	mem_heap_free(heap);
 
 #ifdef HAVE_ATOMIC_BUILTINS
-	os_atomic_increment_ulint(&ibuf->n_merges, 1);
-	ibuf_add_ops(ibuf->n_merged_ops, mops);
-	ibuf_add_ops(ibuf->n_discarded_ops, dops);
+	os_atomic_increment_ulint(&ibuf->stat.n_merges, 1);
+	ibuf_add_ops(ibuf->stat.n_merged_ops, mops);
+	ibuf_add_ops(ibuf->stat.n_discarded_ops, dops);
 #else /* HAVE_ATOMIC_BUILTINS */
 	/* Protect our statistics keeping from race conditions */
 	mutex_enter(&ibuf_mutex);
 
-	ibuf->n_merges++;
-	ibuf_add_ops(ibuf->n_merged_ops, mops);
-	ibuf_add_ops(ibuf->n_discarded_ops, dops);
+	ibuf->stat.n_merges++;
+	ibuf_add_ops(ibuf->stat.n_merged_ops, mops);
+	ibuf_add_ops(ibuf->stat.n_discarded_ops, dops);
 
 	mutex_exit(&ibuf_mutex);
 #endif /* HAVE_ATOMIC_BUILTINS */
@@ -4849,11 +4849,11 @@ leave_loop:
 	btr_pcur_close(&pcur);
 
 #ifdef HAVE_ATOMIC_BUILTINS
-	ibuf_add_ops(ibuf->n_discarded_ops, dops);
+	ibuf_add_ops(ibuf->stat.n_discarded_ops, dops);
 #else /* HAVE_ATOMIC_BUILTINS */
 	/* Protect our statistics keeping from race conditions */
 	mutex_enter(&ibuf_mutex);
-	ibuf_add_ops(ibuf->n_discarded_ops, dops);
+	ibuf_add_ops(ibuf->stat.n_discarded_ops, dops);
 	mutex_exit(&ibuf_mutex);
 #endif /* HAVE_ATOMIC_BUILTINS */
 
@@ -4906,13 +4906,13 @@ ibuf_print(
 		(ulong) ibuf->size,
 		(ulong) ibuf->free_list_len,
 		(ulong) ibuf->seg_size,
-		(ulong) ibuf->n_merges);
+		(ulong) ibuf->stat.n_merges);
 
 	fputs("merged operations:\n ", file);
-	ibuf_print_ops(ibuf->n_merged_ops, file);
+	ibuf_print_ops(ibuf->stat.n_merged_ops, file);
 
 	fputs("discarded operations:\n ", file);
-	ibuf_print_ops(ibuf->n_discarded_ops, file);
+	ibuf_print_ops(ibuf->stat.n_discarded_ops, file);
 
 #ifdef UNIV_IBUF_COUNT_DEBUG
 	for (i = 0; i < IBUF_COUNT_N_SPACES; i++) {
@@ -4931,4 +4931,29 @@ ibuf_print(
 
 	mutex_exit(&ibuf_mutex);
 }
+
+/******************************************************************//**
+Collect insert buffer stats. */
+UNIV_INTERN
+void
+ibuf_get_stats(
+/*===========*/
+	ibuf_stat_t*	stat)	/*!< out: ibuf stats */
+{
+	memset(stat, 0, sizeof(ibuf_stat_t));
+
+#ifdef HAVE_ATOMIC_BUILTINS
+	mutex_enter(&ibuf_mutex);
+#endif
+
+	stat->size = ibuf->size;
+	stat->n_merges = ibuf->stat.n_merges;
+	ibuf_add_ops(stat->n_merged_ops, ibuf->stat.n_merged_ops);
+	ibuf_add_ops(stat->n_discarded_ops, ibuf->stat.n_discarded_ops);
+
+#ifdef HAVE_ATOMIC_BUILTINS
+	mutex_exit(&ibuf_mutex);
+#endif
+}
+
 #endif /* !UNIV_HOTBACKUP */

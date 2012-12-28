@@ -2075,6 +2075,7 @@ srv_export_innodb_status(void)
 /*==========================*/
 {
 	buf_pool_stat_t	stat;
+	ibuf_stat_t	ibuf_stat;
 	ulint		LRU_len;
 	ulint		free_len;
 	ulint		flush_list_len;
@@ -2083,6 +2084,7 @@ srv_export_innodb_status(void)
 
 	buf_get_total_stat(&stat);
 	buf_get_total_list_len(&LRU_len, &free_len, &flush_list_len);
+	ibuf_get_stats(&ibuf_stat);
 
 	mysql_master_log_pos = 0;
 	memset(mysql_master_log_name, 0, sizeof(mysql_master_log_name));
@@ -2215,6 +2217,21 @@ srv_export_innodb_status(void)
 	export_vars.innodb_btree_page_reorganize = btr_n_page_reorganize;
 	export_vars.innodb_btree_page_split = btr_n_page_split;
 	export_vars.innodb_btree_page_merge = btr_n_page_merge;
+
+	export_vars.innodb_ibuf_discarded_delete_marks =
+		ibuf_stat.n_discarded_ops[IBUF_OP_DELETE_MARK];
+	export_vars.innodb_ibuf_discarded_deletes =
+		ibuf_stat.n_discarded_ops[IBUF_OP_DELETE];
+	export_vars.innodb_ibuf_discarded_inserts =
+		ibuf_stat.n_discarded_ops[IBUF_OP_INSERT];
+	export_vars.innodb_ibuf_merged_delete_marks =
+		ibuf_stat.n_merged_ops[IBUF_OP_DELETE_MARK];
+	export_vars.innodb_ibuf_merged_deletes =
+		ibuf_stat.n_merged_ops[IBUF_OP_DELETE];
+	export_vars.innodb_ibuf_merged_inserts =
+		ibuf_stat.n_merged_ops[IBUF_OP_INSERT];
+	export_vars.innodb_ibuf_merged_pages = ibuf_stat.n_merges;
+	export_vars.innodb_ibuf_pages = ibuf_stat.size;
 
 	mutex_exit(&srv_innodb_monitor_mutex);
 

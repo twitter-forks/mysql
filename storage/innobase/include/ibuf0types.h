@@ -27,5 +27,6 @@ Created 7/29/1997 Heikki Tuuri
 #define ibuf0types_h
 
 typedef	struct ibuf_struct	ibuf_t;
+typedef	struct ibuf_stat_struct	ibuf_stat_t;
 
 #endif

@@ -79,16 +79,7 @@ struct ibuf_struct{
 	ulint		free_list_len;	/*!< length of the free list */
 	ulint		height;		/*!< tree height */
 	dict_index_t*	index;		/*!< insert buffer index */
-
-	ulint		n_merges;	/*!< number of pages merged */
-	ulint		n_merged_ops[IBUF_OP_COUNT];
-					/*!< number of operations of each type
-					merged to index pages */
-	ulint		n_discarded_ops[IBUF_OP_COUNT];
-					/*!< number of operations of each type
-					discarded without merging due to the
-					tablespace being deleted or the
-					index being dropped */
+	ibuf_stat_t	stat;		/*!< insert buffer statistics */
 };
 
 /************************************************************************//**
