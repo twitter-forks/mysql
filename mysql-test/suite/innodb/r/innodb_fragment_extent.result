@@ -4,8 +4,10 @@
 
 # Setup.
 SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET @old_innodb_max_dirty_pages_pct = @@GLOBAL.innodb_max_dirty_pages_pct;
 SET @old_innodb_lease_fragment_extents = @@GLOBAL.innodb_lease_fragment_extents;
 SET GLOBAL innodb_file_per_table = ON;
+SET GLOBAL innodb_max_dirty_pages_pct = 0;
 SET GLOBAL innodb_lease_fragment_extents = ON;
 CREATE VIEW buffer_pool AS
 SELECT CONVERT(VARIABLE_VALUE, UNSIGNED) AS PAGES_DIRTY FROM
@@ -57,4 +59,5 @@ DROP TABLE t1;
 DROP PROCEDURE p1;
 DROP VIEW buffer_pool;
 SET @@GLOBAL.innodb_file_per_table = @old_innodb_file_per_table;
+SET @@GLOBAL.innodb_max_dirty_pages_pct = @old_innodb_max_dirty_pages_pct;
 SET @@GLOBAL.innodb_lease_fragment_extents = @old_innodb_lease_fragment_extents;

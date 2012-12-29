@@ -802,6 +802,10 @@ static SHOW_VAR innodb_status_variables[]= {
   (char*) &export_vars.innodb_pages_read,		  SHOW_LONG},
   {"pages_written",
   (char*) &export_vars.innodb_pages_written,		  SHOW_LONG},
+  {"purge_trx_no",
+  (char*) &export_vars.innodb_purge_trx_no,		  SHOW_LONGLONG},
+  {"purge_undo_no",
+  (char*) &export_vars.innodb_purge_undo_no,		  SHOW_LONGLONG},
   {"row_lock_current_waits",
   (char*) &export_vars.innodb_row_lock_current_waits,	  SHOW_LONG},
   {"row_lock_time",
@@ -828,6 +832,8 @@ static SHOW_VAR innodb_status_variables[]= {
   (char*) &export_vars.innodb_tablespace_files_closed,	  SHOW_LONG},
   {"truncated_status_writes",
   (char*) &export_vars.innodb_truncated_status_writes,	SHOW_LONG},
+  {"trx_max_id",
+  (char*) &export_vars.innodb_trx_max_id,		  SHOW_LONGLONG},
   {NullS, NullS, SHOW_LONG}
 };
 

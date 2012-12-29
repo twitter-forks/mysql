@@ -847,6 +847,9 @@ struct export_var_struct{
 	ulint innodb_btree_page_reorganize;	/*!< btr_n_page_reorganize */
 	ulint innodb_btree_page_split;		/*!< btr_n_page_split */
 	ulint innodb_btree_page_merge;		/*!< btr_n_page_merge */
+	ib_uint64_t innodb_trx_max_id;		/*!< trx_sys->max_trx_id */
+	ib_uint64_t innodb_purge_trx_no;	/*!< purge_sys->purge_trx_no */
+	ib_uint64_t innodb_purge_undo_no;	/*!< purge_sys->purge_undo_no */
 	ib_int64_t innodb_mysql_master_log_pos;	/*!< Master binlog file position. */
 	char innodb_mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN + 1];
 						/*!< Master binlog file name. */

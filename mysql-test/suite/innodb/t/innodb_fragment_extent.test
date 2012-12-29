@@ -8,11 +8,13 @@
 
 --echo # Setup.
 SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET @old_innodb_max_dirty_pages_pct = @@GLOBAL.innodb_max_dirty_pages_pct;
 SET @old_innodb_lease_fragment_extents = @@GLOBAL.innodb_lease_fragment_extents;
 
 let $MYSQLD_DATADIR= `select @@datadir`;
 
 SET GLOBAL innodb_file_per_table = ON;
+SET GLOBAL innodb_max_dirty_pages_pct = 0;
 SET GLOBAL innodb_lease_fragment_extents = ON;
 
 CREATE VIEW buffer_pool AS
@@ -55,6 +57,13 @@ let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 --echo # Delete rows so that the fragment extent becomes unused.
 DELETE FROM t1 WHERE a >= 114400;
 
+# Wait for records to be purged.
+let $wait_condition = SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
+  WHERE VARIABLE_NAME = 'INNODB_PURGE_TRX_NO' AND VARIABLE_VALUE = (SELECT
+  VARIABLE_VALUE FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE VARIABLE_NAME
+  = 'INNODB_TRX_MAX_ID');
+--source include/wait_condition.inc
+
 # Wait for dirty pages to be flushed to disk.
 let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 --source include/wait_condition.inc
@@ -78,4 +87,5 @@ DROP PROCEDURE p1;
 DROP VIEW buffer_pool;
 
 SET @@GLOBAL.innodb_file_per_table = @old_innodb_file_per_table;
+SET @@GLOBAL.innodb_max_dirty_pages_pct = @old_innodb_max_dirty_pages_pct;
 SET @@GLOBAL.innodb_lease_fragment_extents = @old_innodb_lease_fragment_extents;

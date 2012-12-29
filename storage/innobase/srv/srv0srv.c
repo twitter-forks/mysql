@@ -2218,6 +2218,10 @@ srv_export_innodb_status(void)
 	export_vars.innodb_btree_page_split = btr_n_page_split;
 	export_vars.innodb_btree_page_merge = btr_n_page_merge;
 
+	export_vars.innodb_trx_max_id = trx_sys->max_trx_id;
+	export_vars.innodb_purge_trx_no = purge_sys->purge_trx_no;
+	export_vars.innodb_purge_undo_no = purge_sys->purge_undo_no;
+
 	export_vars.innodb_ibuf_discarded_delete_marks =
 		ibuf_stat.n_discarded_ops[IBUF_OP_DELETE_MARK];
 	export_vars.innodb_ibuf_discarded_deletes =
@@ -2234,7 +2238,6 @@ srv_export_innodb_status(void)
 	export_vars.innodb_ibuf_pages = ibuf_stat.size;
 
 	mutex_exit(&srv_innodb_monitor_mutex);
-
 }
 
 /*********************************************************************//**
