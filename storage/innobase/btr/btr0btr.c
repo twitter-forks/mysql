@@ -50,6 +50,10 @@ UNIV_INTERN ulint	btr_n_page_reorganize	= 0;
 UNIV_INTERN ulint	btr_n_page_split	= 0;
 /** Number of page merge operations. */
 UNIV_INTERN ulint	btr_n_page_merge	= 0;
+/** Number of successful page merge operations. */
+UNIV_INTERN ulint	btr_n_page_merge_succ	= 0;
+/** Number of page discard operations. */
+UNIV_INTERN ulint	btr_n_page_discard	= 0;
 
 /**************************************************************//**
 Report that an index page is corrupted. */
@@ -3567,6 +3571,8 @@ func_exit:
 			merge_block, cursor);
 	}
 
+	btr_n_page_merge_succ++;
+
 	return(TRUE);
 }
 
@@ -3665,6 +3671,8 @@ btr_discard_page(
 	buf_block_t*	block;
 	page_t*		page;
 	rec_t*		node_ptr;
+
+	btr_n_page_discard++;
 
 	block = btr_cur_get_block(cursor);
 	index = btr_cur_get_index(cursor);

@@ -694,6 +694,10 @@ extern ulint	btr_n_page_reorganize;
 extern ulint	btr_n_page_split;
 /** Number of page merge operations. */
 extern ulint	btr_n_page_merge;
+/** Number of successful page merge operations. */
+extern ulint	btr_n_page_merge_succ;
+/** Number of page discard operations. */
+extern ulint	btr_n_page_discard;
 
 #endif /* !UNIV_HOTBACKUP */
 

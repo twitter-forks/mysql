@@ -143,6 +143,8 @@ INSERT INTO t1 VALUES(3, REPEAT('b', 2048), REPEAT('c', 2048));
 INSERT INTO t1 VALUES(4, REPEAT('b', 2048), REPEAT('c', 2048));
 SELECT VARIABLE_VALUE INTO @page_merges_1 FROM gsv WHERE
 VARIABLE_NAME = 'INNODB_PAGE_MERGES';
+SELECT VARIABLE_VALUE INTO @page_merges_succ_1 FROM gsv WHERE
+VARIABLE_NAME = 'INNODB_PAGE_MERGES_SUCCEEDED';
 SELECT VARIABLE_VALUE INTO @page_reorganizes_1 FROM gsv WHERE
 VARIABLE_NAME = 'INNODB_PAGE_REORGANIZES';
 #
@@ -154,6 +156,8 @@ UPDATE t1 SET b = 'b', c = 'c' WHERE a = 3;
 UPDATE t1 SET b = 'b', c = 'c' WHERE a = 4;
 SELECT VARIABLE_VALUE INTO @page_merges_2 FROM gsv WHERE
 VARIABLE_NAME = 'INNODB_PAGE_MERGES';
+SELECT VARIABLE_VALUE INTO @page_merges_succ_2 FROM gsv WHERE
+VARIABLE_NAME = 'INNODB_PAGE_MERGES_SUCCEEDED';
 SELECT VARIABLE_VALUE INTO @page_reorganizes_2 FROM gsv WHERE
 VARIABLE_NAME = 'INNODB_PAGE_REORGANIZES';
 SELECT VARIABLE_VALUE INTO @page_splits_2 FROM gsv WHERE
@@ -164,6 +168,9 @@ VARIABLE_NAME = 'INNODB_PAGE_SPLITS';
 #
 SELECT (@page_merges_2 - @page_merges_1) AS 'INNODB_PAGE_MERGES';
 INNODB_PAGE_MERGES
+1
+SELECT (@page_merges_succ_2 - @page_merges_succ_1) AS 'INNODB_PAGE_MERGES_SUCCEEDED';
+INNODB_PAGE_MERGES_SUCCEEDED
 1
 SELECT (@page_reorganizes_2 - @page_reorganizes_1) AS 'INNODB_PAGE_REORGANIZES';
 INNODB_PAGE_REORGANIZES
@@ -212,6 +219,25 @@ ROLLBACK;
 # Wait for status values to be updated.
 DROP TABLE t1;
 SET GLOBAL innodb_change_buffering_debug = @old_innodb_change_buffering_debug;
+#
+# Add counters for page_merges_succeeded and page_discards
+#
+CREATE TABLE t1 (a BIGINT AUTO_INCREMENT PRIMARY KEY, b VARCHAR(2048),
+c VARCHAR(2048)) ENGINE=InnoDB;
+# Populate table with a few pages worth of data.
+INSERT INTO t1 VALUES(1, REPEAT('b', 2048), REPEAT('c', 2048));
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+# Collect status values for later comparison.
+SELECT VARIABLE_VALUE INTO @page_discard FROM gsv WHERE
+VARIABLE_NAME = 'INNODB_PAGE_DISCARD';
+# Delete all records from the right-most page.
+DELETE FROM t1 WHERE a > 17 ORDER BY a;
+# Wait for records to be purged.
+# Wait for the page_discard status value to be updated.
+DROP TABLE t1;
 #
 # Cleanup
 #

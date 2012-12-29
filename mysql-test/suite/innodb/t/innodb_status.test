@@ -195,6 +195,9 @@ INSERT INTO t1 VALUES(4, REPEAT('b', 2048), REPEAT('c', 2048));
 SELECT VARIABLE_VALUE INTO @page_merges_1 FROM gsv WHERE
   VARIABLE_NAME = 'INNODB_PAGE_MERGES';
 
+SELECT VARIABLE_VALUE INTO @page_merges_succ_1 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_MERGES_SUCCEEDED';
+
 SELECT VARIABLE_VALUE INTO @page_reorganizes_1 FROM gsv WHERE
   VARIABLE_NAME = 'INNODB_PAGE_REORGANIZES';
 
@@ -209,6 +212,8 @@ UPDATE t1 SET b = 'b', c = 'c' WHERE a = 4;
 
 SELECT VARIABLE_VALUE INTO @page_merges_2 FROM gsv WHERE
   VARIABLE_NAME = 'INNODB_PAGE_MERGES';
+SELECT VARIABLE_VALUE INTO @page_merges_succ_2 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_MERGES_SUCCEEDED';
 SELECT VARIABLE_VALUE INTO @page_reorganizes_2 FROM gsv WHERE
   VARIABLE_NAME = 'INNODB_PAGE_REORGANIZES';
 SELECT VARIABLE_VALUE INTO @page_splits_2 FROM gsv WHERE
@@ -220,6 +225,7 @@ SELECT VARIABLE_VALUE INTO @page_splits_2 FROM gsv WHERE
 --echo #
 
 SELECT (@page_merges_2 - @page_merges_1) AS 'INNODB_PAGE_MERGES';
+SELECT (@page_merges_succ_2 - @page_merges_succ_1) AS 'INNODB_PAGE_MERGES_SUCCEEDED';
 SELECT (@page_reorganizes_2 - @page_reorganizes_1) AS 'INNODB_PAGE_REORGANIZES';
 SELECT (@page_splits_2 - @page_splits_1) AS 'INNODB_PAGE_SPLITS';
 
@@ -286,6 +292,42 @@ let $wait_condition=
 DROP TABLE t1;
 
 SET GLOBAL innodb_change_buffering_debug = @old_innodb_change_buffering_debug;
+
+--echo #
+--echo # Add counters for page_merges_succeeded and page_discards
+--echo #
+
+CREATE TABLE t1 (a BIGINT AUTO_INCREMENT PRIMARY KEY, b VARCHAR(2048),
+  c VARCHAR(2048)) ENGINE=InnoDB;
+
+--echo # Populate table with a few pages worth of data.
+INSERT INTO t1 VALUES(1, REPEAT('b', 2048), REPEAT('c', 2048));
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+
+--echo # Collect status values for later comparison.
+SELECT VARIABLE_VALUE INTO @page_discard FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_DISCARD';
+
+--echo # Delete all records from the right-most page.
+DELETE FROM t1 WHERE a > 17 ORDER BY a;
+
+--echo # Wait for records to be purged.
+let $wait_condition = SELECT COUNT(*) = 1 FROM gsv WHERE VARIABLE_NAME =
+  'INNODB_PURGE_TRX_NO' AND VARIABLE_VALUE = (SELECT VARIABLE_VALUE FROM
+  gsv WHERE VARIABLE_NAME = 'INNODB_TRX_MAX_ID');
+--source include/wait_condition.inc
+
+--echo # Wait for the page_discard status value to be updated.
+let $wait_condition=
+  SELECT COUNT(*) > 0 FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_PAGE_DISCARD' AND
+  VARIABLE_VALUE > @page_discard;
+--source include/wait_condition.inc
+
+DROP TABLE t1;
 
 --echo #
 --echo # Cleanup

@@ -2217,6 +2217,8 @@ srv_export_innodb_status(void)
 	export_vars.innodb_btree_page_reorganize = btr_n_page_reorganize;
 	export_vars.innodb_btree_page_split = btr_n_page_split;
 	export_vars.innodb_btree_page_merge = btr_n_page_merge;
+	export_vars.innodb_btree_page_merge_succ = btr_n_page_merge_succ;
+	export_vars.innodb_btree_page_discard = btr_n_page_discard;
 
 	export_vars.innodb_trx_max_id = trx_sys->max_trx_id;
 	export_vars.innodb_purge_trx_no = purge_sys->purge_trx_no;
