@@ -2752,7 +2752,7 @@ fseg_alloc_free_page_low(
 	ib_id_t		seg_id;
 	ulint		used;
 	ulint		reserved;
-	ulint		fill_factor;
+	double		fill_factor;
 	xdes_t*		descr;		/*!< extent of the hinted page */
 	ulint		ret_page;	/*!< the allocated page offset, FIL_NULL
 					if could not be allocated */
@@ -2788,7 +2788,7 @@ fseg_alloc_free_page_low(
 	FSEG_FRAG_LIMIT used pages, then we allow a new empty extent to
 	be added to the segment. Otherwise, we use unused pages of the
 	segment. */
-	fill_factor = reserved ? (used * 100) / reserved : 0UL;
+	fill_factor = reserved ? (used * 100.0) / reserved : 0.0;
 
 	/* In the big if-else below we look for ret_page and ret_descr */
 	/*-------------------------------------------------------------*/

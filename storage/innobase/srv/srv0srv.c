@@ -172,11 +172,11 @@ UNIV_INTERN ulint*	srv_data_file_is_raw_partition = NULL;
 
 /* Minimum percentage of pages in a segment to be used before a new
 extent is added to a segment. */
-UNIV_INTERN ulong	srv_segment_fill_factor = 88;
+UNIV_INTERN double	srv_segment_fill_factor = 87.50;
 
 /* Target percentage for how much to fill leaf pages, reserving the
 remaining space for record growth (e.g. updates). */
-UNIV_INTERN uint	srv_index_fill_factor = 94;
+UNIV_INTERN double	srv_index_fill_factor = 93.75;
 
 /* Allocate a free fragment to a segment before taking an extent
 from the segment/space free list. */

@@ -12038,21 +12038,21 @@ static MYSQL_SYSVAR_BOOL(anticipatory_flushing, srv_anticipatory_flushing,
   "bandwidth is available for background tasks (see innodb_io_capacity).",
   NULL, NULL, TRUE);
 
-static MYSQL_SYSVAR_ULONG(segment_fill_factor, srv_segment_fill_factor,
-  PLUGIN_VAR_NOCMDARG,
+static MYSQL_SYSVAR_DOUBLE(segment_fill_factor, srv_segment_fill_factor,
+  PLUGIN_VAR_RQCMDARG,
   "The percentage of space on a segment to be used, reserving the remainder "
   "as free space for future data growth. When the percentage of used space "
   "in a segment is greater than the fill factor, InnoDB allocates a new "
   "extent for the segment.",
-  NULL, NULL, 88, 0, 100, 0);
+  NULL, NULL, 87.50, 0.0, 100.0, 0);
 
-static MYSQL_SYSVAR_UINT(index_fill_factor, srv_index_fill_factor,
-  PLUGIN_VAR_NOCMDARG,
+static MYSQL_SYSVAR_DOUBLE(index_fill_factor, srv_index_fill_factor,
+  PLUGIN_VAR_RQCMDARG,
   "The percentage of how much to fill a leaf page when inserting data, "
   "the remaining space being reserved to accommodate row expansion (e.g. "
   "update). InnoDB might perform page splits to maintain the percentage "
   "of free space. Only applies to clustered indexes.",
-  NULL, NULL, 94, 0, 100, 0);
+  NULL, NULL, 93.75, 0.0, 100.0, 0);
 
 static MYSQL_SYSVAR_BOOL(lease_fragment_extents, srv_lease_fragment_extents,
   PLUGIN_VAR_NOCMDARG,

@@ -132,8 +132,8 @@ extern char**	srv_log_group_home_dirs;
 #ifndef UNIV_HOTBACKUP
 extern ulong	srv_auto_extend_increment;
 
-extern ulong	srv_segment_fill_factor;
-extern uint	srv_index_fill_factor;
+extern double	srv_segment_fill_factor;
+extern double	srv_index_fill_factor;
 extern my_bool	srv_lease_fragment_extents;
 
 extern ibool	srv_created_new_raw;

@@ -17,7 +17,16 @@ SET GLOBAL innodb_segment_fill_factor = 0;
 SELECT @@global.innodb_segment_fill_factor;
 
 --echo # Min/Max
+SET @@global.innodb_segment_fill_factor = -1;
+SELECT @@global.innodb_segment_fill_factor;
+
+SET @@global.innodb_segment_fill_factor = -0.01;
+SELECT @@global.innodb_segment_fill_factor;
+
 SET @@global.innodb_segment_fill_factor = 0;
+SELECT @@global.innodb_segment_fill_factor;
+
+SET @@global.innodb_segment_fill_factor = 0.1;
 SELECT @@global.innodb_segment_fill_factor;
 
 SET @@global.innodb_segment_fill_factor = 1;
@@ -26,7 +35,13 @@ SELECT @@global.innodb_segment_fill_factor;
 SET @@global.innodb_segment_fill_factor = 99;
 SELECT @@global.innodb_segment_fill_factor;
 
+SET @@global.innodb_segment_fill_factor = 99.9;
+SELECT @@global.innodb_segment_fill_factor;
+
 SET @@global.innodb_segment_fill_factor = 100;
+SELECT @@global.innodb_segment_fill_factor;
+
+SET @@global.innodb_segment_fill_factor = 100.1;
 SELECT @@global.innodb_segment_fill_factor;
 
 SET @@global.innodb_segment_fill_factor = 101;
