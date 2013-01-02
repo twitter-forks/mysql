@@ -1046,9 +1046,9 @@ static MYSQL_SYSVAR_DOUBLE(
   "0.0..1000.0",
   NULL,
   NULL,
-  8.0,
-  0.0,
-  1000.0,
+  8.5,
+  0.5,
+  1000.5,
   0);
 
 static struct st_mysql_sys_var* example_system_variables[]= {

@@ -16,10 +16,10 @@ set global example_ulong_var=500;
 set global example_enum_var= e1;
 show status like 'example%';
 Variable_name	Value
-example_func_example	enum_var is 0, ulong_var is 500, double_var is 8.000000, really
+example_func_example	enum_var is 0, ulong_var is 500, double_var is 8.500000, really
 show variables like 'example%';
 Variable_name	Value
-example_double_var	8.000000
+example_double_var	8.500000
 example_enum_var	e1
 example_ulong_var	500
 UNINSTALL PLUGIN example;
@@ -69,11 +69,23 @@ Warnings:
 Warning	1292	Truncated incorrect example_double_var value: '-0.1'
 SELECT @@GLOBAL.example_double_var;
 @@GLOBAL.example_double_var
-0.000000
+0.500000
 SET GLOBAL example_double_var = 0.000001;
+Warnings:
+Warning	1292	Truncated incorrect example_double_var value: '0.000001'
 SELECT @@GLOBAL.example_double_var;
 @@GLOBAL.example_double_var
-0.000001
+0.500000
+SET GLOBAL example_double_var = 0.4;
+Warnings:
+Warning	1292	Truncated incorrect example_double_var value: '0.4'
+SELECT @@GLOBAL.example_double_var;
+@@GLOBAL.example_double_var
+0.500000
+SET GLOBAL example_double_var = 0.5;
+SELECT @@GLOBAL.example_double_var;
+@@GLOBAL.example_double_var
+0.500000
 SET GLOBAL example_double_var = 123.456789;
 SELECT @@GLOBAL.example_double_var;
 @@GLOBAL.example_double_var
@@ -87,9 +99,13 @@ SELECT @@GLOBAL.example_double_var;
 @@GLOBAL.example_double_var
 999.999999
 SET GLOBAL example_double_var = 1000.1;
-Warnings:
-Warning	1292	Truncated incorrect example_double_var value: '1000.1'
 SELECT @@GLOBAL.example_double_var;
 @@GLOBAL.example_double_var
-1000.000000
+1000.100000
+SET GLOBAL example_double_var = 1000.51;
+Warnings:
+Warning	1292	Truncated incorrect example_double_var value: '1000.51'
+SELECT @@GLOBAL.example_double_var;
+@@GLOBAL.example_double_var
+1000.500000
 UNINSTALL PLUGIN example;

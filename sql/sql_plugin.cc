@@ -3135,6 +3135,14 @@ bool sys_var_pluginvar::global_update(THD *thd, set_var *var)
   options->block_size= (long) (opt)->blk_sz
 
 
+#define OPTION_SET_LIMITS_DOUBLE(options, opt) \
+  options->var_type= GET_DOUBLE; \
+  options->def_value= (longlong) getopt_double2ulonglong((opt)->def_val); \
+  options->min_value= (longlong) getopt_double2ulonglong((opt)->min_val); \
+  options->max_value= getopt_double2ulonglong((opt)->max_val); \
+  options->block_size= (long) (opt)->blk_sz
+
+
 static void plugin_opt_set_limits(struct my_option *options,
                                   const struct st_mysql_sys_var *opt)
 {
@@ -3162,7 +3170,7 @@ static void plugin_opt_set_limits(struct my_option *options,
     OPTION_SET_LIMITS(GET_ULL, options, (sysvar_ulonglong_t*) opt);
     break;
   case PLUGIN_VAR_DOUBLE:
-    OPTION_SET_LIMITS(GET_DOUBLE, options, (sysvar_double_t*) opt);
+    OPTION_SET_LIMITS_DOUBLE(options, (sysvar_double_t*) opt);
     break;
   case PLUGIN_VAR_ENUM:
     options->var_type= GET_ENUM;
@@ -3207,7 +3215,7 @@ static void plugin_opt_set_limits(struct my_option *options,
     OPTION_SET_LIMITS(GET_ULL, options, (thdvar_ulonglong_t*) opt);
     break;
   case PLUGIN_VAR_DOUBLE | PLUGIN_VAR_THDLOCAL:
-    OPTION_SET_LIMITS(GET_DOUBLE, options, (thdvar_double_t*) opt);
+    OPTION_SET_LIMITS_DOUBLE(options, (thdvar_double_t*) opt);
     break;
   case PLUGIN_VAR_ENUM | PLUGIN_VAR_THDLOCAL:
     options->var_type= GET_ENUM;

@@ -91,6 +91,12 @@ SELECT @@GLOBAL.example_double_var;
 SET GLOBAL example_double_var = 0.000001;
 SELECT @@GLOBAL.example_double_var;
 
+SET GLOBAL example_double_var = 0.4;
+SELECT @@GLOBAL.example_double_var;
+
+SET GLOBAL example_double_var = 0.5;
+SELECT @@GLOBAL.example_double_var;
+
 SET GLOBAL example_double_var = 123.456789;
 SELECT @@GLOBAL.example_double_var;
 
@@ -101,6 +107,9 @@ SET GLOBAL example_double_var = 999.999999;
 SELECT @@GLOBAL.example_double_var;
 
 SET GLOBAL example_double_var = 1000.1;
+SELECT @@GLOBAL.example_double_var;
+
+SET GLOBAL example_double_var = 1000.51;
 SELECT @@GLOBAL.example_double_var;
 
 UNINSTALL PLUGIN example;
