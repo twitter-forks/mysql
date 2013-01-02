@@ -84,4 +84,23 @@ set session sql_mode=@old_sql_mode;
 --error ER_INCORRECT_GLOBAL_LOCAL_VAR
 set session old=bla;
 
+--echo # Floating-point plugin system variables.
+SET GLOBAL example_double_var = -0.1;
+SELECT @@GLOBAL.example_double_var;
+
+SET GLOBAL example_double_var = 0.000001;
+SELECT @@GLOBAL.example_double_var;
+
+SET GLOBAL example_double_var = 123.456789;
+SELECT @@GLOBAL.example_double_var;
+
+SET GLOBAL example_double_var = 500;
+SELECT @@GLOBAL.example_double_var;
+
+SET GLOBAL example_double_var = 999.999999;
+SELECT @@GLOBAL.example_double_var;
+
+SET GLOBAL example_double_var = 1000.1;
+SELECT @@GLOBAL.example_double_var;
+
 UNINSTALL PLUGIN example;

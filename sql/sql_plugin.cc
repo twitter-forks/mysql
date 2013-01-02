@@ -2066,6 +2066,8 @@ typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_uint_t, uint);
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_ulong_t, ulong);
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_ulonglong_t, ulonglong);
 
+typedef DECLARE_MYSQL_SYSVAR_SIMPLE(sysvar_double_t, double);
+typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_double_t, double);
 
 /****************************************************************************
   default variable data check and update functions
@@ -2186,6 +2188,22 @@ static int check_func_longlong(THD *thd, struct st_mysql_sys_var *var,
   return throw_bounds_warning(thd, var->name, fixed1 || fixed2,
                               value->is_unsigned(value), (longlong) orig);
 }
+
+
+static int check_func_double(THD *thd, struct st_mysql_sys_var *var,
+                             void *save, st_mysql_value *value)
+{
+  double v;
+  my_bool fixed;
+  struct my_option option;
+
+  value->val_real(value, &v);
+  plugin_opt_set_limits(&option, var);
+  *(double *) save= getopt_double_limit_value(v, &option, &fixed);
+
+  return throw_bounds_warning(thd, var->name, fixed, v);
+}
+
 
 static int check_func_str(THD *thd, struct st_mysql_sys_var *var,
                           void *save, st_mysql_value *value)
@@ -2316,6 +2334,13 @@ static void update_func_str(THD *thd, struct st_mysql_sys_var *var,
 }
 
 
+static void update_func_double(THD *thd, struct st_mysql_sys_var *var,
+                               void *tgt, const void *save)
+{
+  *(double *) tgt= *(double *) save;
+}
+
+
 /****************************************************************************
   System Variables support
 ****************************************************************************/
@@ -2428,6 +2453,9 @@ static st_bookmark *register_var(const char *plugin, const char *name,
     break;
   case PLUGIN_VAR_STR:
     size= sizeof(char*);
+    break;
+  case PLUGIN_VAR_DOUBLE:
+    size= sizeof(double);
     break;
   default:
     DBUG_ASSERT(0);
@@ -2640,6 +2668,11 @@ static char **mysql_sys_var_str(THD* thd, int offset)
   return (char **) intern_sys_var_ptr(thd, offset, true);
 }
 
+static double *mysql_sys_var_double(THD* thd, int offset)
+{
+  return (double *) intern_sys_var_ptr(thd, offset, true);
+}
+
 void plugin_thdvar_init(THD *thd)
 {
   plugin_ref old_table_plugin= thd->variables.table_plugin;
@@ -2772,6 +2805,8 @@ static SHOW_TYPE pluginvar_show_type(st_mysql_sys_var *plugin_var)
   case PLUGIN_VAR_ENUM:
   case PLUGIN_VAR_SET:
     return SHOW_CHAR;
+  case PLUGIN_VAR_DOUBLE:
+    return SHOW_DOUBLE;
   default:
     DBUG_ASSERT(0);
     return SHOW_UNDEF;
@@ -2922,6 +2957,8 @@ bool sys_var_pluginvar::check_update_type(Item_result type)
   case PLUGIN_VAR_BOOL:
   case PLUGIN_VAR_SET:
     return type != STRING_RESULT && type != INT_RESULT;
+  case PLUGIN_VAR_DOUBLE:
+    return type != INT_RESULT && type != REAL_RESULT && type != DECIMAL_RESULT;
   default:
     return true;
   }
@@ -3047,6 +3084,9 @@ bool sys_var_pluginvar::global_update(THD *thd, set_var *var)
     case PLUGIN_VAR_STR:
       src= &((sysvar_str_t*) plugin_var)->def_val;
       break;
+    case PLUGIN_VAR_DOUBLE:
+      src= &((sysvar_double_t*) plugin_var)->def_val;
+      break;
     case PLUGIN_VAR_INT | PLUGIN_VAR_THDLOCAL:
       src= &((thdvar_uint_t*) plugin_var)->def_val;
       break;
@@ -3067,6 +3107,9 @@ bool sys_var_pluginvar::global_update(THD *thd, set_var *var)
       break;
     case PLUGIN_VAR_STR | PLUGIN_VAR_THDLOCAL:
       src= &((thdvar_str_t*) plugin_var)->def_val;
+      break;
+    case PLUGIN_VAR_DOUBLE | PLUGIN_VAR_THDLOCAL:
+      src= &((thdvar_double_t*) plugin_var)->def_val;
       break;
     default:
       DBUG_ASSERT(0);
@@ -3118,6 +3161,9 @@ static void plugin_opt_set_limits(struct my_option *options,
   case PLUGIN_VAR_LONGLONG | PLUGIN_VAR_UNSIGNED:
     OPTION_SET_LIMITS(GET_ULL, options, (sysvar_ulonglong_t*) opt);
     break;
+  case PLUGIN_VAR_DOUBLE:
+    OPTION_SET_LIMITS(GET_DOUBLE, options, (sysvar_double_t*) opt);
+    break;
   case PLUGIN_VAR_ENUM:
     options->var_type= GET_ENUM;
     options->typelib= ((sysvar_enum_t*) opt)->typelib;
@@ -3159,6 +3205,9 @@ static void plugin_opt_set_limits(struct my_option *options,
     break;
   case PLUGIN_VAR_LONGLONG | PLUGIN_VAR_UNSIGNED | PLUGIN_VAR_THDLOCAL:
     OPTION_SET_LIMITS(GET_ULL, options, (thdvar_ulonglong_t*) opt);
+    break;
+  case PLUGIN_VAR_DOUBLE | PLUGIN_VAR_THDLOCAL:
+    OPTION_SET_LIMITS(GET_DOUBLE, options, (thdvar_double_t*) opt);
     break;
   case PLUGIN_VAR_ENUM | PLUGIN_VAR_THDLOCAL:
     options->var_type= GET_ENUM;
@@ -3322,6 +3371,9 @@ static int construct_options(MEM_ROOT *mem_root, struct st_plugin_int *tmp,
     case PLUGIN_VAR_SET:
       ((thdvar_set_t *) opt)->resolve= mysql_sys_var_ulonglong;
       break;
+    case PLUGIN_VAR_DOUBLE:
+      ((thdvar_double_t *) opt)->resolve= mysql_sys_var_double;
+      break;
     default:
       sql_print_error("Unknown variable type code 0x%x in plugin '%s'.",
                       opt->flags, plugin_name);
@@ -3384,6 +3436,12 @@ static int construct_options(MEM_ROOT *mem_root, struct st_plugin_int *tmp,
         opt->check= check_func_set;
       if (!opt->update)
         opt->update= update_func_longlong;
+      break;
+    case PLUGIN_VAR_DOUBLE:
+      if (!opt->check)
+        opt->check= check_func_double;
+      if (!opt->update)
+        opt->update= update_func_double;
       break;
     default:
       sql_print_error("Unknown variable type code 0x%x in plugin '%s'.",
