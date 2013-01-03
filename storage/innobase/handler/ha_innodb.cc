@@ -12059,6 +12059,19 @@ static MYSQL_SYSVAR_BOOL(lease_fragment_extents, srv_lease_fragment_extents,
   "If a free fragment extent is available, allow it to be allocated to "
   "a segment.", NULL, NULL, FALSE);
 
+static MYSQL_SYSVAR_BOOL(reserve_free_extents, srv_reserve_free_extents,
+  PLUGIN_VAR_NOCMDARG,
+  "Whether to reserve a certain percentage of a space size as free space "
+  "for operations that might allocate several pages.",
+  NULL, NULL, TRUE);
+
+static MYSQL_SYSVAR_DOUBLE(free_extents_reservation_factor,
+  srv_free_extents_rsvn_factor, PLUGIN_VAR_RQCMDARG,
+  "Percentage of a space size to reserve for operations that may cause more "
+  "space to be used. If the resulting amount of free space (in extents) is "
+  "not available, the operation is not allowed to proceed.",
+  NULL, NULL, 1.0, 0.0, 100.0, 0);
+
 static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(additional_mem_pool_size),
   MYSQL_SYSVAR(autoextend_increment),
@@ -12139,6 +12152,8 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(index_fill_factor),
   MYSQL_SYSVAR(index_page_split_mode),
   MYSQL_SYSVAR(lease_fragment_extents),
+  MYSQL_SYSVAR(reserve_free_extents),
+  MYSQL_SYSVAR(free_extents_reservation_factor),
   NULL
 };
 

@@ -469,7 +469,10 @@ trx_undo_seg_create(
 				    TRX_UNDO_SEG_HDR
 				    + TRX_UNDO_FSEG_HEADER, TRUE, mtr);
 
-	fil_space_release_free_extents(space, n_reserved);
+	if (n_reserved) {
+
+		fil_space_release_free_extents(space, n_reserved);
+	}
 
 	if (block == NULL) {
 		/* No space left */
@@ -918,7 +921,10 @@ trx_undo_add_page(
 		+ header_page,
 		undo->top_page_no + 1, FSP_UP, TRUE, mtr, mtr);
 
-	fil_space_release_free_extents(undo->space, n_reserved);
+	if (n_reserved) {
+
+		fil_space_release_free_extents(undo->space, n_reserved);
+	}
 
 	if (new_block == NULL) {
 

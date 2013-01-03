@@ -1,0 +1,45 @@
+--source include/have_innodb.inc
+
+--echo #
+--echo # Test that free extents reservation can be disabled.
+--echo #
+
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET @old_innodb_reserve_free_extents = @@GLOBAL.innodb_reserve_free_extents;
+
+SET GLOBAL innodb_file_per_table = ON;
+SET GLOBAL innodb_reserve_free_extents = TRUE;
+
+--echo # Create and populate a table so that new extents are allocated.
+CREATE TABLE t1 (a BIGINT AUTO_INCREMENT PRIMARY KEY, b VARCHAR(512),
+  c VARCHAR(512)) ENGINE=InnoDB;
+
+INSERT INTO t1 VALUES (0, REPEAT('a', 512), REPEAT('b', 512));
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+INSERT INTO t1 SELECT 0,b,c FROM t1;
+
+--echo # Show the number of free extents.
+SELECT (DATA_FREE / 1048576) AS FREE_EXTENTS
+  FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'test' AND TABLE_NAME = 't1';
+
+--echo # Disable free extents reservation and rebuild the table.
+SET GLOBAL innodb_reserve_free_extents = OFF;
+ALTER TABLE t1 ENGINE=InnoDB;
+
+--echo # Show the number of free extents.
+SELECT (DATA_FREE / 1048576) AS FREE_EXTENTS
+  FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'test' AND TABLE_NAME = 't1';
+
+DROP TABLE t1;
+
+SET @@GLOBAL.innodb_file_per_table = @old_innodb_file_per_table;
+SET @@GLOBAL.innodb_reserve_free_extents = @old_innodb_reserve_free_extents;

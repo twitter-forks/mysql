@@ -182,6 +182,16 @@ UNIV_INTERN double	srv_index_fill_factor = 93.75;
 from the segment/space free list. */
 UNIV_INTERN my_bool	srv_lease_fragment_extents = FALSE;
 
+/* Whether to reserve a percentage (srv_free_extents_rsvn_factor)
+of a space size as free space for operations that might allocate
+several pages. */
+UNIV_INTERN my_bool	srv_reserve_free_extents = TRUE;
+
+/* Percentage of the space size to reserve for operations that may
+allocate several pages. Used to attempt to ensure page allocations
+won't fail when expanding an index tree (e.g. page split). */
+UNIV_INTERN double	srv_free_extents_rsvn_factor = 1.0;
+
 /* If the following is TRUE we do not allow inserts etc. This protects
 the user from forgetting the 'newraw' keyword to my.cnf */
 

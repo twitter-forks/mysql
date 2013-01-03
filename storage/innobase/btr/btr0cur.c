@@ -1541,7 +1541,7 @@ btr_cur_pessimistic_insert(
 
 		if (big_rec_vec == NULL) {
 
-			if (n_extents > 0) {
+			if (n_extents > 0 && n_reserved > 0) {
 				fil_space_release_free_extents(index->space,
 							       n_reserved);
 			}
@@ -1576,7 +1576,7 @@ btr_cur_pessimistic_insert(
 		lock_update_insert(btr_cur_get_block(cursor), *rec);
 	}
 
-	if (n_extents > 0) {
+	if (n_extents > 0 && n_reserved > 0) {
 		fil_space_release_free_extents(index->space, n_reserved);
 	}
 
@@ -2564,7 +2564,7 @@ return_after_reservations:
 	ut_a(!page_zip || page_zip_validate(page_zip, page));
 #endif /* UNIV_ZIP_DEBUG */
 
-	if (n_extents > 0) {
+	if (n_extents > 0 && n_reserved > 0) {
 		fil_space_release_free_extents(index->space, n_reserved);
 	}
 
@@ -3208,7 +3208,7 @@ return_after_reservations:
 		ret = btr_cur_compress_if_useful(cursor, FALSE, mtr);
 	}
 
-	if (n_extents > 0) {
+	if (n_extents > 0 && n_reserved > 0) {
 		fil_space_release_free_extents(index->space, n_reserved);
 	}
 

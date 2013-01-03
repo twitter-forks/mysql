@@ -2501,7 +2501,7 @@ fseg_create_general(
 	mlog_write_ulint(header + FSEG_HDR_SPACE, space, MLOG_4BYTES, mtr);
 
 funct_exit:
-	if (!has_done_reservation) {
+	if (!has_done_reservation && n_reserved) {
 
 		fil_space_release_free_extents(space, n_reserved);
 	}
@@ -3061,7 +3061,7 @@ fseg_alloc_free_page_general(
 	block = fseg_alloc_free_page_low(space, zip_size,
 					 inode, hint, direction,
 					 mtr, init_mtr);
-	if (!has_done_reservation) {
+	if (!has_done_reservation && n_reserved) {
 		fil_space_release_free_extents(space, n_reserved);
 	}
 
@@ -3107,6 +3107,36 @@ fsp_reserve_free_pages(
 						   space_header, mtr));
 }
 
+/********************************************************************//**
+Gets the number of free extents to be reserved for certain allocations. */
+static
+ulint
+fsp_get_n_reserve_free_extents(
+/*===========================*/
+	ulint	size,		/*!< in: size of the space */
+	ulint	alloc_type)	/*!< in: FSP_NORMAL, FSP_UNDO, or FSP_CLEANING */
+
+{
+	double	n_reserve = size / FSP_EXTENT_SIZE;
+
+	n_reserve *= srv_free_extents_rsvn_factor / 100.0;
+
+	if (alloc_type == FSP_NORMAL) {
+		/* The number of extents to reserve is 2 extents plus the free
+		extents reservation factor (percentage) of the space size. */
+		n_reserve = 2.0 + n_reserve;
+	} else if (alloc_type == FSP_UNDO) {
+		/* Reserve half the amount of disk space that would have
+		been reserved for normal allocations. */
+		n_reserve = 1.0 + (n_reserve / 2.0);
+	} else {
+		ut_a(alloc_type == FSP_CLEANING);
+		n_reserve = 0.0;
+	}
+
+	return(n_reserve);
+}
+
 /**********************************************************************//**
 Reserves free pages from a tablespace. All mini-transactions which may
 use several pages from the tablespace should call this function beforehand
@@ -3132,14 +3162,19 @@ function we would liberally reserve several 64 page extents for every page
 split or merge in a B-tree. But we do not want to waste disk space if the table
 only occupies < 32 pages. That is why we apply different rules in that special
 case, just ensuring that there are 3 free pages available.
+
+If free space reservation is disabled (srv_reserve_free_extents == FALSE), the
+function succeeds but no extents are actually reserved.
+
 @return	TRUE if we were able to make the reservation */
 UNIV_INTERN
 ibool
 fsp_reserve_free_extents(
 /*=====================*/
 	ulint*	n_reserved,/*!< out: number of extents actually reserved; if we
-			return TRUE and the tablespace size is < 64 pages,
-			then this can be 0, otherwise it is n_ext */
+			return TRUE and the tablespace size is < 64 pages or
+			space reservation is disabled, then this can be 0,
+			otherwise it is n_ext */
 	ulint	space,	/*!< in: space id */
 	ulint	n_ext,	/*!< in: number of extents to reserve */
 	ulint	alloc_type,/*!< in: FSP_NORMAL, FSP_UNDO, or FSP_CLEANING */
@@ -3159,6 +3194,12 @@ fsp_reserve_free_extents(
 	ulint		n_pages_added;
 
 	ut_ad(mtr);
+
+	if (!srv_reserve_free_extents) {
+		*n_reserved = 0UL;
+		return(TRUE);
+	}
+
 	*n_reserved = n_ext;
 
 	latch = fil_space_get_latch(space, &flags);
@@ -3203,28 +3244,10 @@ try_again:
 
 	n_free = n_free_list_ext + n_free_up;
 
-	if (alloc_type == FSP_NORMAL) {
-		/* We reserve 1 extent + 0.5 % of the space size to undo logs
-		and 1 extent + 0.5 % to cleaning operations; NOTE: this source
-		code is duplicated in the function below! */
+	reserve = fsp_get_n_reserve_free_extents(size, alloc_type);
 
-		reserve = 2 + ((size / FSP_EXTENT_SIZE) * 2) / 200;
-
-		if (n_free <= reserve + n_ext) {
-
-			goto try_to_extend;
-		}
-	} else if (alloc_type == FSP_UNDO) {
-		/* We reserve 0.5 % of the space size to cleaning operations */
-
-		reserve = 1 + ((size / FSP_EXTENT_SIZE) * 1) / 200;
-
-		if (n_free <= reserve + n_ext) {
-
-			goto try_to_extend;
-		}
-	} else {
-		ut_a(alloc_type == FSP_CLEANING);
+	if (n_free <= reserve + n_ext) {
+		goto try_to_extend;
 	}
 
 	success = fil_space_reserve_free_extents(space, n_free, n_ext);
@@ -3363,11 +3386,8 @@ fsp_get_available_space_in_free_extents(
 
 	n_free = n_free_list_ext + n_free_up;
 
-	/* We reserve 1 extent + 0.5 % of the space size to undo logs
-	and 1 extent + 0.5 % to cleaning operations; NOTE: this source
-	code is duplicated in the function above! */
-
-	reserve = 2 + ((size / FSP_EXTENT_SIZE) * 2) / 200;
+	reserve = srv_reserve_free_extents ?
+			fsp_get_n_reserve_free_extents(size, FSP_NORMAL) : 0;
 
 	if (reserve > n_free) {
 		return(0);

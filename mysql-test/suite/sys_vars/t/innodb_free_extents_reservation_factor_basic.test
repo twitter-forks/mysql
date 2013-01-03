@@ -1,0 +1,84 @@
+--source include/have_innodb.inc
+
+SET @old_innodb_free_extents_reservation_factor = @@global.innodb_free_extents_reservation_factor;
+SELECT @old_innodb_free_extents_reservation_factor;
+
+--echo # Default value
+SET @@global.innodb_free_extents_reservation_factor = 0;
+SET @@global.innodb_free_extents_reservation_factor = DEFAULT;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--echo # Scope
+--error ER_GLOBAL_VARIABLE
+SET innodb_free_extents_reservation_factor = 1;
+SELECT @@innodb_free_extents_reservation_factor;
+
+SET GLOBAL innodb_free_extents_reservation_factor = 0;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--echo # Min/Max
+SET @@global.innodb_free_extents_reservation_factor = -1;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = -0.01;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 0.0;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 0.001;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 0.005;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 0.01;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 99;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 99.9;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 100;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 100.1;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 101;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--echo # Invalid value
+SET @@global.innodb_free_extents_reservation_factor = -1;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@global.innodb_free_extents_reservation_factor = "T";
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@global.innodb_free_extents_reservation_factor = "Y";
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = 1001;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@global.innodb_free_extents_reservation_factor = OFF;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@global.innodb_free_extents_reservation_factor = ON;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = TRUE;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+SET @@global.innodb_free_extents_reservation_factor = FALSE;
+SELECT @@global.innodb_free_extents_reservation_factor;
+
+--echo # Reset
+SET @@global.innodb_free_extents_reservation_factor = @old_innodb_free_extents_reservation_factor;
+SELECT @@global.innodb_free_extents_reservation_factor;

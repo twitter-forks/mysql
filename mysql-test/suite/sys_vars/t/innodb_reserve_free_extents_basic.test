@@ -1,0 +1,65 @@
+--source include/have_innodb.inc
+
+SET @start_global_value = @@global.innodb_reserve_free_extents;
+SELECT @start_global_value;
+
+#
+# Global scope only
+#
+--echo Valid values are 'ON' and 'OFF'
+SELECT @@GLOBAL.innodb_reserve_free_extents IN (0, 1);
+SELECT @@GLOBAL.innodb_reserve_free_extents;
+--error ER_INCORRECT_GLOBAL_LOCAL_VAR
+SELECT @@SESSION.innodb_reserve_free_extents;
+SHOW GLOBAL VARIABLES LIKE 'innodb_reserve_free_extents';
+SHOW SESSION VARIABLES LIKE 'innodb_reserve_free_extents';
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_reserve_free_extents';
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_reserve_free_extents';
+
+#
+# Read-write variable
+#
+SET GLOBAL innodb_reserve_free_extents='OFF';
+SELECT @@GLOBAL.innodb_reserve_free_extents;
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_reserve_free_extents';
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_reserve_free_extents';
+SET @@GLOBAL.innodb_reserve_free_extents=1;
+SELECT @@GLOBAL.innodb_reserve_free_extents;
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_reserve_free_extents';
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_reserve_free_extents';
+SET GLOBAL innodb_reserve_free_extents=0;
+SELECT @@GLOBAL.innodb_reserve_free_extents;
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_reserve_free_extents';
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_reserve_free_extents';
+SET @@GLOBAL.innodb_reserve_free_extents='ON';
+SELECT @@GLOBAL.innodb_reserve_free_extents;
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_reserve_free_extents';
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_reserve_free_extents';
+--error ER_GLOBAL_VARIABLE
+SET SESSION innodb_reserve_free_extents='OFF';
+--error ER_GLOBAL_VARIABLE
+SET @@SESSION.innodb_reserve_free_extents='ON';
+
+#
+# Boolean type.
+#
+--error ER_WRONG_TYPE_FOR_VAR
+SET GLOBAL innodb_reserve_free_extents=1.1;
+--error ER_WRONG_TYPE_FOR_VAR
+SET GLOBAL innodb_reserve_free_extents=1e1;
+--error ER_WRONG_VALUE_FOR_VAR
+SET GLOBAL innodb_reserve_free_extents=2;
+--echo NOTE: The following should fail with ER_WRONG_VALUE_FOR_VAR (BUG#50643)
+SET GLOBAL innodb_reserve_free_extents=-3;
+SELECT @@GLOBAL.innodb_reserve_free_extents;
+SELECT * FROM information_schema.global_variables WHERE variable_name='innodb_reserve_free_extents';
+SELECT * FROM information_schema.session_variables WHERE variable_name='innodb_reserve_free_extents';
+--error ER_WRONG_VALUE_FOR_VAR
+SET GLOBAL innodb_reserve_free_extents='AUTO';
+
+#
+# Cleanup
+#
+
+SET @@GLOBAL.innodb_reserve_free_extents = @start_global_value;
+SELECT @@GLOBAL.innodb_reserve_free_extents;

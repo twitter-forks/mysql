@@ -136,6 +136,9 @@ extern double	srv_segment_fill_factor;
 extern double	srv_index_fill_factor;
 extern my_bool	srv_lease_fragment_extents;
 
+extern my_bool	srv_reserve_free_extents;
+extern double	srv_free_extents_rsvn_factor;
+
 extern ibool	srv_created_new_raw;
 
 extern ulint	srv_n_log_groups;
