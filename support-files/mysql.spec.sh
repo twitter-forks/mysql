@@ -1,4 +1,4 @@
-# Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -570,8 +570,13 @@ fi
 # Check if we can safely upgrade.  An upgrade is only safe if it's from one
 # of our RPMs in the same version family.
 
+# Handle both ways of spelling the capability.
 installed=`rpm -q --whatprovides mysql-server 2> /dev/null`
+if [ $? -ne 0 -o -z "$installed" ]; then
+  installed=`rpm -q --whatprovides MySQL-server 2> /dev/null`
+fi
 if [ $? -eq 0 -a -n "$installed" ]; then
+  installed=`echo $installed | sed 's/\([^ ]*\) .*/\1/'` # Tests have shown duplicated package names
   vendor=`rpm -q --queryformat='%{VENDOR}' "$installed" 2>&1`
   version=`rpm -q --queryformat='%{VERSION}' "$installed" 2>&1`
   myoldvendor='%{mysql_old_vendor}'
@@ -1153,6 +1158,10 @@ echo "====="                                     >> $STATUS_HISTORY
 # merging BK trees)
 ##############################################################################
 %changelog
+* Fri Jan 4 2013 Davi Arnaut <davi@twitter.com>
+
+- Revert changes to the provides list.
+
 * Tue Jul 24 2012 Joerg Bruehe <joerg.bruehe@oracle.com>
 
 - Add a macro "runselftest":
@@ -1160,6 +1169,10 @@ echo "====="                                     >> $STATUS_HISTORY
   this can be oveeridden via the command line by adding
       --define "runselftest 0"
   Failures of the test suite will NOT make the RPM build fail!
+
+* Mon Jun 11 2012 Joerg Bruehe <joerg.bruehe@oracle.com>
+
+- Make sure newly added "SPECIFIC-ULN/" directory does not disturb packaging.
   
 * Wed Apr 25 2012 Davi Arnaut <davi@twitter.com>
 

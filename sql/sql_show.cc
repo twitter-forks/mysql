@@ -952,7 +952,8 @@ append_identifier(THD *thd, String *packet, const char *name, uint length)
 {
   const char *name_end;
   char quote_char;
-  int q= get_quote_char_for_identifier(thd, name, length);
+  int q;
+  q= thd ? get_quote_char_for_identifier(thd, name, length) : '`';
 
   if (q == EOF)
   {
@@ -3155,8 +3156,9 @@ end:
   /* Restore original LEX value, statement's arena and THD arena values. */
   lex_end(thd->lex);
 
-  if (i_s_arena.free_list)
-    i_s_arena.free_items();
+  // Free items, before restoring backup_arena below.
+  DBUG_ASSERT(i_s_arena.free_list == NULL);
+  thd->free_items();
 
   /*
     For safety reset list of open temporary tables before closing
@@ -4923,7 +4925,13 @@ int fill_schema_proc(THD *thd, TABLE_LIST *tables, COND *cond)
   {
     DBUG_RETURN(1);
   }
-  proc_table->file->ha_index_init(0, 1);
+
+  if (proc_table->file->ha_index_init(0, 1))
+  {
+    res= 1;
+    goto err;
+  }
+
   if ((res= proc_table->file->index_first(proc_table->record[0])))
   {
     res= (res == HA_ERR_END_OF_FILE) ? 0 : 1;
@@ -4949,7 +4957,9 @@ int fill_schema_proc(THD *thd, TABLE_LIST *tables, COND *cond)
   }
 
 err:
-  proc_table->file->ha_index_end();
+  if (proc_table->file->inited)
+    (void) proc_table->file->ha_index_end();
+
   close_system_tables(thd, &open_tables_state_backup);
   DBUG_RETURN(res);
 }

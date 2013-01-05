@@ -19,6 +19,7 @@ if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 2.6)
  CMAKE_POLICY(VERSION 2.8)
 endif()
 
+MESSAGE(STATUS "Running cmake version ${CMAKE_VERSION}")
 
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
@@ -329,6 +330,7 @@ IF(NOT WITHOUT_SERVER)
   IF(EXISTS ${CMAKE_SOURCE_DIR}/internal/CMakeLists.txt)
     ADD_SUBDIRECTORY(internal)
   ENDIF()
+  ADD_SUBDIRECTORY(packaging/rpm-uln)
 ENDIF()
 
 INCLUDE(cmake/abi_check.cmake)
