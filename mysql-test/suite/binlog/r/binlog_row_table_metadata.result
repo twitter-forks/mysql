@@ -2255,7 +2255,7 @@ DELIMITER /*!*/;
 ROLLBACK/*!*/;
 # at #
 #010909  4:46:40 server id 1  end_log_pos # 	Query	thread_id=#	exec_time=#	error_code=0
-use test/*!*/;
+use `test`/*!*/;
 SET TIMESTAMP=1000000000/*!*/;
 SET @@session.pseudo_thread_id=#/*!*/;
 SET @@session.foreign_key_checks=1, @@session.sql_auto_is_null=0, @@session.unique_checks=1, @@session.autocommit=1/*!*/;
@@ -2367,7 +2367,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c01=b'0' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'0000000000000000000000000000000000000000000000000000000000000000' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -2462,7 +2462,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c01=b'1' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'1111111111111111111111111111111111111111111111111111111111111111' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -2559,7 +2559,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id #
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c01=NULL /* type=16 meta=1 nullable=1 is_null=1 */
 ###   c02=NULL /* type=16 meta=2048 nullable=1 is_null=1 */
@@ -2640,7 +2640,7 @@ BEGIN
 ###   c77=NULL /* TIMESTAMP meta=63233 nullable=1 is_null=1 */
 ###   c78=NULL /* TIMESTAMP meta=63489 nullable=1 is_null=1 */
 ###   crn=3 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c01=b'1' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'1111111111111111111111111111111111111111111111111111111111111111' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -2735,7 +2735,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id # flags: STMT_END_F
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c01=b'0' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'0000000000000000000000000000000000000000000000000000000000000000' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -2910,7 +2910,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id # flags: STMT_END_F
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c01=b'1' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'1111111111111111111111111111111111111111111111111111111111111111' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -3085,7 +3085,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id # flags: STMT_END_F
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c01=NULL /* type=16 meta=1 nullable=1 is_null=1 */
 ###   c02=NULL /* type=16 meta=2048 nullable=1 is_null=1 */
@@ -3260,7 +3260,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id # flags: STMT_END_F
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c01=b'1' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'1111111111111111111111111111111111111111111111111111111111111111' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -3435,7 +3435,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id # flags: STMT_END_F
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c01=b'1' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'1111111111111111111111111111111111111111111111111111111111111111' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -3530,7 +3530,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id # flags: STMT_END_F
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c01=b'0' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'0000000000000000000000000000000000000000000000000000000000000000' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -3625,7 +3625,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id # flags: STMT_END_F
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c01=b'1' /* BIT(1) meta=1 nullable=1 is_null=0 */
 ###   c02=b'1111111111111111111111111111111111111111111111111111111111111111' /* BIT(64) meta=2048 nullable=1 is_null=0 */
@@ -3720,7 +3720,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c01` bit(1), `c02` bit(64), `c03` tinyint(4), `c04` tinyint(3) unsigned, `c05` tinyint(3) unsigned zerofill, `c06` tinyint(1), `c07` smallint(6), `c08` smallint(5) unsigned, `c09` smallint(5) unsigned zerofill, `c10` mediumint(9), `c11` mediumint(8) unsigned, `c12` mediumint(8) unsigned zerofill, `c13` int(11), `c14` int(10) unsigned, `c15` int(10) unsigned zerofill, `c16` bigint(20), `c17` bigint(20) unsigned, `c18` bigint(20) unsigned zerofill, `c19` float, `c20` float unsigned, `c21` float unsigned zerofill, `c22` double, `c23` double unsigned, `c24` double unsigned zerofill, `c25` decimal(10,0), `c26` decimal(10,0) unsigned, `c27` decimal(10,0) unsigned zerofill, `c28` date, `c29` datetime, `c30` timestamp, `c31` time, `c32` year(4), `c33` char(1), `c34` char(0), `c35` char(1), `c36` char(255), `c37` char(1), `c38` char(0), `c39` char(1), `c40` char(255), `c41` char(1), `c42` char(0), `c43` char(1), `c44` char(255), `c45` varchar(0), `c46` varchar(1), `c47` varchar(255), `c48` varchar(261), `c49` varchar(0), `c50` varchar(1), `c51` varchar(255), `c52` varchar(261), `c53` varchar(0), `c54` varchar(1), `c55` varchar(255), `c56` varchar(261), `c57` binary(1), `c58` binary(0), `c59` binary(1), `c60` binary(255), `c61` varbinary(0), `c62` varbinary(1), `c63` varbinary(255), `c64` varbinary(261), `c65` tinyblob, `c66` tinytext, `c67` tinytext, `c68` blob, `c69` text, `c70` text, `c71` mediumblob, `c72` mediumtext, `c73` mediumtext, `c74` longblob, `c75` longtext, `c76` longtext, `c77` enum('a','b','c'), `c78` set('a','b','c'), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id # flags: STMT_END_F
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c01=NULL /* type=16 meta=1 nullable=1 is_null=1 */
 ###   c02=NULL /* type=16 meta=2048 nullable=1 is_null=1 */
@@ -3900,7 +3900,7 @@ DELIMITER /*!*/;
 ROLLBACK/*!*/;
 # at #
 #010909  4:46:40 server id 1  end_log_pos # 	Query	thread_id=#	exec_time=#	error_code=0
-use test/*!*/;
+use `test`/*!*/;
 SET TIMESTAMP=1000000000/*!*/;
 SET @@session.pseudo_thread_id=#/*!*/;
 SET @@session.foreign_key_checks=1, @@session.sql_auto_is_null=0, @@session.unique_checks=1, @@session.autocommit=1/*!*/;
@@ -3927,47 +3927,47 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c28` date, `c47` varchar(24), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:01' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-01' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=1 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-02' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=2 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-03' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=3 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-04' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=4 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-05' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=5 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-06' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=6 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-07' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=7 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:08' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-08' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=8 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c28='2008:08:09' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-09' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -3986,7 +3986,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c28` date, `c47` varchar(24), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id # flags: STMT_END_F
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c28='2008:08:01' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-01' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -3995,7 +3995,7 @@ BEGIN
 ###   c28='2008:08:11' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-01' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=1 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c28='2008:08:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-02' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -4004,7 +4004,7 @@ BEGIN
 ###   c28='2008:08:12' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-02' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=2 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c28='2008:08:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-03' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -4013,7 +4013,7 @@ BEGIN
 ###   c28='2008:08:13' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-03' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=3 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c28='2008:08:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-04' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -4022,7 +4022,7 @@ BEGIN
 ###   c28='2008:08:14' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-04' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=4 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c28='2008:08:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-05' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -4031,7 +4031,7 @@ BEGIN
 ###   c28='2008:08:15' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-05' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=5 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c28='2008:08:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-06' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -4040,7 +4040,7 @@ BEGIN
 ###   c28='2008:08:16' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-06' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=6 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c28='2008:08:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-07' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -4063,37 +4063,37 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c28` date, `c47` varchar(24), `crn` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id # flags: STMT_END_F
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c28='2008:08:11' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-01' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=1 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c28='2008:08:12' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-02' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=2 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c28='2008:08:13' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-03' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=3 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c28='2008:08:14' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-04' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=4 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c28='2008:08:15' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-05' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=5 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c28='2008:08:16' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-06' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
 ###   crn=6 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c28='2008:08:17' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c47='VARCHAR-07' /* VARSTRING(24) meta=24 nullable=1 is_null=0 */
@@ -4273,7 +4273,7 @@ DELIMITER /*!*/;
 ROLLBACK/*!*/;
 # at #
 #010909  4:46:40 server id 1  end_log_pos # 	Query	thread_id=#	exec_time=#	error_code=0
-use test/*!*/;
+use `test`/*!*/;
 SET TIMESTAMP=1000000000/*!*/;
 SET @@session.pseudo_thread_id=#/*!*/;
 SET @@session.foreign_key_checks=1, @@session.sql_auto_is_null=0, @@session.unique_checks=1, @@session.autocommit=1/*!*/;
@@ -4318,47 +4318,47 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c_1_1` date, `c_1_2` varchar(255), `c_1_n` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:01' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-01' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=11 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=7 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:08' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-08' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=18 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c_1_1='2008:01:09' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-09' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4377,47 +4377,47 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t2` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t2` (`c_2_1` date, `c_2_2` varchar(255), `c_2_n` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:01' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-01' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=21 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=7 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:08' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-08' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=28 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t2
+### INSERT INTO `test`.`t2`
 ### SET
 ###   c_2_1='2008:02:09' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-09' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4436,47 +4436,47 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t3` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t3` (`c_3_1` date, `c_3_2` varchar(255), `c_3_n` int(11))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:01' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-01' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=31 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=7 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:08' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-08' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=38 /* INT meta=0 nullable=1 is_null=0 */
-### INSERT INTO test.t3
+### INSERT INTO `test`.`t3`
 ### SET
 ###   c_3_1='2008:03:09' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-09' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4507,7 +4507,7 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id #
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id #
 #010909  4:46:40 server id 1  end_log_pos # 	Update_rows: table id # flags: STMT_END_F
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c_1_1='2008:01:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4516,7 +4516,7 @@ BEGIN
 ###   c_1_1='2018:01:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c_1_1='2008:01:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4525,7 +4525,7 @@ BEGIN
 ###   c_1_1='2018:01:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c_1_1='2008:01:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4534,7 +4534,7 @@ BEGIN
 ###   c_1_1='2018:01:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c_1_1='2008:01:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4543,7 +4543,7 @@ BEGIN
 ###   c_1_1='2018:01:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c_1_1='2008:01:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4552,7 +4552,7 @@ BEGIN
 ###   c_1_1='2018:01:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t1
+### UPDATE `test`.`t1`
 ### WHERE
 ###   c_1_1='2008:01:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4561,7 +4561,7 @@ BEGIN
 ###   c_1_1='2018:01:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=7 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t2
+### UPDATE `test`.`t2`
 ### WHERE
 ###   c_2_1='2008:02:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4570,7 +4570,7 @@ BEGIN
 ###   c_2_1='2028:02:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t2
+### UPDATE `test`.`t2`
 ### WHERE
 ###   c_2_1='2008:02:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4579,7 +4579,7 @@ BEGIN
 ###   c_2_1='2028:02:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t2
+### UPDATE `test`.`t2`
 ### WHERE
 ###   c_2_1='2008:02:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4588,7 +4588,7 @@ BEGIN
 ###   c_2_1='2028:02:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t2
+### UPDATE `test`.`t2`
 ### WHERE
 ###   c_2_1='2008:02:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4597,7 +4597,7 @@ BEGIN
 ###   c_2_1='2028:02:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t2
+### UPDATE `test`.`t2`
 ### WHERE
 ###   c_2_1='2008:02:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4606,7 +4606,7 @@ BEGIN
 ###   c_2_1='2028:02:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t2
+### UPDATE `test`.`t2`
 ### WHERE
 ###   c_2_1='2008:02:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4615,7 +4615,7 @@ BEGIN
 ###   c_2_1='2028:02:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=7 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t3
+### UPDATE `test`.`t3`
 ### WHERE
 ###   c_3_1='2008:03:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4624,7 +4624,7 @@ BEGIN
 ###   c_3_1='2038:03:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t3
+### UPDATE `test`.`t3`
 ### WHERE
 ###   c_3_1='2008:03:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4633,7 +4633,7 @@ BEGIN
 ###   c_3_1='2038:03:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t3
+### UPDATE `test`.`t3`
 ### WHERE
 ###   c_3_1='2008:03:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4642,7 +4642,7 @@ BEGIN
 ###   c_3_1='2038:03:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t3
+### UPDATE `test`.`t3`
 ### WHERE
 ###   c_3_1='2008:03:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4651,7 +4651,7 @@ BEGIN
 ###   c_3_1='2038:03:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t3
+### UPDATE `test`.`t3`
 ### WHERE
 ###   c_3_1='2008:03:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4660,7 +4660,7 @@ BEGIN
 ###   c_3_1='2038:03:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### UPDATE test.t3
+### UPDATE `test`.`t3`
 ### WHERE
 ###   c_3_1='2008:03:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4695,92 +4695,92 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id #
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id #
 #010909  4:46:40 server id 1  end_log_pos # 	Delete_rows: table id # flags: STMT_END_F
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c_1_1='2018:01:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c_1_1='2018:01:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c_1_1='2018:01:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c_1_1='2018:01:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c_1_1='2018:01:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t1
+### DELETE FROM `test`.`t1`
 ### WHERE
 ###   c_1_1='2018:01:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_1_2='VARCHAR-01-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_1_n=7 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t2
+### DELETE FROM `test`.`t2`
 ### WHERE
 ###   c_2_1='2028:02:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t2
+### DELETE FROM `test`.`t2`
 ### WHERE
 ###   c_2_1='2028:02:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t2
+### DELETE FROM `test`.`t2`
 ### WHERE
 ###   c_2_1='2028:02:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t2
+### DELETE FROM `test`.`t2`
 ### WHERE
 ###   c_2_1='2028:02:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t2
+### DELETE FROM `test`.`t2`
 ### WHERE
 ###   c_2_1='2028:02:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t2
+### DELETE FROM `test`.`t2`
 ### WHERE
 ###   c_2_1='2028:02:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_2_2='VARCHAR-02-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_2_n=7 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t3
+### DELETE FROM `test`.`t3`
 ### WHERE
 ###   c_3_1='2038:03:02' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-02' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=2 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t3
+### DELETE FROM `test`.`t3`
 ### WHERE
 ###   c_3_1='2038:03:03' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-03' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=3 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t3
+### DELETE FROM `test`.`t3`
 ### WHERE
 ###   c_3_1='2038:03:04' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-04' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=4 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t3
+### DELETE FROM `test`.`t3`
 ### WHERE
 ###   c_3_1='2038:03:05' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-05' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=5 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t3
+### DELETE FROM `test`.`t3`
 ### WHERE
 ###   c_3_1='2038:03:06' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-06' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
 ###   c_3_n=6 /* INT meta=0 nullable=1 is_null=0 */
-### DELETE FROM test.t3
+### DELETE FROM `test`.`t3`
 ### WHERE
 ###   c_3_1='2038:03:07' /* DATE meta=0 nullable=1 is_null=0 */
 ###   c_3_2='VARCHAR-03-07' /* VARSTRING(255) meta=255 nullable=1 is_null=0 */
@@ -4852,7 +4852,7 @@ DELIMITER /*!*/;
 ROLLBACK/*!*/;
 # at #
 #010909  4:46:40 server id 1  end_log_pos # 	Query	thread_id=#	exec_time=#	error_code=0
-use test/*!*/;
+use `test`/*!*/;
 SET TIMESTAMP=1000000000/*!*/;
 SET @@session.pseudo_thread_id=#/*!*/;
 SET @@session.foreign_key_checks=1, @@session.sql_auto_is_null=0, @@session.unique_checks=1, @@session.autocommit=1/*!*/;
@@ -4879,17 +4879,17 @@ BEGIN
 #010909  4:46:40 server id 1  end_log_pos # 	Table_map: `test`.`t1` mapped to number #
 #010909  4:46:40 server id 1  end_log_pos # 	Table_metadata: `test`.`t1` (`c1` int(11), `c2` int(11), `c3` varchar(60))
 #010909  4:46:40 server id 1  end_log_pos # 	Write_rows: table id # flags: STMT_END_F
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c1=1 /* INT meta=0 nullable=1 is_null=0 */
 ###   c2=2 /* INT meta=0 nullable=1 is_null=0 */
 ###   c3='Wow' /* VARSTRING(60) meta=60 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c1=3 /* INT meta=0 nullable=1 is_null=0 */
 ###   c2=4 /* INT meta=0 nullable=1 is_null=0 */
 ###   c3='Wow' /* VARSTRING(60) meta=60 nullable=1 is_null=0 */
-### INSERT INTO test.t1
+### INSERT INTO `test`.`t1`
 ### SET
 ###   c1=5 /* INT meta=0 nullable=1 is_null=0 */
 ###   c2=6 /* INT meta=0 nullable=1 is_null=0 */

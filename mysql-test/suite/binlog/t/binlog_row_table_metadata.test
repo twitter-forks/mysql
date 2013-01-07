@@ -12,6 +12,6 @@ SET @old_value = @@binlog_rows_table_metadata_events;
 
 SET binlog_rows_table_metadata_events = true;
 
---source include/mysqlbinlog_row_engine.inc
+--source extra/binlog_tests/mysqlbinlog_row_engine.inc
 
 SET binlog_rows_table_metadata_events = @old_value;
