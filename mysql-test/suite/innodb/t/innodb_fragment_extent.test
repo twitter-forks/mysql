@@ -58,6 +58,7 @@ let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 DELETE FROM t1 WHERE a >= 114400;
 
 # Wait for records to be purged.
+let $wait_timeout= 300;
 let $wait_condition = SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
   WHERE VARIABLE_NAME = 'INNODB_PURGE_TRX_NO' AND VARIABLE_VALUE = (SELECT
   VARIABLE_VALUE FROM INFORMATION_SCHEMA.GLOBAL_STATUS WHERE VARIABLE_NAME
@@ -65,6 +66,7 @@ let $wait_condition = SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.GLOBAL_STATUS
 --source include/wait_condition.inc
 
 # Wait for dirty pages to be flushed to disk.
+let $wait_timeout= 60;
 let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 --source include/wait_condition.inc
 
@@ -75,6 +77,7 @@ let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 CALL p1(114400, 15600);
 
 # Wait for dirty pages to be flushed to disk.
+let $wait_timeout= 60;
 let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 --source include/wait_condition.inc
 
