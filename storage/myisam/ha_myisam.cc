@@ -812,7 +812,7 @@ int ha_myisam::close(void)
 
 int ha_myisam::write_row(uchar *buf)
 {
-  ha_statistic_increment(&SSV::ha_write_count);
+  ha_macro_statistic_inc(ha_write_count);
 
   /* If we have a timestamp column, update it to the current time */
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_INSERT)
@@ -1595,7 +1595,7 @@ bool ha_myisam::is_crashed() const
 
 int ha_myisam::update_row(const uchar *old_data, uchar *new_data)
 {
-  ha_statistic_increment(&SSV::ha_update_count);
+  ha_macro_statistic_inc(ha_update_count);
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_UPDATE)
     table->timestamp_field->set_time();
   return mi_update(file,old_data,new_data);
@@ -1603,7 +1603,7 @@ int ha_myisam::update_row(const uchar *old_data, uchar *new_data)
 
 int ha_myisam::delete_row(const uchar *buf)
 {
-  ha_statistic_increment(&SSV::ha_delete_count);
+  ha_macro_statistic_inc(ha_delete_count);
   return mi_delete(file,buf);
 }
 
@@ -1613,7 +1613,7 @@ int ha_myisam::index_read_map(uchar *buf, const uchar *key,
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_key_count);
+  ha_macro_statistic_inc(ha_read_key_count);
   int error=mi_rkey(file, buf, active_index, key, keypart_map, find_flag);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -1625,7 +1625,7 @@ int ha_myisam::index_read_idx_map(uchar *buf, uint index, const uchar *key,
                                   enum ha_rkey_function find_flag)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
-  ha_statistic_increment(&SSV::ha_read_key_count);
+  ha_macro_statistic_inc(ha_read_key_count);
   int error=mi_rkey(file, buf, index, key, keypart_map, find_flag);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -1638,7 +1638,7 @@ int ha_myisam::index_read_last_map(uchar *buf, const uchar *key,
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ENTER("ha_myisam::index_read_last");
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_key_count);
+  ha_macro_statistic_inc(ha_read_key_count);
   int error=mi_rkey(file, buf, active_index, key, keypart_map,
                     HA_READ_PREFIX_LAST);
   table->status=error ? STATUS_NOT_FOUND: 0;
@@ -1650,7 +1650,7 @@ int ha_myisam::index_next(uchar *buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_next_count);
+  ha_macro_statistic_inc(ha_read_next_count);
   int error=mi_rnext(file,buf,active_index);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -1661,7 +1661,7 @@ int ha_myisam::index_prev(uchar *buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_prev_count);
+  ha_macro_statistic_inc(ha_read_prev_count);
   int error=mi_rprev(file,buf, active_index);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -1672,7 +1672,7 @@ int ha_myisam::index_first(uchar *buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_first_count);
+  ha_macro_statistic_inc(ha_read_first_count);
   int error=mi_rfirst(file, buf, active_index);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -1683,7 +1683,7 @@ int ha_myisam::index_last(uchar *buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_last_count);
+  ha_macro_statistic_inc(ha_read_last_count);
   int error=mi_rlast(file, buf, active_index);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -1697,7 +1697,7 @@ int ha_myisam::index_next_same(uchar *buf,
   int error;
   DBUG_ASSERT(inited==INDEX);
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
-  ha_statistic_increment(&SSV::ha_read_next_count);
+  ha_macro_statistic_inc(ha_read_next_count);
   do
   {
     error= mi_rnext_same(file,buf);
@@ -1719,7 +1719,7 @@ int ha_myisam::rnd_next(uchar *buf)
 {
   MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
                        TRUE);
-  ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+  ha_macro_statistic_inc(ha_read_rnd_next_count);
   int error=mi_scan(file, buf);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_READ_ROW_DONE(error);
@@ -1735,7 +1735,7 @@ int ha_myisam::rnd_pos(uchar *buf, uchar *pos)
 {
   MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
                        FALSE);
-  ha_statistic_increment(&SSV::ha_read_rnd_count);
+  ha_macro_statistic_inc(ha_read_rnd_count);
   int error=mi_rrnd(file, buf, my_get_ptr(pos,ref_length));
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_READ_ROW_DONE(error);

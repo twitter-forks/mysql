@@ -229,7 +229,7 @@ void ha_heap::update_key_stats()
 int ha_heap::write_row(uchar * buf)
 {
   int res;
-  ha_statistic_increment(&SSV::ha_write_count);
+  ha_macro_statistic_inc(ha_write_count);
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_INSERT)
     table->timestamp_field->set_time();
   if (table->next_number_field && buf == table->record[0])
@@ -253,7 +253,7 @@ int ha_heap::write_row(uchar * buf)
 int ha_heap::update_row(const uchar * old_data, uchar * new_data)
 {
   int res;
-  ha_statistic_increment(&SSV::ha_update_count);
+  ha_macro_statistic_inc(ha_update_count);
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_UPDATE)
     table->timestamp_field->set_time();
   res= heap_update(file,old_data,new_data);
@@ -272,7 +272,7 @@ int ha_heap::update_row(const uchar * old_data, uchar * new_data)
 int ha_heap::delete_row(const uchar * buf)
 {
   int res;
-  ha_statistic_increment(&SSV::ha_delete_count);
+  ha_macro_statistic_inc(ha_delete_count);
   res= heap_delete(file,buf);
   if (!res && table->s->tmp_table == NO_TMP_TABLE && 
       ++records_changed*HEAP_STATS_UPDATE_THRESHOLD > file->s->records)
@@ -292,7 +292,7 @@ int ha_heap::index_read_map(uchar *buf, const uchar *key,
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_key_count);
+  ha_macro_statistic_inc(ha_read_key_count);
   int error = heap_rkey(file,buf,active_index, key, keypart_map, find_flag);
   table->status = error ? STATUS_NOT_FOUND : 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -304,7 +304,7 @@ int ha_heap::index_read_last_map(uchar *buf, const uchar *key,
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_key_count);
+  ha_macro_statistic_inc(ha_read_key_count);
   int error= heap_rkey(file, buf, active_index, key, keypart_map,
 		       HA_READ_PREFIX_LAST);
   table->status= error ? STATUS_NOT_FOUND : 0;
@@ -317,7 +317,7 @@ int ha_heap::index_read_idx_map(uchar *buf, uint index, const uchar *key,
                                 enum ha_rkey_function find_flag)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
-  ha_statistic_increment(&SSV::ha_read_key_count);
+  ha_macro_statistic_inc(ha_read_key_count);
   int error = heap_rkey(file, buf, index, key, keypart_map, find_flag);
   table->status = error ? STATUS_NOT_FOUND : 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -328,7 +328,7 @@ int ha_heap::index_next(uchar * buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_next_count);
+  ha_macro_statistic_inc(ha_read_next_count);
   int error=heap_rnext(file,buf);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -339,7 +339,7 @@ int ha_heap::index_prev(uchar * buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_prev_count);
+  ha_macro_statistic_inc(ha_read_prev_count);
   int error=heap_rprev(file,buf);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -350,7 +350,7 @@ int ha_heap::index_first(uchar * buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_first_count);
+  ha_macro_statistic_inc(ha_read_first_count);
   int error=heap_rfirst(file, buf, active_index);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -361,7 +361,7 @@ int ha_heap::index_last(uchar * buf)
 {
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
   DBUG_ASSERT(inited==INDEX);
-  ha_statistic_increment(&SSV::ha_read_last_count);
+  ha_macro_statistic_inc(ha_read_last_count);
   int error=heap_rlast(file, buf, active_index);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_INDEX_READ_ROW_DONE(error);
@@ -377,7 +377,7 @@ int ha_heap::rnd_next(uchar *buf)
 {
   MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
                        TRUE);
-  ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+  ha_macro_statistic_inc(ha_read_rnd_next_count);
   int error=heap_scan(file, buf);
   table->status=error ? STATUS_NOT_FOUND: 0;
   MYSQL_READ_ROW_DONE(error);
@@ -390,7 +390,7 @@ int ha_heap::rnd_pos(uchar * buf, uchar *pos)
   HEAP_PTR heap_position;
   MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
                        FALSE);
-  ha_statistic_increment(&SSV::ha_read_rnd_count);
+  ha_macro_statistic_inc(ha_read_rnd_count);
   memcpy(&heap_position, pos, sizeof(HEAP_PTR));
   error=heap_rrnd(file, buf, heap_position);
   table->status=error ? STATUS_NOT_FOUND: 0;

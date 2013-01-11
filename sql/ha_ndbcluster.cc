@@ -2905,7 +2905,7 @@ int ha_ndbcluster::write_row(uchar *record)
       DBUG_RETURN(peek_res);
   }
 
-  ha_statistic_increment(&SSV::ha_write_count);
+  ha_macro_statistic_inc(ha_write_count);
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_INSERT)
     table->timestamp_field->set_time();
 
@@ -3145,7 +3145,7 @@ int ha_ndbcluster::update_row(const uchar *old_data, uchar *new_data)
       DBUG_RETURN(peek_res);
   }
 
-  ha_statistic_increment(&SSV::ha_update_count);
+  ha_macro_statistic_inc(ha_update_count);
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_UPDATE)
   {
     table->timestamp_field->set_time();
@@ -3353,7 +3353,7 @@ int ha_ndbcluster::delete_row(const uchar *record)
   DBUG_ENTER("delete_row");
   m_write_op= TRUE;
 
-  ha_statistic_increment(&SSV::ha_delete_count);
+  ha_macro_statistic_inc(ha_delete_count);
   m_rows_changed++;
 
   if (m_use_partition_function &&
@@ -3765,7 +3765,7 @@ int ha_ndbcluster::index_next(uchar *buf)
   int rc;
   DBUG_ENTER("ha_ndbcluster::index_next");
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str); 
-  ha_statistic_increment(&SSV::ha_read_next_count);
+  ha_macro_statistic_inc(ha_read_next_count);
   rc= next_result(buf);
   MYSQL_INDEX_READ_ROW_DONE(rc);
   DBUG_RETURN(rc);
@@ -3777,7 +3777,7 @@ int ha_ndbcluster::index_prev(uchar *buf)
   int rc;
   DBUG_ENTER("ha_ndbcluster::index_prev");
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str); 
-  ha_statistic_increment(&SSV::ha_read_prev_count);
+  ha_macro_statistic_inc(ha_read_prev_count);
   rc= next_result(buf);
   MYSQL_INDEX_READ_ROW_DONE(rc);
   DBUG_RETURN(rc);
@@ -3789,7 +3789,7 @@ int ha_ndbcluster::index_first(uchar *buf)
   int rc;
   DBUG_ENTER("ha_ndbcluster::index_first");
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str); 
-  ha_statistic_increment(&SSV::ha_read_first_count);
+  ha_macro_statistic_inc(ha_read_first_count);
   // Start the ordered index scan and fetch the first row
 
   // Only HA_READ_ORDER indexes get called by index_first
@@ -3804,7 +3804,7 @@ int ha_ndbcluster::index_last(uchar *buf)
   int rc;
   DBUG_ENTER("ha_ndbcluster::index_last");
   MYSQL_INDEX_READ_ROW_START(table_share->db.str, table_share->table_name.str);
-  ha_statistic_increment(&SSV::ha_read_last_count);
+  ha_macro_statistic_inc(ha_read_last_count);
   rc= ordered_index_scan(0, 0, TRUE, TRUE, buf, NULL);
   MYSQL_INDEX_READ_ROW_DONE(rc);
   DBUG_RETURN(rc);
@@ -4003,7 +4003,7 @@ int ha_ndbcluster::rnd_next(uchar *buf)
   DBUG_ENTER("rnd_next");
   MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
                        TRUE);
-  ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+  ha_macro_statistic_inc(ha_read_rnd_next_count);
 
   if (!m_active_cursor)
     rc= full_table_scan(buf);
@@ -4026,7 +4026,7 @@ int ha_ndbcluster::rnd_pos(uchar *buf, uchar *pos)
   DBUG_ENTER("rnd_pos");
   MYSQL_READ_ROW_START(table_share->db.str, table_share->table_name.str,
                        FALSE);
-  ha_statistic_increment(&SSV::ha_read_rnd_count);
+  ha_macro_statistic_inc(ha_read_rnd_count);
   // The primary key for the record is stored in pos
   // Perform a pk_read using primary key "index"
   {

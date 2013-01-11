@@ -893,7 +893,7 @@ int ha_archive::write_row(uchar *buf)
   if (share->crashed)
     DBUG_RETURN(HA_ERR_CRASHED_ON_USAGE);
 
-  ha_statistic_increment(&SSV::ha_write_count);
+  ha_macro_statistic_inc(ha_write_count);
   if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_INSERT)
     table->timestamp_field->set_time();
   mysql_mutex_lock(&share->mutex);
@@ -1329,7 +1329,7 @@ int ha_archive::rnd_next(uchar *buf)
   }
   scan_rows--;
 
-  ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+  ha_macro_statistic_inc(ha_read_rnd_next_count);
   current_position= aztell(&archive);
   rc= get_row(&archive, buf);
 
@@ -1368,7 +1368,7 @@ int ha_archive::rnd_pos(uchar * buf, uchar *pos)
   DBUG_ENTER("ha_archive::rnd_pos");
   MYSQL_READ_ROW_START(table_share->db.str,
                        table_share->table_name.str, FALSE);
-  ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+  ha_macro_statistic_inc(ha_read_rnd_next_count);
   current_position= (my_off_t)my_get_ptr(pos, ref_length);
   if (azseek(&archive, current_position, SEEK_SET) == (my_off_t)(-1L))
   {

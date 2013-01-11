@@ -2214,9 +2214,19 @@ handler *handler::clone(const char *name, MEM_ROOT *mem_root)
 
 
 
-void handler::ha_statistic_increment(ulong SSV::*offset) const
+void handler::ha_statistic_increment(ulong HOS::*hos_offset,
+                                     ulong SSV::*ssv_offset)
 {
-  status_var_increment(table->in_use->status_var.*offset);
+  (ops_stats.*hos_offset)++;
+  status_var_increment(table->in_use->status_var.*ssv_offset);
+}
+
+void handler::flush_ops_stats(void)
+{
+  if (table_share && table_share->tmp_table == NO_TMP_TABLE)
+    table_share->accrue_statistics(&ops_stats);
+
+  memset(&ops_stats, 0, sizeof(ops_stats));
 }
 
 void **handler::ha_data(THD *thd) const
@@ -2302,7 +2312,7 @@ int handler::read_first_row(uchar * buf, uint primary_key)
   register int error;
   DBUG_ENTER("handler::read_first_row");
 
-  ha_statistic_increment(&SSV::ha_read_first_count);
+  ha_macro_statistic_inc(ha_read_first_count);
 
   /*
     If there is very few deleted rows in the table, find the first row by

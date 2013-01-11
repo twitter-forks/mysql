@@ -609,6 +609,7 @@ enum enum_schema_tables
   SCH_TABLE_CONSTRAINTS,
   SCH_TABLE_NAMES,
   SCH_TABLE_PRIVILEGES,
+  SCH_TABLE_STATISTICS,
   SCH_TRIGGERS,
   SCH_USER_PRIVILEGES,
   SCH_VARIABLES,
@@ -1208,6 +1209,23 @@ public:
   {}
 };
 
+/** Statistics counters for handler operations. */
+struct ha_operations_statistics
+{
+  ulong ha_read_first_count;
+  ulong ha_read_last_count;
+  ulong ha_read_key_count;
+  ulong ha_read_next_count;
+  ulong ha_read_prev_count;
+  ulong ha_read_rnd_count;
+  ulong ha_read_rnd_next_count;
+  ulong ha_delete_count;
+  ulong ha_update_count;
+  ulong ha_write_count;
+};
+
+typedef struct ha_operations_statistics HOS;
+
 uint calculate_key_len(TABLE *, uint, const uchar *, key_part_map);
 /*
   bitmap with first N+1 bits set
@@ -1265,6 +1283,9 @@ public:
   uchar *dup_ref;			/* Pointer to duplicate row */
 
   ha_statistics stats;
+
+  /** Counters for handler operations. */
+  ha_operations_statistics ops_stats;
 
   /** The following are for read_multi_range */
   bool multi_range_sorted;
@@ -1335,7 +1356,8 @@ public:
   handler(handlerton *ht_arg, TABLE_SHARE *share_arg)
     :table_share(share_arg), table(0),
     estimation_rows_to_insert(0), ht(ht_arg),
-    ref(0), key_used_on_scan(MAX_KEY), active_index(MAX_KEY),
+    ref(0), ops_stats(),
+    key_used_on_scan(MAX_KEY), active_index(MAX_KEY),
     ref_length(sizeof(my_off_t)),
     ft_handler(0), inited(NONE),
     locked(FALSE), implicit_emptied(0),
@@ -1996,9 +2018,12 @@ public:
     return 0;
   }
 
+  /** Flush counters to the associated table share for stats accumulation. */
+  void flush_ops_stats(void);
+
 protected:
   /* Service methods for use by storage engines. */
-  void ha_statistic_increment(ulong SSV::*offset) const;
+  void ha_statistic_increment(ulong HOS::*hos_offset, ulong SSV::*ssv_offset);
   void **ha_data(THD *) const;
   THD *ha_thd(void) const;
 
@@ -2227,6 +2252,7 @@ private:
   { return HA_ERR_WRONG_COMMAND; }
 };
 
+#define ha_macro_statistic_inc(m) ha_statistic_increment(&HOS::m, &SSV::m)
 
 	/* Some extern variables used with handlers */
 

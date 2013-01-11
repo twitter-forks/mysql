@@ -1700,6 +1700,7 @@ int prepare_schema_table(THD *thd, LEX *lex, Table_ident *table_ident,
   case SCH_USER_PRIVILEGES:
   case SCH_SCHEMA_PRIVILEGES:
   case SCH_TABLE_PRIVILEGES:
+  case SCH_TABLE_STATISTICS:
   case SCH_COLUMN_PRIVILEGES:
   case SCH_TABLE_CONSTRAINTS:
   case SCH_KEY_COLUMN_USAGE:

@@ -896,6 +896,44 @@ OPEN_TABLE_LIST *list_open_tables(THD *thd, const char *db, const char *wild)
   DBUG_RETURN(open_list);
 }
 
+/**
+  Collect a batch of table (handler) statistics from the table definition cache.
+
+  @param  cursor  The position of the cursor in the table definition cache.
+  @param  info    Array where the collected information is stored.
+  @param  size    Size of the info array.
+
+  @return The number of items collected.
+*/
+uint get_cached_table_stats(uint *cursor, TABLE_STATS_INFO *info, uint size)
+{
+  TABLE_SHARE *share;
+  uint cnt= 0, idx= *cursor;
+  DBUG_ENTER("get_cached_table_stats");
+
+  mysql_mutex_lock(&LOCK_open);
+
+  for (; cnt < size && idx < table_def_cache.records; cnt++, idx++, info++)
+  {
+    share= (TABLE_SHARE *) my_hash_element(&table_def_cache, idx);
+
+    info->db_name_len= share->db.length;
+    memcpy(info->db_name, share->db.str, share->db.length);
+
+    info->table_name_len= share->table_name.length;
+    memcpy(info->table_name, share->table_name.str, share->table_name.length);
+
+    info->handler_stats= share->m_handler_stats;
+  }
+
+  mysql_mutex_unlock(&LOCK_open);
+
+  *cursor= idx;
+
+  DBUG_RETURN(cnt);
+}
+
+
 /*****************************************************************************
  *	 Functions to free open table cache
  ****************************************************************************/
@@ -1334,6 +1372,7 @@ static void mark_used_tables_as_free_for_reuse(THD *thd, TABLE *table)
     if (table->query_id == thd->query_id)
     {
       table->query_id= 0;
+      table->file->flush_ops_stats();
       table->file->ha_reset();
     }
   }
@@ -1587,6 +1626,9 @@ bool close_thread_table(THD *thd, TABLE **table_ptr)
                                              table->s->table_name.str,
                                              MDL_SHARED));
   table->mdl_ticket= NULL;
+
+  if (table->file)
+    table->file->flush_ops_stats();
 
   mysql_mutex_lock(&thd->LOCK_thd_data);
   *table_ptr=table->next;

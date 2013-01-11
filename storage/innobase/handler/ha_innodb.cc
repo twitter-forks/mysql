@@ -5458,7 +5458,7 @@ ha_innobase::write_row(
 		ut_error;
 	}
 
-	ha_statistic_increment(&SSV::ha_write_count);
+	ha_macro_statistic_inc(ha_write_count);
 
 	if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_INSERT)
 		table->timestamp_field->set_time();
@@ -5865,7 +5865,7 @@ ha_innobase::update_row(
 		}
 	}
 
-	ha_statistic_increment(&SSV::ha_update_count);
+	ha_macro_statistic_inc(ha_update_count);
 
 	if (table->timestamp_field_type & TIMESTAMP_AUTO_SET_ON_UPDATE)
 		table->timestamp_field->set_time();
@@ -5969,7 +5969,7 @@ ha_innobase::delete_row(
 
 	ut_a(prebuilt->trx == trx);
 
-	ha_statistic_increment(&SSV::ha_delete_count);
+	ha_macro_statistic_inc(ha_delete_count);
 
 	if (!prebuilt->upd_node) {
 		row_get_prebuilt_update_vector(prebuilt);
@@ -6232,7 +6232,7 @@ ha_innobase::index_read(
 	ut_a(prebuilt->trx == thd_to_trx(user_thd));
 	ut_ad(key_len != 0 || find_flag != HA_READ_KEY_EXACT);
 
-	ha_statistic_increment(&SSV::ha_read_key_count);
+	ha_macro_statistic_inc(ha_read_key_count);
 
 	index = prebuilt->index;
 
@@ -6566,7 +6566,7 @@ ha_innobase::index_next(
 	uchar*		buf)	/*!< in/out: buffer for next row in MySQL
 				format */
 {
-	ha_statistic_increment(&SSV::ha_read_next_count);
+	ha_macro_statistic_inc(ha_read_next_count);
 
 	return(general_fetch(buf, ROW_SEL_NEXT, 0));
 }
@@ -6582,7 +6582,7 @@ ha_innobase::index_next_same(
 	const uchar*	key,	/*!< in: key value */
 	uint		keylen)	/*!< in: key value length */
 {
-	ha_statistic_increment(&SSV::ha_read_next_count);
+	ha_macro_statistic_inc(ha_read_next_count);
 
 	return(general_fetch(buf, ROW_SEL_NEXT, last_match_mode));
 }
@@ -6597,7 +6597,7 @@ ha_innobase::index_prev(
 /*====================*/
 	uchar*	buf)	/*!< in/out: buffer for previous row in MySQL format */
 {
-	ha_statistic_increment(&SSV::ha_read_prev_count);
+	ha_macro_statistic_inc(ha_read_prev_count);
 
 	return(general_fetch(buf, ROW_SEL_PREV, 0));
 }
@@ -6615,7 +6615,7 @@ ha_innobase::index_first(
 	int	error;
 
 	DBUG_ENTER("index_first");
-	ha_statistic_increment(&SSV::ha_read_first_count);
+	ha_macro_statistic_inc(ha_read_first_count);
 
 	error = index_read(buf, NULL, 0, HA_READ_AFTER_KEY);
 
@@ -6641,7 +6641,7 @@ ha_innobase::index_last(
 	int	error;
 
 	DBUG_ENTER("index_last");
-	ha_statistic_increment(&SSV::ha_read_last_count);
+	ha_macro_statistic_inc(ha_read_last_count);
 
 	error = index_read(buf, NULL, 0, HA_READ_BEFORE_KEY);
 
@@ -6711,7 +6711,7 @@ ha_innobase::rnd_next(
 	int	error;
 
 	DBUG_ENTER("rnd_next");
-	ha_statistic_increment(&SSV::ha_read_rnd_next_count);
+	ha_macro_statistic_inc(ha_read_rnd_next_count);
 
 	if (start_of_scan) {
 		error = index_first(buf);
@@ -6746,7 +6746,7 @@ ha_innobase::rnd_pos(
 	DBUG_ENTER("rnd_pos");
 	DBUG_DUMP("key", pos, ref_length);
 
-	ha_statistic_increment(&SSV::ha_read_rnd_count);
+	ha_macro_statistic_inc(ha_read_rnd_count);
 
 	ut_a(prebuilt->trx == thd_to_trx(ha_thd()));
 

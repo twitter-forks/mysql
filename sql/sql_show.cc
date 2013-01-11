@@ -26,6 +26,7 @@
 #include "sql_table.h"                        // filename_to_tablename,
                                               // primary_key_name,
                                               // build_table_filename
+#include "sql_base.h"                         // get_cached_table_stats
 #include "repl_failsafe.h"
 #include "sql_parse.h"             // check_access, check_table_access
 #include "sql_partition.h"         // partition_element
@@ -7011,6 +7012,101 @@ int hton_fill_schema_table(THD *thd, TABLE_LIST *tables, COND *cond)
   DBUG_RETURN(0);
 }
 
+enum enum_table_stats_fields
+{
+  IS_TS_DB_NAME,
+  IS_TS_TABLE_NAME,
+  IS_TS_HA_READ_FIRST,
+  IS_TS_HA_READ_LAST,
+  IS_TS_HA_READ_KEY,
+  IS_TS_HA_READ_NEXT,
+  IS_TS_HA_READ_PREV,
+  IS_TS_HA_READ_RND,
+  IS_TS_HA_READ_RND_NEXT,
+  IS_TS_HA_DELETE,
+  IS_TS_HA_UPDATE,
+  IS_TS_HA_WRITE
+};
+
+/**
+  Fill in and store a record of the TABLE_STATISTICS table.
+
+  @param thd    Thread context.
+  @param table  The I_S table object.
+  @param info   Statistics counters for a table.
+
+  @return TRUE on success, FALSE otherwise.
+*/
+static bool table_stats_fill_record(THD *thd, TABLE *table,
+                                    const TABLE_STATS_INFO *info)
+{
+  CHARSET_INFO *cs= system_charset_info;
+  const HOS *stats= &info->handler_stats;
+
+  restore_record(table, s->default_values);
+
+  table->field[IS_TS_DB_NAME]->store(info->db_name, info->db_name_len, cs);
+  table->field[IS_TS_TABLE_NAME]->store(info->table_name,
+                                        info->table_name_len, cs);
+  table->field[IS_TS_HA_READ_FIRST]->store(stats->ha_read_first_count, true);
+  table->field[IS_TS_HA_READ_LAST]->store(stats->ha_read_last_count, true);
+  table->field[IS_TS_HA_READ_KEY]->store(stats->ha_read_key_count, true);
+  table->field[IS_TS_HA_READ_NEXT]->store(stats->ha_read_next_count, true);
+  table->field[IS_TS_HA_READ_PREV]->store(stats->ha_read_prev_count, true);
+  table->field[IS_TS_HA_READ_RND]->store(stats->ha_read_rnd_count, true);
+  table->field[IS_TS_HA_READ_RND_NEXT]->store(stats->ha_read_rnd_next_count,
+                                              true);
+  table->field[IS_TS_HA_DELETE]->store(stats->ha_delete_count, true);
+  table->field[IS_TS_HA_UPDATE]->store(stats->ha_update_count, true);
+  table->field[IS_TS_HA_WRITE]->store(stats->ha_write_count, true);
+
+  for (uint i= 0; i < table->s->fields; i++)
+    table->field[i]->set_notnull();
+
+  return schema_table_store_record(thd, table);
+}
+
+/**
+  Collect handler statistics and fill in the TABLE_STATISTICS table.
+
+  @param thd    Thread context.
+  @param tables The I_S table.
+
+  @return 0 on success, non-zero otherwise.
+*/
+static int fill_table_stats(THD *thd, TABLE_LIST *tables, COND *)
+{
+  TABLE_STATS_INFO info[80];
+  uint cursor= 0, count= 0, size= array_elements(info);
+  DBUG_ENTER("fill_table_stats");
+
+  if (check_global_access(thd, PROCESS_ACL))
+    DBUG_RETURN(1);
+
+  /* Collect the statistics in batches. */
+  while (!thd->killed)
+  {
+    uint idx;
+
+    count= get_cached_table_stats(&cursor, info, size);
+
+    if (!count)
+      break;
+
+    for (idx= 0; idx < count; idx++)
+    {
+      if (table_stats_fill_record(thd, tables->table, &info[idx]))
+        break;
+    }
+
+    /* Bail out if storing a record fails. */
+    if (idx < count)
+      break;
+  }
+
+  DBUG_RETURN(test(count));
+}
+
 
 ST_FIELD_INFO schema_fields_info[]=
 {
@@ -7644,6 +7740,34 @@ ST_FIELD_INFO tablespaces_fields_info[]=
 };
 
 
+ST_FIELD_INFO table_stats_fields_info[]=
+{
+  {"TABLE_SCHEMA", NAME_CHAR_LEN, MYSQL_TYPE_STRING, 0, 0, 0, SKIP_OPEN_TABLE},
+  {"TABLE_NAME", NAME_CHAR_LEN, MYSQL_TYPE_STRING, 0, 0, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_READ_FIRST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_READ_LAST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_READ_KEY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_READ_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_READ_PREV", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_DELETE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_UPDATE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {"HANDLER_WRITE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
+  {NULL, 0, MYSQL_TYPE_STRING, 0, 0, 0, 0}
+};
+
+
 /*
   Description of ST_FIELD_INFO in table.h
 
@@ -7726,6 +7850,8 @@ ST_SCHEMA_TABLE schema_tables[]=
    get_all_tables, make_table_names_old_format, 0, 1, 2, 1, 0},
   {"TABLE_PRIVILEGES", table_privileges_fields_info, create_schema_table,
    fill_schema_table_privileges, 0, 0, -1, -1, 0, 0},
+  {"TABLE_STATISTICS", table_stats_fields_info, create_schema_table,
+   fill_table_stats, NULL, NULL, -1, -1, 0, 0},
   {"TRIGGERS", triggers_fields_info, create_schema_table,
    get_all_tables, make_old_format, get_schema_triggers_record, 5, 6, 0,
    OPEN_TRIGGER_ONLY|OPTIMIZE_I_S_TABLE},

@@ -703,6 +703,9 @@ struct TABLE_SHARE
   */
   Wait_for_flush_list m_flush_tickets;
 
+  /** Counters for handler operations. */
+  ha_operations_statistics m_handler_stats;
+
   /*
     Set share's table cache key and update its db and table name appropriately.
 
@@ -771,6 +774,8 @@ struct TABLE_SHARE
     return table_map_id;
   }
 
+  /** Accumulate the handler operations counters. */
+  void accrue_statistics(const HOS *stats);
 
   /** Is this table share being expelled from the table definition cache?  */
   inline bool has_old_version() const

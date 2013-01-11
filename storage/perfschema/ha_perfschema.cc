@@ -222,7 +222,7 @@ int ha_perfschema::write_row(uchar *buf)
 
   DBUG_ENTER("ha_perfschema::write_row");
 
-  ha_statistic_increment(&SSV::ha_write_count);
+  ha_macro_statistic_inc(ha_write_count);
   DBUG_ASSERT(m_table_share);
 
   if (m_table_share->m_write_row)
