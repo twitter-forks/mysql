@@ -8033,8 +8033,11 @@ int Rows_log_event::do_apply_event(Relay_log_info const *rli)
         estimated_rows= (m_rows_end - m_curr_row) / (m_curr_row_end - m_curr_row);
 
       if (m_curr_row < m_rows_end)
-        thd->print_proc_info("Handling record %lu of %lu for a %s event",
-                             processed_rows++, estimated_rows, get_type_str());
+        thd->print_proc_info("Handling row %lu of %lu for a %s event on table "
+                             "`%.*s`.`%.*s`.", processed_rows++, estimated_rows,
+                             get_type_str(), (int) table->s->db.length,
+                             table->s->db.str, (int) table->s->table_name.length,
+                             table->s->table_name.str);
 
       if (error)
       {

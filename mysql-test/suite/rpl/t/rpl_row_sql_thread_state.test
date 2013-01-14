@@ -54,8 +54,8 @@ ROLLBACK;
 connection slave;
 
 let $wait_condition=
-  SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.PROCESSLIST
-  WHERE STATE LIKE "Handling record % of 3 for a Delete_rows event";
+  SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.PROCESSLIST WHERE STATE LIKE
+  "Handling row % of 3 for a Delete_rows event on table `test`.`t1`";
 --source include/wait_condition.inc
 
 SET GLOBAL innodb_lock_wait_timeout = DEFAULT;
