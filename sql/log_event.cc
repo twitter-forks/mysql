@@ -45,7 +45,6 @@
 #include "rpl_record.h"
 #include "transaction.h"
 #include <my_dir.h>
-#include "sql_show.h"    // append_identifier
 
 #endif /* MYSQL_CLIENT */
 
@@ -1994,10 +1993,6 @@ Rows_log_event::print_verbose_one_row(IO_CACHE *file, table_def *td,
 void Rows_log_event::print_verbose(IO_CACHE *file,
                                    PRINT_EVENT_INFO *print_event_info)
 {
-  // Quoted length of the identifier can be twice the original length
-  char quoted_db[1 + NAME_LEN * 2 + 2];
-  char quoted_table[1 + NAME_LEN * 2 + 2];
-  int quoted_db_len, quoted_table_len;
   Table_map_log_event *map;
   table_def *td;
   const char *sql_command, *sql_clause1, *sql_clause2;
@@ -2034,23 +2029,9 @@ void Rows_log_event::print_verbose(IO_CACHE *file,
   for (const uchar *value= m_rows_buf; value < m_rows_end; )
   {
     size_t length;
-#ifdef MYSQL_SERVER
-    quoted_db_len= my_strmov_quoted_identifier(this->thd, (char *) quoted_db,
-                                        map->get_db_name(), 0);
-    quoted_table_len= my_strmov_quoted_identifier(this->thd,
-                                                  (char *) quoted_table,
-                                                  map->get_table_name(), 0);
-#else
-    quoted_db_len= my_strmov_quoted_identifier((char *) quoted_db,
-                                               map->get_db_name());
-    quoted_table_len= my_strmov_quoted_identifier((char *) quoted_table,
-                                          map->get_table_name());
-#endif
-    quoted_db[quoted_db_len]= '\0';
-    quoted_table[quoted_table_len]= '\0';
     my_b_printf(file, "### %s %s.%s\n",
                       sql_command,
-                      quoted_db, quoted_table);
+                      map->get_db_name(), map->get_table_name());
     /* Print the first image */
     if (!(length= print_verbose_one_row(file, td, print_event_info,
                                   map, &m_cols, value,
@@ -2209,20 +2190,24 @@ Log_event::continue_group(Relay_log_info *rli)
 void Query_log_event::pack_info(Protocol *protocol)
 {
   // TODO: show the catalog ??
-  String temp_buf;
-  // Add use `DB` to the string if required
+  char *buf, *pos;
+  if (!(buf= (char*) my_malloc(9 + db_len + q_len, MYF(MY_WME))))
+    return;
+  pos= buf;
   if (!(flags & LOG_EVENT_SUPPRESS_USE_F)
       && db && db_len)
   {
-    temp_buf.append("use ");
-    append_identifier(this->thd, &temp_buf, db, db_len);
-    temp_buf.append("; ");
+    pos= strmov(buf, "use `");
+    memcpy(pos, db, db_len);
+    pos= strmov(pos+db_len, "`; ");
   }
-  // Add the query to the string
   if (query && q_len)
-    temp_buf.append(query);
- // persist the buffer in protocol
-  protocol->store(temp_buf.ptr(), temp_buf.length(), &my_charset_bin);
+  {
+    memcpy(pos, query, q_len);
+    pos+= q_len;
+  }
+  protocol->store(buf, pos-buf, &my_charset_bin);
+  my_free(buf);
 }
 #endif
 
@@ -3051,8 +3036,6 @@ void Query_log_event::print_query_header(IO_CACHE* file,
 {
   // TODO: print the catalog ??
   char buff[40],*end;				// Enough for SET TIMESTAMP
-  char quoted_id[1+ 2*FN_REFLEN+ 2];
-  int quoted_len= 0;
   bool different_db= 1;
   uint32 tmp;
 
@@ -3071,17 +3054,11 @@ void Query_log_event::print_query_header(IO_CACHE* file,
   }
   else if (db)
   {
-#ifdef MYSQL_SERVER
-    quoted_len= my_strmov_quoted_identifier(this->thd, (char*)quoted_id, db, 0);
-#else
-    quoted_len= my_strmov_quoted_identifier((char*)quoted_id, db);
-#endif
-    quoted_id[quoted_len]= '\0';
     different_db= memcmp(print_event_info->db, db, db_len + 1);
     if (different_db)
       memcpy(print_event_info->db, db, db_len + 1);
     if (db[0] && different_db) 
-      my_b_printf(file, "use %s%s\n", quoted_id, print_event_info->delimiter);
+      my_b_printf(file, "use %s%s\n", db, print_event_info->delimiter);
   }
 
   end=int10_to_str((long) when, strmov(buff,"SET TIMESTAMP="),10);
@@ -4365,8 +4342,7 @@ void Format_description_log_event::calc_server_version_split()
 uint Load_log_event::get_query_buffer_length()
 {
   return
-    //the DB name may double if we escape the quote character
-    5 + 2*db_len + 3 +
+    5 + db_len + 3 +                        // "use DB; "
     18 + fname_len + 2 +                    // "LOAD DATA INFILE 'file''"
     11 +                                    // "CONCURRENT "
     7 +					    // LOCAL
@@ -4385,22 +4361,13 @@ uint Load_log_event::get_query_buffer_length()
 void Load_log_event::print_query(bool need_db, const char *cs, char *buf,
                                  char **end, char **fn_start, char **fn_end)
 {
-  char quoted_id[1 + NAME_LEN * 2 + 2];//quoted  length
-  int  quoted_id_len= 0;
   char *pos= buf;
 
   if (need_db && db && db_len)
   {
-    pos= strmov(pos, "use ");
-#ifdef MYSQL_SERVER
-    quoted_id_len= my_strmov_quoted_identifier(this->thd, (char *) quoted_id,
-                                               db, 0);
-#else
-    quoted_id_len= my_strmov_quoted_identifier((char *) quoted_id, db);
-#endif
-    quoted_id[quoted_id_len]= '\0';
-    pos= strmov(pos, quoted_id);
-    pos= strmov(pos, "; ");
+    pos= strmov(pos, "use `");
+    memcpy(pos, db, db_len);
+    pos= strmov(pos+db_len, "`; ");
   }
 
   pos= strmov(pos, "LOAD DATA ");
@@ -4427,15 +4394,17 @@ void Load_log_event::print_query(bool need_db, const char *cs, char *buf,
   if (fn_end)
     *fn_end= pos;
 
-  pos= strmov(pos ," TABLE ");
+  pos= strmov(pos ," TABLE `");
   memcpy(pos, table_name, table_name_len);
   pos+= table_name_len;
 
   if (cs != NULL)
   {
-    pos= strmov(pos ," CHARACTER SET ");
+    pos= strmov(pos ,"` CHARACTER SET ");
     pos= strmov(pos ,  cs);
   }
+  else
+    pos= strmov(pos, "`");
 
   /* We have to create all optional fields as the default is not empty */
   pos= strmov(pos, " FIELDS TERMINATED BY ");
@@ -4475,9 +4444,9 @@ void Load_log_event::print_query(bool need_db, const char *cs, char *buf,
         *pos++= ' ';
         *pos++= ',';
       }
-      quoted_id_len= my_strmov_quoted_identifier(this->thd, quoted_id, field,
-                                                 0);
-      memcpy(pos, quoted_id, quoted_id_len);
+      memcpy(pos, field, field_lens[i]);
+      pos+=   field_lens[i];
+      field+= field_lens[i]  + 1;
     }
     *pos++= ')';
   }
@@ -4725,8 +4694,6 @@ void Load_log_event::print(FILE* file, PRINT_EVENT_INFO* print_event_info)
 void Load_log_event::print(FILE* file_arg, PRINT_EVENT_INFO* print_event_info,
 			   bool commented)
 {
-  size_t id_len= 0;
-  char temp_buf[1 + 2*FN_REFLEN + 2];
   Write_on_release_cache cache(&print_event_info->head_cache, file_arg);
 
   DBUG_ENTER("Load_log_event::print");
@@ -4752,16 +4719,10 @@ void Load_log_event::print(FILE* file_arg, PRINT_EVENT_INFO* print_event_info,
   }
   
   if (db && db[0] && different_db)
-  {
-#ifdef MYSQL_SERVER
-    id_len= my_strmov_quoted_identifier(this->thd, temp_buf, db, 0);
-#else
-    id_len= my_strmov_quoted_identifier(temp_buf, db);
-#endif
-    temp_buf[id_len]= '\0';
-    my_b_printf(&cache, "%suse %s%s\n",
-            commented ? "# " : "", temp_buf, print_event_info->delimiter);
-  }
+    my_b_printf(&cache, "%suse %s%s\n", 
+            commented ? "# " : "",
+            db, print_event_info->delimiter);
+
   if (flags & LOG_EVENT_THREAD_SPECIFIC_F)
     my_b_printf(&cache,"%sSET @@session.pseudo_thread_id=%lu%s\n",
             commented ? "# " : "", (ulong)thread_id,
@@ -4776,14 +4737,8 @@ void Load_log_event::print(FILE* file_arg, PRINT_EVENT_INFO* print_event_info,
     my_b_printf(&cache,"REPLACE ");
   else if (sql_ex.opt_flags & IGNORE_FLAG)
     my_b_printf(&cache,"IGNORE ");
-
-#ifdef MYSQL_SERVER
-    id_len= my_strmov_quoted_identifier(this->thd, temp_buf, table_name, 0);
-#else
-    id_len= my_strmov_quoted_identifier(temp_buf, table_name);
-#endif
-  temp_buf[id_len]= '\0';
-  my_b_printf(&cache, "INTO TABLE %s", temp_buf);
+  
+  my_b_printf(&cache, "INTO TABLE `%s`", table_name);
   my_b_printf(&cache, " FIELDS TERMINATED BY ");
   pretty_print_str(&cache, sql_ex.field_term, sql_ex.field_term_len);
 
@@ -4816,9 +4771,7 @@ void Load_log_event::print(FILE* file_arg, PRINT_EVENT_INFO* print_event_info,
     {
       if (i)
         my_b_printf(&cache, ",");
-      id_len= my_strmov_quoted_identifier((char *) temp_buf, field);
-      temp_buf[id_len]= '\0';
-      my_b_printf(&cache, "%s", temp_buf);
+      my_b_printf(&cache, "%s", field);
 
       field += field_lens[i]  + 1;
     }
@@ -5755,10 +5708,7 @@ Xid_log_event::do_shall_skip(Relay_log_info *rli)
 void User_var_log_event::pack_info(Protocol* protocol)
 {
   char *buf= 0;
-  char quoted_id[1 + FN_REFLEN * 2 + 2];// quoted identifier
-  int id_len= my_strmov_quoted_identifier(this->thd, quoted_id, name, 0);
-  quoted_id[id_len]= '\0';
-  uint val_offset= 2 + id_len;
+  uint val_offset= 4 + name_len;
   uint event_len= val_offset;
 
   if (is_null)
@@ -5827,8 +5777,10 @@ void User_var_log_event::pack_info(Protocol* protocol)
     }
   }
   buf[0]= '@';
-  memcpy(buf + 1, quoted_id, id_len);
-  buf[1 + id_len]= '=';
+  buf[1]= '`';
+  memcpy(buf+2, name, name_len);
+  buf[2+name_len]= '`';
+  buf[3+name_len]= '=';
   protocol->store(buf, event_len, &my_charset_bin);
   my_free(buf);
 }
@@ -5999,8 +5951,6 @@ bool User_var_log_event::write(IO_CACHE* file)
 #ifdef MYSQL_CLIENT
 void User_var_log_event::print(FILE* file, PRINT_EVENT_INFO* print_event_info)
 {
-  char quoted_id[1 + NAME_LEN * 2 + 2];// quoted length of the identifier
-  int quoted_len= 0;
   Write_on_release_cache cache(&print_event_info->head_cache, file,
                                Write_on_release_cache::FLUSH_F);
 
@@ -6010,11 +5960,9 @@ void User_var_log_event::print(FILE* file, PRINT_EVENT_INFO* print_event_info)
     my_b_printf(&cache, "\tUser_var\n");
   }
 
-  my_b_printf(&cache, "SET @");
-  quoted_len= my_strmov_quoted_identifier((char *) quoted_id,
-                                          (const char *) name);
-  quoted_id[quoted_len]= '\0';
-  my_b_write(&cache, (uchar*) quoted_id, (uint) quoted_len);
+  my_b_printf(&cache, "SET @`");
+  my_b_write(&cache, (uchar*) name, (uint) (name_len));
+  my_b_printf(&cache, "`");
 
   if (is_null)
   {
@@ -7323,23 +7271,14 @@ void Execute_load_query_log_event::print(FILE* file,
 void Execute_load_query_log_event::pack_info(Protocol *protocol)
 {
   char *buf, *pos;
-  if (!(buf= (char*) my_malloc(9 + (db_len * 2) + 2 + q_len + 10 + 21,
-                               MYF(MY_WME))))
+  if (!(buf= (char*) my_malloc(9 + db_len + q_len + 10 + 21, MYF(MY_WME))))
     return;
   pos= buf;
   if (db && db_len)
   {
-    /*
-      Statically allocates room to store '\0' and an identifier
-      that may have NAME_LEN * 2 due to quoting and there are
-      two quoting characters that wrap them.
-    */
-    char quoted_db[1 + NAME_LEN * 2 + 2];// quoted length of the identifier
-    size_t size= 0;
-    size= my_strmov_quoted_identifier(this->thd, quoted_db, db, 0);
-    pos= strmov(buf, "use ");
-    memcpy(pos, quoted_db, size);
-    pos= strmov(pos + size, "; ");
+    pos= strmov(buf, "use `");
+    memcpy(pos, db, db_len);
+    pos= strmov(pos+db_len, "`; ");
   }
   if (query && q_len)
   {
@@ -10884,62 +10823,3 @@ Heartbeat_log_event::Heartbeat_log_event(const char* buf, uint event_len,
   log_ident= buf + header_size;
 }
 #endif
-
-#ifdef MYSQL_SERVER
-/*
-  This is a utility function that adds a quoted identifier into the a buffer.
-  This also escapes any existance of the quote string inside the identifier.
-
-  SYNOPSIS
-    my_strmov_quoted_identifier
-    thd                   thread handler
-    buffer                target buffer
-    identifier            the identifier to be quoted
-    length                length of the identifier
-*/
-size_t my_strmov_quoted_identifier(THD* thd, char *buffer,
-                                   const char* identifier,
-                                   uint length)
-{
-  int q= thd ? get_quote_char_for_identifier(thd, identifier, length) : '`';
-  return my_strmov_quoted_identifier_helper(q, buffer, identifier, length);
-}
-#else
-size_t my_strmov_quoted_identifier(char *buffer,  const char* identifier)
-{
-  int q= '`';
-  return my_strmov_quoted_identifier_helper(q, buffer, identifier, 0);
-}
-
-#endif
-
-size_t my_strmov_quoted_identifier_helper(int q, char *buffer,
-                                          const char* identifier,
-                                          uint length)
-{
-  size_t written= 0;
-  char quote_char;
-  uint id_length= (length) ? length : strlen(identifier);
-
-  if (q == EOF)
-  {
-    (void *) strncpy(buffer, identifier, id_length);
-    return id_length;
-  }
-  quote_char= (char) q;
-  *buffer++= quote_char;
-  written++;
-  while (id_length--)
-  {
-    if (*identifier == quote_char)
-    {
-      *buffer++= quote_char;
-      written++;
-    }
-    *buffer++= *identifier++;
-    written++;
-  }
-  *buffer++= quote_char;
-  return ++written;
-}
-
