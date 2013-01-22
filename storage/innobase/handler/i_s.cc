@@ -3744,7 +3744,7 @@ static ST_FIELD_INFO	i_s_innodb_buffer_page_basic_fields_info[] =
 
 #define IDX_BP_BASIC_PAGE_NUM		1
 	{STRUCT_FLD(field_name,		"PAGE_NUMBER"),
-	 STRUCT_FLD(field_length,	)MY_INT32_NUM_DECIMAL_DIGITS,
+	 STRUCT_FLD(field_length,	MY_INT32_NUM_DECIMAL_DIGITS),
 	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONG),
 	 STRUCT_FLD(value,		0),
 	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
