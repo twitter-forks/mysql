@@ -25,7 +25,6 @@ Created 10/25/1995 Heikki Tuuri
 
 #include "fil0fil.h"
 
-#include "mem0mem.h"
 #include "hash0hash.h"
 #include "os0file.h"
 #include "mach0data.h"
@@ -236,6 +235,7 @@ struct fil_space_struct {
 	ibool		is_in_unflushed_spaces; /*!< TRUE if this space is
 				currently in unflushed_spaces */
 	UT_LIST_NODE_T(fil_space_t) space_list;
+	fil_stat_t	stat;	/*!< Space statistics */
 				/*!< list of all spaces */
 	ulint		magic_n;/*!< FIL_SPACE_MAGIC_N */
 };
@@ -1291,7 +1291,7 @@ try_again:
 		return(FALSE);
 	}
 
-	space = mem_alloc(sizeof(fil_space_t));
+	space = mem_zalloc(sizeof(fil_space_t));
 
 	space->name = mem_strdup(name);
 	space->id = id;
@@ -4476,6 +4476,14 @@ fil_io(
 		return(DB_TABLESPACE_DELETED);
 	}
 
+	if (type == OS_FILE_READ) {
+		space->stat.n_read++;
+		space->stat.n_data_read+= len;
+	} else if (type == OS_FILE_WRITE) {
+		space->stat.n_wrtn++;
+		space->stat.n_data_wrtn+= len;
+	}
+
 	ut_ad((mode != OS_AIO_IBUF) || (space->purpose == FIL_TABLESPACE));
 
 	node = UT_LIST_GET_FIRST(space->chain);
@@ -4731,6 +4739,7 @@ retry:
 			ut_a(node->open);
 			file = node->handle;
 			node->n_pending_flushes++;
+			space->stat.n_flush++;
 
 			mutex_exit(&fil_system->mutex);
 
@@ -4976,4 +4985,85 @@ fil_close(void)
 	mem_free(fil_system);
 
 	fil_system = NULL;
+}
+
+/*******************************************************************//**
+Returns a list of space ids in the tablespace memory cache.
+@return	array representing the space id list */
+UNIV_INTERN
+ulint*
+fil_get_space_list(
+/*===============*/
+	mem_heap_t*	heap,		/*!< in: temp heap memory */
+	ulint*		n_space_ids)	/*!< out: number of space ids */
+{
+	fil_space_t*	space;
+	ulint*		space_ids;
+	ulint		n, len;
+
+	mutex_enter(&fil_system->mutex);
+
+	ut_ad(fil_system);
+
+	*n_space_ids = UT_LIST_GET_LEN(fil_system->space_list);
+
+	if (*n_space_ids == 0) {
+		mutex_exit(&fil_system->mutex);
+		return(NULL);
+	}
+
+	len = *n_space_ids;
+
+	/* Build a list of space ids. */
+	space_ids = mem_heap_alloc(heap, len * sizeof *space_ids);
+
+	space = UT_LIST_GET_FIRST(fil_system->space_list);
+
+	for (n = 0; n < len && space; n++) {
+		space_ids[n] = space->id;
+		space = UT_LIST_GET_NEXT(space_list, space);
+	}
+
+	ut_ad(n == *n_space_ids);
+
+	mutex_exit(&fil_system->mutex);
+
+	return(space_ids);
+}
+
+/********************************************************************//**
+Collect a batch of space statistics from the the tablespace memory cache.
+@return	Number of stat items filled. */
+UNIV_INTERN
+ulint
+fil_get_space_stat(
+/*===============*/
+	ulint		*space_ids,	/*!< in: array of space ids */
+	ulint		size,		/*!< in: size of space id array */
+	fil_stat_t	*stat,		/*!< in/out: stat array */
+	mem_heap_t*	heap)		/*!< in: temp heap memory */
+
+{
+	fil_space_t*	space;
+	ulint		count = 0;
+
+	mutex_enter(&fil_system->mutex);
+
+	while (size--) {
+		space = fil_space_get_by_id(*space_ids++);
+
+		if (space == NULL) {
+			continue;
+		}
+
+		*stat = space->stat;
+		stat->space_name = mem_heap_strdup(heap, space->name);
+		stat->space_id = space->id;
+		count++;
+		stat++;
+	}
+
+	mutex_exit(&fil_system->mutex);
+
+	return(count);
 }

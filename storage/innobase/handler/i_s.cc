@@ -3995,3 +3995,272 @@ UNIV_INTERN struct st_mysql_plugin	i_s_innodb_buffer_page_basic =
 	/* unsigned long */
 	STRUCT_FLD(flags, 0UL),
 };
+
+/* Fields of the dynamic table INNODB_SPACE_STATS. */
+static ST_FIELD_INFO	i_s_innodb_space_stats_fields_info[] =
+{
+#define IDX_SPACE_STATS_SPACE		0
+	{STRUCT_FLD(field_name,		"SPACE"),
+	 STRUCT_FLD(field_length,	MY_INT32_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_SPACE_STATS_SPACE_NAME	1
+	{STRUCT_FLD(field_name,		"SPACE_NAME"),
+	 STRUCT_FLD(field_length,	1024),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_STRING),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_MAYBE_NULL),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_SPACE_STATS_READ_REQS	2
+	{STRUCT_FLD(field_name,		"READ_REQS"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_SPACE_STATS_READ_BYTES	3
+	{STRUCT_FLD(field_name,		"READ_BYTES"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_SPACE_STATS_WRITE_REQS	4
+	{STRUCT_FLD(field_name,		"WRITE_REQS"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_SPACE_STATS_WRITE_BYTES	5
+	{STRUCT_FLD(field_name,		"WRITE_BYTES"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_SPACE_STATS_FLUSH_REQS	6
+	{STRUCT_FLD(field_name,		"FLUSH_REQS"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+	END_OF_ST_FIELD_INFO
+};
+
+/** Maximum number of space stats to cache. */
+#define MAX_SPACE_STATS_CACHE		80
+
+/** Initial size of the space id list for preallocation. */
+#define PREALLOC_SPACE_LIST_SIZE	1250
+
+/*******************************************************************//**
+Store records to the Information Schema table INNODB_SPACE_STATS table
+with information from a particular set of InnoDB space statistics.
+@return	0 on success, 1 on failure */
+static
+int
+i_s_innodb_space_stats_store(
+/*=========================*/
+	THD*		thd,		/*!< in: thread */
+	TABLE_LIST*	tables,		/*!< in: table to fill */
+	fil_stat_t*	stat,		/*!< in: space statistics array */
+	ulint		count)		/*!< in: size of the stat array */
+{
+	TABLE*			table;
+	Field**			fields;
+
+	DBUG_ENTER("i_s_innodb_space_stats_store");
+
+	table = tables->table;
+	fields = table->field;
+
+	for (ulint i = 0; i < count; i++, stat++) {
+		OK(fields[IDX_SPACE_STATS_SPACE]->store(stat->space_id));
+		OK(field_store_string(fields[IDX_SPACE_STATS_SPACE_NAME],
+				      stat->space_name));
+		OK(fields[IDX_SPACE_STATS_READ_REQS]->store(stat->n_read));
+		OK(fields[IDX_SPACE_STATS_READ_BYTES]->store(stat->n_data_read));
+		OK(fields[IDX_SPACE_STATS_WRITE_REQS]->store(stat->n_wrtn));
+		OK(fields[IDX_SPACE_STATS_WRITE_BYTES]->store(stat->n_data_wrtn));
+		OK(fields[IDX_SPACE_STATS_FLUSH_REQS]->store(stat->n_flush));
+		OK(schema_table_store_record(thd, table));
+	}
+
+	DBUG_RETURN(0);
+}
+
+/*******************************************************************//**
+Fill Information Schema table INNODB_SPACE_STATS with information from
+a list of InnoDB space IDs.
+@return	0 on success, 1 on failure */
+static
+int
+i_s_innodb_space_stats_fill(
+/*========================*/
+	THD*		thd,		/*!< in: thread */
+	TABLE_LIST*	table,		/*!< in/out: table to fill */
+	ulint		*space_ids,	/*!< in: array of space ids */
+	ulint		size)		/*!< in: size of array */
+{
+
+	ulint		chunk;
+	ulint		count;
+	mem_heap_t*	heap;
+	fil_stat_t*	stat;
+
+	heap = mem_heap_create((sizeof(fil_stat_t) + MAX_FULL_NAME_LEN)
+			       * MAX_SPACE_STATS_CACHE);
+
+	/* Read and cache space statistics in chunks so that the tablespace
+	memory cache lock is not held for long periods. */
+	while (size != 0 && thd_killed(thd) == 0) {
+
+		chunk = ut_min(size, MAX_SPACE_STATS_CACHE);
+
+		stat = (fil_stat_t *) mem_heap_alloc(heap,
+						     sizeof(fil_stat_t) * chunk);
+
+		count = fil_get_space_stat(space_ids, chunk, stat, heap);
+
+		if (i_s_innodb_space_stats_store(thd, table, stat, count)) {
+			break;
+		}
+
+		size -= chunk;
+		space_ids += chunk;
+		mem_heap_empty(heap);
+	}
+
+	mem_heap_free(heap);
+
+	return(test(size));
+}
+
+/*******************************************************************//**
+Retrieve statistical information about cached InnoDB table or log spaces
+and fill the INFORMATION_SCHEMA table INNODB_SPACE_STATS.
+@return	0 on success, 1 on failure */
+static
+int
+i_s_innodb_space_stats_fill_table(
+/*==============================*/
+	THD*		thd,		/*!< in: thread */
+	TABLE_LIST*	table,		/*!< in/out: table to fill */
+	Item*		)		/*!< in: condition (ignored) */
+{
+	int		rv;
+	mem_heap_t*	heap;
+	ulint		*space_ids;
+	ulint		n_space_ids;
+
+	DBUG_ENTER("i_s_innodb_space_stats_fill_table");
+
+	/* Deny access to users without PROCESS privilege. */
+	if (check_global_access(thd, PROCESS_ACL)) {
+		DBUG_RETURN(0);
+	}
+
+	heap = mem_heap_create(PREALLOC_SPACE_LIST_SIZE * sizeof(ulint));
+
+	/* Take a snapshot of the space list. */
+	space_ids = fil_get_space_list(heap, &n_space_ids);
+
+	/* Fill table using the space id list. */
+	rv = i_s_innodb_space_stats_fill(thd, table, space_ids, n_space_ids);
+
+	mem_heap_free(heap);
+
+	DBUG_RETURN(rv);
+}
+
+/*******************************************************************//**
+Bind the dynamic table INFORMATION_SCHEMA.INNODB_SPACE_STATS.
+@return	0 on success, 1 on failure */
+static
+int
+i_s_innodb_space_stats_init(
+/*========================*/
+	void*	p)	/*!< in/out: table schema object */
+{
+	ST_SCHEMA_TABLE*	schema;
+
+	DBUG_ENTER("i_s_innodb_space_stats_init");
+
+	schema = reinterpret_cast<ST_SCHEMA_TABLE*>(p);
+
+	schema->fields_info = i_s_innodb_space_stats_fields_info;
+	schema->fill_table = i_s_innodb_space_stats_fill_table;
+
+	DBUG_RETURN(0);
+}
+
+UNIV_INTERN struct st_mysql_plugin	i_s_innodb_space_stats =
+{
+	/* the plugin type (a MYSQL_XXX_PLUGIN value) */
+	/* int */
+	STRUCT_FLD(type, MYSQL_INFORMATION_SCHEMA_PLUGIN),
+
+	/* pointer to type-specific plugin descriptor */
+	/* void* */
+	STRUCT_FLD(info, &i_s_info),
+
+	/* plugin name */
+	/* const char* */
+	STRUCT_FLD(name, "INNODB_SPACE_STATS"),
+
+	/* plugin author (for SHOW PLUGINS) */
+	/* const char* */
+	STRUCT_FLD(author, "Twitter, Inc."),
+
+	/* general descriptive text (for SHOW PLUGINS) */
+	/* const char* */
+	STRUCT_FLD(descr, "InnoDB Space Statistics Information"),
+
+	/* the plugin license (PLUGIN_LICENSE_XXX) */
+	/* int */
+	STRUCT_FLD(license, PLUGIN_LICENSE_BSD),
+
+	/* the function to invoke when plugin is loaded */
+	/* int (*)(void*); */
+	STRUCT_FLD(init, i_s_innodb_space_stats_init),
+
+	/* the function to invoke when plugin is unloaded */
+	/* int (*)(void*); */
+	STRUCT_FLD(deinit, NULL),
+
+	/* plugin version (for SHOW PLUGINS) */
+	/* unsigned int */
+	STRUCT_FLD(version, INNODB_VERSION_SHORT),
+
+	/* struct st_mysql_show_var* */
+	STRUCT_FLD(status_vars, NULL),
+
+	/* struct st_mysql_sys_var** */
+	STRUCT_FLD(system_vars, NULL),
+
+	/* reserved for dependency checking */
+	/* void* */
+	STRUCT_FLD(__reserved1, NULL),
+
+	/* Plugin flags */
+	/* unsigned long */
+	STRUCT_FLD(flags, 0UL),
+};

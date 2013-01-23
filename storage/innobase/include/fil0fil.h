@@ -30,6 +30,7 @@ Created 10/25/1995 Heikki Tuuri
 #include "dict0types.h"
 #include "ut0byte.h"
 #include "os0file.h"
+#include "mem0mem.h"
 #ifndef UNIV_HOTBACKUP
 #include "sync0rw.h"
 #include "ibuf0types.h"
@@ -163,6 +164,19 @@ extern ulint	fil_n_pending_tablespace_flushes;
 extern ulint	fil_n_tablespace_opened;
 /** Number of tablespace files closed. */
 extern ulint	fil_n_tablespace_closed;
+
+/** Space statistics struct */
+struct fil_stat_struct {
+	ulint	space_id;	/* Space ID. */
+	char*	space_name;	/* Space name. */
+	ulint	n_read;		/* Number of read requests. */
+	ulint	n_data_read;	/* Number of bytes read. */
+	ulint	n_wrtn;		/* Number of write requests. */
+	ulint	n_data_wrtn;	/* Number of bytes written. */
+	ulint	n_flush;	/* Number of flushes. */
+};
+
+typedef	struct fil_stat_struct	fil_stat_t;
 
 #ifndef UNIV_HOTBACKUP
 /*******************************************************************//**
@@ -737,6 +751,28 @@ ibool
 fil_tablespace_is_being_deleted(
 /*============================*/
 	ulint		id);	/*!< in: space id */
+
+/********************************************************************//**
+Returns a list of space ids in the tablespace memory cache.
+@return	array representing the space id list */
+UNIV_INTERN
+ulint*
+fil_get_space_list(
+/*===============*/
+	mem_heap_t*	heap,		/*!< in: temp heap memory */
+	ulint*		n_space_ids);	/*!< out: number of space ids */
+
+/********************************************************************//**
+Collect a batch of space statistics from the the tablespace memory cache.
+@return	Number of stat items filled. */
+UNIV_INTERN
+ulint
+fil_get_space_stat(
+/*===============*/
+	ulint		*space_ids,	/*!< in: array of space ids */
+	ulint		size,		/*!< in: size of space id array */
+	fil_stat_t	*stat,		/*!< in/out: stat array */
+	mem_heap_t*	heap);		/*!< in: temp heap memory */
 
 typedef	struct fil_space_struct	fil_space_t;
 

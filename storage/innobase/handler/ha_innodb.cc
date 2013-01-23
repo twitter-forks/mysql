@@ -12199,7 +12199,8 @@ i_s_innodb_cmpmem_reset,
 i_s_innodb_buffer_page,
 i_s_innodb_buffer_page_lru,
 i_s_innodb_buffer_stats,
-i_s_innodb_buffer_page_basic
+i_s_innodb_buffer_page_basic,
+i_s_innodb_space_stats
 mysql_declare_plugin_end;
 
 /** @brief Initialize the default value of innodb_commit_concurrency.

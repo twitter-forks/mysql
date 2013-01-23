@@ -1,0 +1,57 @@
+SET GLOBAL innodb_file_per_table = ON;
+#
+# Expose I/O operations counters per tablespace
+#
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+CREATE TABLE t2 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+BEGIN;
+INSERT INTO t1 VALUES (1,1), (2,2);
+INSERT INTO t2 VALUES (1,1), (2,2);
+COMMIT;
+# Wait for I/O to be started (dirty pages to be flushed).
+# Display statistics.
+SELECT WRITE_REQS, WRITE_BYTES FROM INFORMATION_SCHEMA.INNODB_SPACE_STATS
+WHERE SPACE_NAME LIKE '%test/t%';
+WRITE_REQS	4
+WRITE_BYTES	65536
+WRITE_REQS	4
+WRITE_BYTES	65536
+# Display tablespace names.
+SELECT SUBSTRING(SPACE_NAME, -11) AS `SPACE_NAME` FROM
+INFORMATION_SCHEMA.INNODB_SPACE_STATS WHERE SPACE_NAME LIKE '%test/t%'
+  ORDER BY SPACE;
+SPACE_NAME	test/t1.ibd
+SPACE_NAME	test/t2.ibd
+# Restart to simulate the tablespace cache being flushed.
+# Now counters should have been reset.
+SELECT SUBSTRING(SPACE_NAME, -11) AS `SPACE_NAME`, READ_REQS, WRITE_REQS
+FROM INFORMATION_SCHEMA.INNODB_SPACE_STATS WHERE SPACE_NAME LIKE '%test/t%';
+SPACE_NAME	test/t1.ibd
+READ_REQS	0
+WRITE_REQS	0
+SPACE_NAME	test/t2.ibd
+READ_REQS	0
+WRITE_REQS	0
+# Read from the tablespace.
+SELECT COUNT(*) FROM t1;
+COUNT(*)	2
+# Check that the read counters have been incremented.
+SELECT READ_REQS, READ_BYTES FROM INFORMATION_SCHEMA.INNODB_SPACE_STATS
+WHERE SPACE_NAME LIKE '%test/t1%';
+READ_REQS	3
+READ_BYTES	49152
+# Check that statistics are not lost on rename.
+RENAME TABLE t1 TO t3;
+SELECT READ_REQS, READ_BYTES FROM INFORMATION_SCHEMA.INNODB_SPACE_STATS
+WHERE SPACE_NAME LIKE '%test/t3%';
+READ_REQS	3
+READ_BYTES	49152
+# Trigger a write operation to the tablespace.
+INSERT INTO t3 VALUES (3,3);
+# Wait for tablespace to be flushed.
+# Drop tables from the cache.
+DROP TABLE t2, t3;
+# Dropped tables are removed from the cache.
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.INNODB_SPACE_STATS
+WHERE SPACE_NAME LIKE '%test/t%';
+COUNT(*)	0

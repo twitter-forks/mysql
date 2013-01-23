@@ -116,11 +116,12 @@ Database: information_schema
 | INNODB_LOCK_WAITS                     |
 | INNODB_CMPMEM                         |
 | INNODB_CMP                            |
-| INNODB_LOCKS                          |
+| INNODB_SPACE_STATS                    |
 | INNODB_CMPMEM_RESET                   |
 | INNODB_CMP_RESET                      |
 | INNODB_BUFFER_PAGE_LRU                |
 | INNODB_BUFFER_PAGE_BASIC              |
+| INNODB_LOCKS                          |
 +---------------------------------------+
 Database: INFORMATION_SCHEMA
 +---------------------------------------+
@@ -163,11 +164,12 @@ Database: INFORMATION_SCHEMA
 | INNODB_LOCK_WAITS                     |
 | INNODB_CMPMEM                         |
 | INNODB_CMP                            |
-| INNODB_LOCKS                          |
+| INNODB_SPACE_STATS                    |
 | INNODB_CMPMEM_RESET                   |
 | INNODB_CMP_RESET                      |
 | INNODB_BUFFER_PAGE_LRU                |
 | INNODB_BUFFER_PAGE_BASIC              |
+| INNODB_LOCKS                          |
 +---------------------------------------+
 Wildcard: inf_rmation_schema
 +--------------------+
