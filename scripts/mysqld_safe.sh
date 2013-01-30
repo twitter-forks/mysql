@@ -126,7 +126,7 @@ log_generic () {
   priority="$1"
   shift
 
-  msg="`date +'%y%m%d %H:%M:%S'` mysqld_safe $*"
+  msg="`date +'%Y-%m-%d %H:%M:%S'` $$ mysqld_safe: $*"
   echo "$msg"
   case $logging in
     init) ;;  # Just echo the message, don't save it anywhere
