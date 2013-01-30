@@ -27,7 +27,8 @@ dump_callback(const char *dump_path,
               void *,
               bool succeeded)
 {
-  my_safe_printf_stderr("Minidump: %s/%s.dmp\n\n", dump_path, minidump_id);
+  if (succeeded)
+    my_safe_printf_stderr("Minidump: %s/%s.dmp\n\n", dump_path, minidump_id);
   return succeeded;
 }
 
