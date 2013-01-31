@@ -828,6 +828,8 @@ static SHOW_VAR innodb_status_variables[]= {
   (char*) &export_vars.innodb_rows_read,		  SHOW_LONG},
   {"rows_updated",
   (char*) &export_vars.innodb_rows_updated,		  SHOW_LONG},
+  {"semaphore_stalls",
+  (char*) &export_vars.innodb_semaphore_stalls,		  SHOW_LONG},
   {"tablespace_files_open",
   (char*) &export_vars.innodb_tablespace_files_open,	  SHOW_LONG},
   {"tablespace_files_opened",

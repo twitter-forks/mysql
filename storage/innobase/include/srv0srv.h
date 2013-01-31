@@ -390,6 +390,9 @@ extern ulint srv_buf_pool_LRU_unzip_search_scanned;
 /** Number of searches performed for a clean page. */
 extern ulint srv_buf_pool_LRU_get_free_search;
 
+/** Number of semaphore stalls. */
+extern ulint srv_n_semaphore_stalls;
+
 /** Status variables to be passed to MySQL */
 typedef struct export_var_struct export_struc;
 
@@ -852,6 +855,7 @@ struct export_var_struct{
 	ulint innodb_btree_page_merge;		/*!< btr_n_page_merge */
 	ulint innodb_btree_page_merge_succ;	/*!< btr_n_page_merge_succ */
 	ulint innodb_btree_page_discard;	/*!< btr_n_page_discard */
+	ulint innodb_semaphore_stalls;		/*!< srv_n_semaphore_stalls */
 	ib_uint64_t innodb_trx_max_id;		/*!< trx_sys->max_trx_id */
 	ib_uint64_t innodb_purge_trx_no;	/*!< purge_sys->purge_trx_no */
 	ib_uint64_t innodb_purge_undo_no;	/*!< purge_sys->purge_undo_no */

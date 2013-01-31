@@ -392,6 +392,9 @@ UNIV_INTERN ulint srv_buf_pool_LRU_unzip_search_scanned;
 /** Number of searches performed for a clean page. */
 UNIV_INTERN ulint srv_buf_pool_LRU_get_free_search;
 
+/** Number of semaphore stalls. */
+UNIV_INTERN ulint srv_n_semaphore_stalls	= 0;
+
 /* structure to pass status variables to MySQL */
 UNIV_INTERN export_struc export_vars;
 
@@ -2249,6 +2252,8 @@ srv_export_innodb_status(void)
 	export_vars.innodb_ibuf_merged_pages = ibuf_stat.n_merges;
 	export_vars.innodb_ibuf_pages = ibuf_stat.size;
 
+	export_vars.innodb_semaphore_stalls = srv_n_semaphore_stalls;
+
 	mutex_exit(&srv_innodb_monitor_mutex);
 }
 
@@ -2539,6 +2544,7 @@ srv_error_monitor_thread(
 {
 	/* number of successive fatal timeouts observed */
 	ulint		fatal_cnt	= 0;
+	ulint		stall_cnt	= 0;
 	ib_uint64_t	old_lsn;
 	ib_uint64_t	new_lsn;
 	ib_int64_t	sig_count;
@@ -2602,7 +2608,7 @@ loop:
 
 	sync_arr_wake_threads_if_sema_free();
 
-	if (sync_array_print_long_waits(&waiter, &sema)
+	if (sync_array_print_long_waits(&waiter, &sema, &stall_cnt)
 	    && sema == old_sema && os_thread_eq(waiter, old_waiter)) {
 		fatal_cnt++;
 		if (fatal_cnt > 10) {
@@ -2621,6 +2627,9 @@ loop:
 		old_waiter = waiter;
 		old_sema = sema;
 	}
+
+	srv_n_semaphore_stalls += stall_cnt;
+	stall_cnt = 0;
 
 	/* Flush stderr so that a database user gets the output
 	to possible MySQL error file */

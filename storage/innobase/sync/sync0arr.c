@@ -918,13 +918,15 @@ ibool
 sync_array_print_long_waits(
 /*========================*/
 	os_thread_id_t*	waiter,	/*!< out: longest waiting thread */
-	const void**	sema)	/*!< out: longest-waited-for semaphore */
+	const void**	sema,	/*!< out: longest-waited-for semaphore */
+	ulint*		n_tmo)	/*!< out: number of timed-out semaphores */
 {
 	sync_cell_t*	cell;
 	ibool		old_val;
 	ibool		noticed = FALSE;
 	ulint		i;
 	ulint		fatal_timeout = srv_fatal_semaphore_wait_threshold;
+	ulint		n_stalls = 0;
 	ibool		fatal = FALSE;
 	double		longest_diff = 0;
 
@@ -966,6 +968,7 @@ sync_array_print_long_waits(
 			      stderr);
 			sync_array_cell_print(stderr, cell);
 			noticed = TRUE;
+			n_stalls++;
 		}
 
 		if (diff > fatal_timeout) {
@@ -978,6 +981,8 @@ sync_array_print_long_waits(
 			*waiter = cell->thread;
 		}
 	}
+
+	*n_tmo = n_stalls;
 
 	if (noticed) {
 		fprintf(stderr,

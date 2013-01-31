@@ -118,7 +118,8 @@ ibool
 sync_array_print_long_waits(
 /*========================*/
 	os_thread_id_t*	waiter,	/*!< out: longest waiting thread */
-	const void**	sema)	/*!< out: longest-waited-for semaphore */
+	const void**	sema,	/*!< out: longest-waited-for semaphore */
+	ulint*		n_tmo)	/*!< out: number of timed-out semaphores */
 	__attribute__((nonnull));
 /********************************************************************//**
 Validates the integrity of the wait array. Checks
