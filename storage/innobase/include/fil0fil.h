@@ -752,6 +752,21 @@ fil_tablespace_is_being_deleted(
 /*============================*/
 	ulint		id);	/*!< in: space id */
 
+/****************************************************************//**
+Generate redo logs for swapping two .ibd files */
+UNIV_INTERN
+void
+fil_mtr_rename_log(
+/*===============*/
+	ulint		old_space_id,	/*!< in: tablespace id of the old
+					table. */
+	const char*	old_name,	/*!< in: old table name */
+	ulint		new_space_id,	/*!< in: tablespace id of the new
+					table */
+	const char*	new_name,	/*!< in: new table name */
+	const char*	tmp_name);	/*!< in: temp table name used while
+					swapping */
+
 /********************************************************************//**
 Returns a list of space ids in the tablespace memory cache.
 @return	array representing the space id list */

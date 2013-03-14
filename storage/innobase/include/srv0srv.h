@@ -283,6 +283,10 @@ extern ulint	srv_fatal_semaphore_wait_threshold;
 #define SRV_SEMAPHORE_WAIT_EXTENSION	7200
 extern ulint	srv_dml_needed_delay;
 
+#ifdef UNIV_DEBUG
+extern my_bool	srv_purge_view_update_only_debug;
+#endif /* UNIV_DEBUG */
+
 extern mutex_t*	kernel_mutex_temp;/* mutex protecting the server, trx structs,
 				query threads, and lock table: we allocate
 				it from dynamic memory to get it to the
@@ -392,6 +396,9 @@ extern ulint srv_buf_pool_LRU_get_free_search;
 
 /** Number of semaphore stalls. */
 extern ulint srv_n_semaphore_stalls;
+
+/** print all user-level transactions deadlocks to mysqld stderr */
+extern my_bool srv_print_all_deadlocks;
 
 /** Status variables to be passed to MySQL */
 typedef struct export_var_struct export_struc;
@@ -760,7 +767,9 @@ struct export_var_struct{
 	ulint innodb_data_reads;		/*!< I/O read requests */
 	ulint innodb_buffer_pool_pages_total;	/*!< Buffer pool size */
 	ulint innodb_buffer_pool_pages_data;	/*!< Data pages */
+	ulint innodb_buffer_pool_bytes_data;	/*!< File bytes used */
 	ulint innodb_buffer_pool_pages_dirty;	/*!< Dirty data pages */
+	ulint innodb_buffer_pool_bytes_dirty;	/*!< File bytes modified */
 	ulint innodb_buffer_pool_pages_misc;	/*!< Miscellanous pages */
 	ulint innodb_buffer_pool_pages_free;	/*!< Free pages */
 #ifdef UNIV_DEBUG
@@ -862,6 +871,11 @@ struct export_var_struct{
 	ib_int64_t innodb_mysql_master_log_pos;	/*!< Master binlog file position. */
 	char innodb_mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN + 1];
 						/*!< Master binlog file name. */
+#ifdef UNIV_DEBUG
+	ulint innodb_purge_trx_id_age;		/*!< max_trx_id - purged trx_id */
+	ulint innodb_purge_view_trx_id_age;	/*!< rw_max_trx_id
+						- purged view's min trx_id */
+#endif /* UNIV_DEBUG */
 };
 
 /** Thread slot in the thread table */
