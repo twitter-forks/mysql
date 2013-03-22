@@ -174,6 +174,8 @@ struct fil_stat_struct {
 	ulint	n_wrtn;		/* Number of write requests. */
 	ulint	n_data_wrtn;	/* Number of bytes written. */
 	ulint	n_flush;	/* Number of flushes. */
+	ulint	n_extension;	/* Number of space extensions. */
+	ulint   n_extend_bytes;	/* Number of bytes that the space has been extended. */
 };
 
 typedef	struct fil_stat_struct	fil_stat_t;

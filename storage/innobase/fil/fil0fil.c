@@ -4080,6 +4080,8 @@ fil_extend_space_to_desired_size(
 				 page_size * n_pages,
 				 NULL, NULL);
 #endif
+		space->stat.n_extend_bytes += n_pages * page_size;
+
 		if (success) {
 			node->size += n_pages;
 			space->size += n_pages;
@@ -4108,6 +4110,7 @@ fil_extend_space_to_desired_size(
 	fil_node_complete_io(node, fil_system, OS_FILE_WRITE);
 
 	*actual_size = space->size;
+	space->stat.n_extension++;
 
 #ifndef UNIV_HOTBACKUP
 	if (space_id == 0) {

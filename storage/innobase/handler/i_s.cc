@@ -4062,6 +4062,24 @@ static ST_FIELD_INFO	i_s_innodb_space_stats_fields_info[] =
 	 STRUCT_FLD(old_name,		NULL),
 	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
 
+#define IDX_SPACE_STATS_EXTEND_REQS	7
+	{STRUCT_FLD(field_name,		"EXTEND_REQS"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
+#define IDX_SPACE_STATS_EXTEND_BYTES	8
+	{STRUCT_FLD(field_name,		"EXTEND_BYTES"),
+	 STRUCT_FLD(field_length,	MY_INT64_NUM_DECIMAL_DIGITS),
+	 STRUCT_FLD(field_type,		MYSQL_TYPE_LONGLONG),
+	 STRUCT_FLD(value,		0),
+	 STRUCT_FLD(field_flags,	MY_I_S_UNSIGNED),
+	 STRUCT_FLD(old_name,		NULL),
+	 STRUCT_FLD(open_method,	SKIP_OPEN_TABLE)},
+
 	END_OF_ST_FIELD_INFO
 };
 
@@ -4101,6 +4119,8 @@ i_s_innodb_space_stats_store(
 		OK(fields[IDX_SPACE_STATS_WRITE_REQS]->store(stat->n_wrtn));
 		OK(fields[IDX_SPACE_STATS_WRITE_BYTES]->store(stat->n_data_wrtn));
 		OK(fields[IDX_SPACE_STATS_FLUSH_REQS]->store(stat->n_flush));
+		OK(fields[IDX_SPACE_STATS_EXTEND_REQS]->store(stat->n_extension));
+		OK(fields[IDX_SPACE_STATS_EXTEND_BYTES]->store(stat->n_extend_bytes));
 		OK(schema_table_store_record(thd, table));
 	}
 
