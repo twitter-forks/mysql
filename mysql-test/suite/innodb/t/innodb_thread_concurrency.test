@@ -1,0 +1,103 @@
+--source include/have_innodb.inc
+--source include/have_debug_sync.inc
+
+--echo # Create a global status view that converts the type of the
+--echo # VARIABLE_VALUE column from a string to an unsigned integer.
+CREATE VIEW gsv AS SELECT VARIABLE_NAME, CONVERT(VARIABLE_VALUE, UNSIGNED)
+  AS VARIABLE_VALUE FROM INFORMATION_SCHEMA.GLOBAL_STATUS;
+
+--echo #
+--echo # Export InnoDB's thread concurrency information.
+--echo #
+
+SET @old_innodb_file_per_table = @@GLOBAL.innodb_file_per_table;
+SET GLOBAL innodb_file_per_table = ON;
+
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,1),(2,2),(3,3),(4,4),(5,5);
+
+SET @old_innodb_thread_concurrency = @@GLOBAL.innodb_thread_concurrency;
+
+--echo # Only one thread is allowed inside InnoDB (for row operations).
+SET GLOBAL innodb_thread_concurrency = 1;
+
+--echo # Start transactions within InnoDB.
+--echo # Connection: con1
+connect(con1,localhost,root,,);
+BEGIN;
+SELECT * FROM t1 WHERE a = 1;
+
+--echo # Connection: con2
+connect(con2,localhost,root,,);
+BEGIN;
+SELECT * FROM t1 WHERE a = 2;
+
+--echo # Connection: default
+connection default;
+
+--echo # Record active/waiting status values.
+SELECT VARIABLE_VALUE INTO @threads_active FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_THREAD_CONCURRENCY_ACTIVE';
+
+SELECT VARIABLE_VALUE INTO @threads_waiting FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_THREAD_CONCURRENCY_WAITING';
+
+--echo # Connection: con1
+connection con1;
+--echo # Park an active thread inside InnoDB.
+SET DEBUG_SYNC='innodb_row_update_for_mysql_begin SIGNAL inside_innodb WAIT_FOR go';
+send UPDATE t1 SET a = 6, b = 6 WHERE a = 1;
+
+--echo # Connection: default
+connection default;
+SET DEBUG_SYNC='now WAIT_FOR inside_innodb';
+
+--echo # Connection: con2
+connection con2;
+--echo # Park thread in InnoDB's concurrency queue.
+send DELETE FROM t1 WHERE a = 2;
+
+--echo # Connection: default
+connection default;
+--echo # Wait for thread to be pushed to the queue.
+let $wait_condition=
+  SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.INNODB_TRX
+  WHERE trx_query = 'DELETE FROM t1 WHERE a = 2' AND
+        trx_operation_state = 'waiting in InnoDB queue';
+--source include/wait_condition.inc
+
+--echo # Ensure that the status counters are incremented.
+SELECT COUNT(*) FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_THREAD_CONCURRENCY_ACTIVE' AND
+  VARIABLE_VALUE > @threads_active;
+
+SELECT COUNT(*) FROM gsv WHERE
+  VARIABLE_NAME = 'INNODB_THREAD_CONCURRENCY_WAITING' AND
+  VARIABLE_VALUE > @threads_waiting;
+
+SET DEBUG_SYNC='now SIGNAL go';
+
+--echo # Connection: con1
+connection con1;
+reap;
+
+--echo # Connection: con2
+connection con2;
+reap;
+
+disconnect con1;
+disconnect con2;
+
+--echo # Connection: default
+connection default;
+
+DROP TABLE t1;
+
+SET GLOBAL innodb_thread_concurrency = @old_innodb_thread_concurrency;
+SET GLOBAL innodb_file_per_table = @old_innodb_file_per_table;
+
+--echo #
+--echo # Cleanup
+--echo #
+
+DROP VIEW gsv;

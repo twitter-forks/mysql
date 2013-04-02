@@ -2272,6 +2272,11 @@ srv_export_innodb_status(void)
 
 	export_vars.innodb_semaphore_stalls = srv_n_semaphore_stalls;
 
+	export_vars.innodb_thread_concurrency_active =
+		srv_conc_n_threads;
+	export_vars.innodb_thread_concurrency_waiting =
+		srv_conc_n_waiting_threads;
+
 #ifdef UNIV_DEBUG
 	if (trx_sys->max_trx_id < purge_sys->done_trx_no) {
 		export_vars.innodb_purge_trx_id_age = 0;
