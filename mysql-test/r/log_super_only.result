@@ -1,0 +1,33 @@
+#
+# Test general query log superuser filtering
+#
+SET @old_general_log= @@global.general_log;
+SET @old_general_log_file= @@global.general_log_file;
+CREATE USER user1;
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+DROP TABLE t1;
+SET GLOBAL general_log = 0;
+SET GLOBAL general_log_super_only = 1;
+set global general_log_file='MYSQLTEST_VARDIR/tmp/super_only.log';
+SET GLOBAL general_log = 1;
+SET GLOBAL general_log_super_only = 1;
+SET GLOBAL general_log_query_error = 1;
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+BEGIN;
+INSERT INTO t1 VALUES (1, 1);
+INSERT INTO t1 VALUES (2, 2);
+INSERT INTO t1 SELECT 1, SLEEP(2);
+ERROR 23000: Duplicate entry '1' for key 'PRIMARY'
+BEGIN;
+INSERT INTO t1 VALUES (3, 3);
+INSERT INTO t1 SELECT 4, SLEEP(2);
+UPDATE t1 SET b=33 WHERE a=3;
+connect(localhost,user2,,test,MASTER_PORT,MASTER_SOCKET);
+ERROR 28000: Access denied for user 'user2'@'localhost' (using password: NO)
+# Connection: default
+DROP TABLE t1;
+DROP USER user1;
+SET global general_log = @old_general_log;
+SET global general_log_file = @old_general_log_file;
+SET GLOBAL general_log_super_only = 0;
+SET GLOBAL general_log_query_error = 0;

@@ -330,7 +330,6 @@ static Sys_var_ulong Sys_binlog_stmt_cache_size(
 
 static bool check_has_super(sys_var *self, THD *thd, set_var *var)
 {
-  DBUG_ASSERT(self->scope() != sys_var::GLOBAL);// don't abuse check_has_super()
 #ifndef NO_EMBEDDED_ACCESS_CHECKS
   if (!(thd->security_ctx->master_access & SUPER_ACL))
   {
@@ -3089,6 +3088,17 @@ static bool fix_log_state(sys_var *self, THD *thd, enum_var_type type)
   mysql_mutex_lock(&LOCK_global_system_variables);
   return res;
 }
+
+static Sys_var_mybool Sys_general_log_super_only(
+       "general_log_super_only", "Don't allow non-superusers to log queries to general log.",
+       GLOBAL_VAR(opt_log_super_only), CMD_LINE(OPT_ARG),
+       DEFAULT(FALSE), NO_MUTEX_GUARD, NOT_IN_BINLOG,
+       ON_CHECK(check_has_super));
+
+static Sys_var_mybool Sys_general_log_query_error(
+       "general_log_query_error", "Record users query status in general log.",
+       GLOBAL_VAR(opt_log_query_error), CMD_LINE(OPT_ARG),
+       DEFAULT(FALSE), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0));
 
 static bool check_not_empty_set(sys_var *self, THD *thd, set_var *var)
 {
