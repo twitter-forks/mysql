@@ -334,6 +334,9 @@ public:
   /** A lock is requested based on a fully qualified name and type. */
   MDL_key key;
 
+  /** The lock request has NO_WAIT non-blocking mode. */
+  bool lock_no_wait;
+
 public:
   static void *operator new(size_t size, MEM_ROOT *mem_root) throw ()
   { return alloc_root(mem_root, size); }
@@ -378,7 +381,8 @@ public:
     :type(rhs->type),
     duration(rhs->duration),
     ticket(NULL),
-    key(&rhs->key)
+    key(&rhs->key),
+    lock_no_wait(FALSE)
   {}
 };
 
@@ -495,6 +499,17 @@ public:
   /** Implement MDL_wait_for_subgraph interface. */
   virtual bool accept_visitor(MDL_wait_for_graph_visitor *dvisitor);
   virtual uint get_deadlock_weight() const;
+
+  void set_abort_conflicting_lock_requests(bool abort_lock_requests)
+  {
+    m_abort_conflicting_lock_requests= abort_lock_requests;
+  }
+
+  bool get_abort_conflicting_lock_requests() const
+  {
+    return m_abort_conflicting_lock_requests;
+  }
+
 private:
   friend class MDL_context;
 
@@ -508,7 +523,8 @@ private:
      m_duration(duration_arg),
 #endif
      m_ctx(ctx_arg),
-     m_lock(NULL)
+     m_lock(NULL),
+     m_abort_conflicting_lock_requests(FALSE)
   {}
 
   static MDL_ticket *create(MDL_context *ctx_arg, enum_mdl_type type_arg
@@ -536,6 +552,14 @@ private:
     Pointer to the lock object for this lock ticket. Externally accessible.
   */
   MDL_lock *m_lock;
+
+  /**
+    Whether conflicting lock requests are aborted or blocked.
+
+    @remark If TRUE, a conflicting lock request is not allowed to wait until
+     the lock is released.
+  */
+  bool m_abort_conflicting_lock_requests;
 
 private:
   MDL_ticket(const MDL_ticket &);               /* not implemented */
@@ -702,16 +726,6 @@ public:
     return m_needs_thr_lock_abort;
   }
 
-  void set_abort_conflicting_lock_requests(bool abort_lock_requests)
-  {
-    m_abort_conflicting_lock_requests= abort_lock_requests;
-  }
-
-  bool get_abort_conflicting_lock_requests() const
-  {
-    return m_abort_conflicting_lock_requests;
-  }
-
 public:
   /**
     If our request for a lock is scheduled, or aborted by the deadlock
@@ -785,14 +799,6 @@ private:
     FALSE - Otherwise.
   */
   bool m_needs_thr_lock_abort;
-
-  /**
-    Whether conflicting lock requests are aborted or blocked.
-
-    @remark If TRUE, a conflicting lock request is not allowed
-            to wait until the lock is released.
-  */
-  bool m_abort_conflicting_lock_requests;
 
   /**
     Read-write lock protecting m_waiting_for member.

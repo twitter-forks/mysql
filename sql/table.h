@@ -1651,7 +1651,8 @@ struct TABLE_LIST
       qualified name (<db_name>.<table_name>).
   */
   bool          is_fqtn;
-
+  /* TRUE if the table is to be locked in NO_WAIT mode. */
+  bool          lock_table_no_wait;
 
   /* View creation context. */
 

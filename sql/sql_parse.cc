@@ -6082,6 +6082,7 @@ TABLE_LIST *st_select_lex::add_table_to_list(THD *thd,
   ptr->cacheable_table= 1;
   ptr->index_hints= index_hints_arg;
   ptr->option= option ? option->str : 0;
+  ptr->lock_table_no_wait = thd->lex->lock_table_no_wait ? TRUE : FALSE;
   /* check that used name is unique */
   if (lock_type != TL_IGNORE)
   {

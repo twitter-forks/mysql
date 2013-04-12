@@ -2502,6 +2502,9 @@ struct LEX: public Query_tables_list
   /** Maximum execution time for a statement. */
   ulong max_statement_time;
 
+  /** Lock tables with NO_WAIT blocking mode */
+  bool lock_table_no_wait;
+
   LEX();
 
   virtual ~LEX()

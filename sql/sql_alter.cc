@@ -84,13 +84,6 @@ bool Alter_table_statement::execute(THD *thd)
       DBUG_RETURN(TRUE);                  /* purecov: inspected */
   }
 
-   /*
-     If NO_WAIT is set, conflicting lock requests are aborted rather than
-     blocked, thereby eliminating delays due to lock waits.
-   */
-  if (alter_info.flags & ALTER_NO_WAIT)
-    thd->mdl_context.set_abort_conflicting_lock_requests(true);
-
   /* Don't yet allow changing of symlinks with ALTER TABLE */
   if (create_info.data_file_name)
     push_warning_printf(thd, MYSQL_ERROR::WARN_LEVEL_WARN,
@@ -111,8 +104,6 @@ bool Alter_table_statement::execute(THD *thd)
                             select_lex->order_list.elements,
                             select_lex->order_list.first,
                             lex->ignore);
-
-  thd->mdl_context.set_abort_conflicting_lock_requests(false);
 
   DBUG_RETURN(result);
 }

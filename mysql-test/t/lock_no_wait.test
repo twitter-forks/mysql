@@ -1,0 +1,50 @@
+# Save the initial number of concurrent sessions.
+--source include/count_sessions.inc
+
+--disable_warnings
+DROP TABLE IF EXISTS test.t1, test.t2;
+CREATE TABLE test.t1 (c1 integer, c2 integer);
+CREATE TABLE test.t2 (c1 integer, c2 integer, c3 integer);
+INSERT INTO t1 (c1,c2) values (1,1),(2,2),(3,3);
+INSERT INTO t2 (c1,c2,c3) values (1,2,3),(2,3,4),(3,4,5);
+
+--echo # Connection con1
+connect(con1,localhost,root,,);
+LOCK TABLE test.t1 WRITE NO_WAIT;
+INSERT INTO test.t1 (c1,c2) values (4,4);
+
+--echo # Connection con2
+connect(con2,localhost,root,,);
+--error 1689
+select * from test.t1;
+--error 1689
+insert into test.t1 (c1,c2) values (5,5);
+insert into test.t2 (c1,c2,c3) values (4,5,6);
+
+--echo # Connection con1
+connection con1;
+UNLOCK TABLES;
+
+--echo # Connection con2
+connection con2;
+insert into test.t1 (c1,c2) values (5,5);
+LOCK TABLES test.t1 WRITE NO_WAIT, test.t2 write no_wait;
+
+--echo # Connection con1
+connection con1;
+--error 1689
+insert into test.t1 (c1,c2) values (6,6);
+--error 1689
+insert into test.t2 (c1,c2,c3) values (5,6,7);
+
+--echo # Connection con2
+connection con2;
+UNLOCK TABLES;
+
+connection default;
+DROP TABLE test.t1, test.t2;
+disconnect con1;
+disconnect con2;
+
+--source include/wait_until_count_sessions.inc
+
