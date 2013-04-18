@@ -6596,6 +6596,7 @@ bool mysql_create_user(THD *thd, List <LEX_USER> &list)
   DBUG_RETURN(result);
 }
 
+#define WARN_UNKNOWN_USER "Unknown user %s"
 
 /*
   Drop a list of users and all their privileges.
@@ -6620,6 +6621,7 @@ bool mysql_drop_user(THD *thd, List <LEX_USER> &list)
   bool some_users_deleted= FALSE;
   ulong old_sql_mode= thd->variables.sql_mode;
   bool save_binlog_row_based;
+  bool if_exists = thd->lex->drop_if_exists;
   DBUG_ENTER("mysql_drop_user");
 
   /*
@@ -6666,8 +6668,15 @@ bool mysql_drop_user(THD *thd, List <LEX_USER> &list)
 
   mysql_mutex_unlock(&acl_cache->lock);
 
-  if (result)
-    my_error(ER_CANNOT_USER, MYF(0), "DROP USER", wrong_users.c_ptr_safe());
+  if (result )
+  {
+    if (!if_exists)
+      my_error(ER_CANNOT_USER, MYF(0), "DROP USER", wrong_users.c_ptr_safe());
+    else
+      push_warning_printf(thd, MYSQL_ERROR::WARN_LEVEL_NOTE,
+                          ER_CANNOT_USER, WARN_UNKNOWN_USER,
+                          wrong_users.c_ptr_safe());
+  }
 
   if (some_users_deleted)
     result |= write_bin_log(thd, FALSE, thd->query(), thd->query_length());

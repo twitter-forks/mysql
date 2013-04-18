@@ -3604,7 +3604,8 @@ end_with_restore_list:
         check_global_access(thd,CREATE_USER_ACL))
       break;
     /* Conditionally writes to binlog */
-    if (!(res= mysql_drop_user(thd, lex->users_list)))
+    if (!(res= mysql_drop_user(thd, lex->users_list)) ||
+        thd->lex->drop_if_exists)
       my_ok(thd);
     break;
   }

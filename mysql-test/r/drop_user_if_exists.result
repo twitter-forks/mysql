@@ -1,0 +1,18 @@
+DROP USER u1@localhost;
+ERROR HY000: Operation DROP USER failed for 'u1'@'localhost'
+DROP USER IF EXISTS u1@localhost;
+Warnings:
+Note	1396	Unknown user 'u1'@'localhost'
+CREATE USER u1;
+DROP USER u1, u2;
+ERROR HY000: Operation DROP USER failed for 'u2'@'%'
+DROP USER IF EXISTS u1;
+Warnings:
+Note	1396	Unknown user 'u1'@'%'
+CREATE USER u1;
+DROP USER IF EXISTS u1, u2;
+Warnings:
+Note	1396	Unknown user 'u2'@'%'
+DROP USER IF EXISTS u1@localhost, u2@localhost;
+Warnings:
+Note	1396	Unknown user 'u1'@'localhost','u2'@'localhost'

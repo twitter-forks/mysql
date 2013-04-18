@@ -10425,9 +10425,10 @@ drop:
             lex->drop_if_exists= $3;
             lex->spname= $4;
           }
-        | DROP USER clear_privileges user_list
+        | DROP USER if_exists clear_privileges user_list
           {
             Lex->sql_command = SQLCOM_DROP_USER;
+            Lex->drop_if_exists= $3;
           }
         | DROP VIEW_SYM if_exists
           {

@@ -1,0 +1,12 @@
+-- source include/not_embedded.inc
+
+--error 1396
+DROP USER u1@localhost;
+DROP USER IF EXISTS u1@localhost;
+CREATE USER u1;
+--error 1396
+DROP USER u1, u2;
+DROP USER IF EXISTS u1;
+CREATE USER u1;
+DROP USER IF EXISTS u1, u2;
+DROP USER IF EXISTS u1@localhost, u2@localhost;
