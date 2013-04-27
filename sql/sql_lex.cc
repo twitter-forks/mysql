@@ -451,6 +451,7 @@ void lex_start(THD *thd)
   lex->reset_slave_info.all= false;
 
   lex->max_statement_time= 0;
+  lex->lock_table_no_wait = FALSE;
 
   DBUG_VOID_RETURN;
 }

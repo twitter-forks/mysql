@@ -6240,6 +6240,12 @@ alter:
               if (lex->m_stmt == NULL)
                 MYSQL_YYABORT;
             }
+            if (lex->lock_table_no_wait)
+            {
+              TABLE_LIST *table= Lex->query_tables;
+              for (; table; table= table->next_global)
+                table->lock_table_no_wait = TRUE;
+            }
           }
         | ALTER DATABASE ident_or_empty
           {
@@ -6812,6 +6818,7 @@ alter_list_item:
         | NO_WAIT_SYM
           {
             Lex->alter_info.flags|= ALTER_NO_WAIT;
+            Lex->lock_table_no_wait = TRUE;
           }
         | LOCK_SYM opt_equal ident
           {
@@ -13333,6 +13340,7 @@ table_lock:
                                             MDL_SHARED_NO_READ_WRITE :
                                             MDL_SHARED_READ)))
               MYSQL_YYABORT;
+            Lex->lock_table_no_wait= FALSE;
           }
         ;
 
@@ -13341,6 +13349,10 @@ lock_option:
         | WRITE_SYM              { $$= TL_WRITE_DEFAULT; }
         | LOW_PRIORITY WRITE_SYM { $$= TL_WRITE_LOW_PRIORITY; }
         | READ_SYM LOCAL_SYM     { $$= TL_READ; }
+        | WRITE_SYM NO_WAIT_SYM  
+          { $$= TL_WRITE;
+            Lex->lock_table_no_wait= TRUE;
+          }
         ;
 
 unlock:

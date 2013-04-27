@@ -4693,6 +4693,9 @@ lock_table_names(THD *thd,
           schema_set.insert(table))
         return TRUE;
       mdl_requests.push_front(&table->mdl_request);
+      /* pass NO_WAIT lock mode to the lock request */
+      if (table->lock_table_no_wait)
+        table->mdl_request.lock_no_wait = TRUE;
     }
   }
 

@@ -1,0 +1,30 @@
+--source include/load_sysvars.inc
+
+SET @old_query_error = @@global.general_log_query_error;
+SELECT @old_query_error;
+
+SET @@global.general_log_query_error = DEFAULT;
+SELECT @@global.general_log_query_error;
+
+-- echo # general_log_query_error is a global variable.
+--error ER_GLOBAL_VARIABLE
+SET @@session.general_log_query_error = 0;
+SELECT @@general_log_query_error;
+
+--error ER_WRONG_VALUE_FOR_VAR
+SET @@global.general_log_query_error = -1;
+SELECT @@global.general_log_query_error;
+--error ER_WRONG_VALUE_FOR_VAR
+SET @@global.general_log_query_error = 168;
+SELECT @@global.general_log_query_error;
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@global.general_log_query_error = 10000.01;
+--error ER_WRONG_VALUE_FOR_VAR
+SET @@global.general_log_query_error = 'test';
+SELECT @@global.general_log_query_error;
+
+SET @@global.general_log_query_error = ON;
+SELECT @@global.general_log_query_error;
+
+SET @@global.general_log_query_error = @old_query_error;
+SELECT @@global.general_log_query_error;

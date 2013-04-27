@@ -953,7 +953,6 @@ void MDL_map::remove(MDL_lock *lock)
 MDL_context::MDL_context()
   : m_thd(NULL),
   m_needs_thr_lock_abort(FALSE),
-  m_abort_conflicting_lock_requests(FALSE),
   m_waiting_for(NULL)
 {
   mysql_prlock_init(key_MDL_context_LOCK_waiting_for, &m_LOCK_waiting_for);
@@ -1012,6 +1011,7 @@ void MDL_request::init(MDL_key::enum_mdl_namespace mdl_namespace,
   type= mdl_type_arg;
   duration= mdl_duration_arg;
   ticket= NULL;
+  lock_no_wait= FALSE;
 }
 
 
@@ -1032,6 +1032,7 @@ void MDL_request::init(const MDL_key *key_arg,
   type= mdl_type_arg;
   duration= mdl_duration_arg;
   ticket= NULL;
+  lock_no_wait= FALSE;
 }
 
 
@@ -1695,9 +1696,7 @@ bool MDL_lock::has_no_wait_context(const MDL_context *ctx) const
 
   while ((ticket= it++))
   {
-    MDL_context *octx= ticket->get_ctx();
-
-    if (ctx != octx && octx->get_abort_conflicting_lock_requests())
+    if (ticket->get_abort_conflicting_lock_requests())
       break;
   }
 
@@ -1716,10 +1715,17 @@ void MDL_lock::abort_conflicting_lock_requests(void)
 
   mysql_prlock_wrlock(&m_rwlock);
 
-  it.init(m_waiting);
-
+  it.init(m_granted);
   while ((ticket= it++))
-    ticket->get_ctx()->m_wait.set_status(MDL_wait::ABORTED);
+    if (ticket->get_abort_conflicting_lock_requests())
+      break;
+
+  if (ticket)
+  {
+    it.init(m_waiting);
+    while ((ticket= it++))
+      ticket->get_ctx()->m_wait.set_status(MDL_wait::ABORTED);
+  }
 
   mysql_prlock_unlock(&m_rwlock);
 }
@@ -1958,6 +1964,10 @@ MDL_context::try_acquire_lock_impl(MDL_request *mdl_request,
   else
     *out_ticket= ticket;
 
+  /* Mark NO_WAIT non-blocking mode in the lock ticket. */
+  if (mdl_request->lock_no_wait)
+    ticket->set_abort_conflicting_lock_requests(TRUE);
+
   return FALSE;
 }
 
@@ -1997,6 +2007,8 @@ MDL_context::clone_ticket(MDL_request *mdl_request)
   DBUG_ASSERT(mdl_request->ticket->has_stronger_or_equal_type(ticket->m_type));
 
   ticket->m_lock= mdl_request->ticket->m_lock;
+  if (mdl_request->ticket->get_abort_conflicting_lock_requests())
+    ticket->set_abort_conflicting_lock_requests(TRUE);
   mdl_request->ticket= ticket;
 
   mysql_prlock_wrlock(&ticket->m_lock->m_rwlock);
@@ -2204,8 +2216,7 @@ MDL_context::acquire_lock(MDL_request *mdl_request, ulong lock_wait_timeout)
   }
 
   /* If this is a NO WAIT context, abort conflicting lock requests. */
-  if (get_abort_conflicting_lock_requests())
-    lock->abort_conflicting_lock_requests();
+  lock->abort_conflicting_lock_requests();
 
   /*
     We have been granted our request.

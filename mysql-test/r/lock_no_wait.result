@@ -1,0 +1,27 @@
+DROP TABLE IF EXISTS test.t1, test.t2;
+CREATE TABLE test.t1 (c1 integer, c2 integer);
+CREATE TABLE test.t2 (c1 integer, c2 integer, c3 integer);
+INSERT INTO t1 (c1,c2) values (1,1),(2,2),(3,3);
+INSERT INTO t2 (c1,c2,c3) values (1,2,3),(2,3,4),(3,4,5);
+# Connection con1
+LOCK TABLE test.t1 WRITE NO_WAIT;
+INSERT INTO test.t1 (c1,c2) values (4,4);
+# Connection con2
+select * from test.t1;
+ERROR HY000: Wait on a lock was aborted due to a conflicting lock
+insert into test.t1 (c1,c2) values (5,5);
+ERROR HY000: Wait on a lock was aborted due to a conflicting lock
+insert into test.t2 (c1,c2,c3) values (4,5,6);
+# Connection con1
+UNLOCK TABLES;
+# Connection con2
+insert into test.t1 (c1,c2) values (5,5);
+LOCK TABLES test.t1 WRITE NO_WAIT, test.t2 write no_wait;
+# Connection con1
+insert into test.t1 (c1,c2) values (6,6);
+ERROR HY000: Wait on a lock was aborted due to a conflicting lock
+insert into test.t2 (c1,c2,c3) values (5,6,7);
+ERROR HY000: Wait on a lock was aborted due to a conflicting lock
+# Connection con2
+UNLOCK TABLES;
+DROP TABLE test.t1, test.t2;

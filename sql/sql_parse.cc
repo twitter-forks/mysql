@@ -1196,6 +1196,10 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
       mysql_parse(thd, beginning_of_next_stmt, length, &parser_state);
     }
 
+    if (opt_log_query_error && thd->is_error())
+      general_log_print(thd, command, "ERROR %5lu: %s",
+                        thd->stmt_da->sql_errno(), thd->stmt_da->message());
+
     DBUG_PRINT("info",("query ready"));
     break;
   }
@@ -6079,6 +6083,7 @@ TABLE_LIST *st_select_lex::add_table_to_list(THD *thd,
   ptr->cacheable_table= 1;
   ptr->index_hints= index_hints_arg;
   ptr->option= option ? option->str : 0;
+  ptr->lock_table_no_wait = thd->lex->lock_table_no_wait ? TRUE : FALSE;
   /* check that used name is unique */
   if (lock_type != TL_IGNORE)
   {
