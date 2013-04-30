@@ -7449,7 +7449,7 @@ remove_const(JOIN *join,ORDER *first_order, COND *cond,
       *simple_order=0;				// Must do a temp table to sort
     else if (!(order_tables & not_const_tables))
     {
-      if (order->item[0]->with_subselect && 
+      if (order->item[0]->has_subquery() && 
           !(join->select_lex->options & SELECT_DESCRIBE))
         order->item[0]->val_str(&order->item[0]->str_value);
       DBUG_PRINT("info",("removing: %s", order->item[0]->full_name()));
@@ -13931,7 +13931,8 @@ test_if_skip_sort_order(JOIN_TAB *tab,ORDER *order,ha_rows select_limit,
 
     if (best_key >= 0)
     {
-      if (table->quick_keys.is_set(best_key) && best_key != ref_key)
+      if (select &&
+          table->quick_keys.is_set(best_key) && best_key != ref_key)
       {
         key_map map;
         map.clear_all();       // Force the creation of quick select
@@ -14417,7 +14418,7 @@ static int remove_dup_with_compare(THD *thd, TABLE *table, Field **first_field,
     }
     if (copy_blobs(first_field))
     {
-      my_message(ER_OUTOFMEMORY, ER(ER_OUTOFMEMORY), MYF(0));
+      my_message(ER_OUTOFMEMORY, ER(ER_OUTOFMEMORY), MYF(ME_FATALERROR));
       error=0;
       goto err;
     }
