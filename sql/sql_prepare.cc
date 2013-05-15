@@ -3020,10 +3020,6 @@ Execute_sql_statement::execute_server_code(THD *thd)
     general_log_write(thd, COM_STMT_EXECUTE,
                       thd->query(), thd->query_length());
 
-  if (opt_log_query_error && thd->is_error())
-    general_log_print(thd, COM_STMT_EXECUTE, "ERROR %5lu: %s",
-                      thd->stmt_da->sql_errno(), thd->stmt_da->message());
-
 end:
   lex_end(thd->lex);
 
@@ -3853,10 +3849,6 @@ bool Prepared_statement::execute(String *expanded_query, bool open_cursor)
   */
   if (error == 0 && thd->spcont == NULL)
     general_log_write(thd, COM_STMT_EXECUTE, thd->query(), thd->query_length());
-
-  if (opt_log_query_error && thd->is_error())
-    general_log_print(thd, COM_STMT_EXECUTE, "ERROR %5lu: %s",
-                      thd->stmt_da->sql_errno(), thd->stmt_da->message());
 
 error:
   flags&= ~ (uint) IS_IN_USE;

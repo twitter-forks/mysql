@@ -1196,10 +1196,6 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
       mysql_parse(thd, beginning_of_next_stmt, length, &parser_state);
     }
 
-    if (opt_log_query_error && thd->is_error())
-      general_log_print(thd, command, "ERROR %5lu: %s",
-                        thd->stmt_da->sql_errno(), thd->stmt_da->message());
-
     DBUG_PRINT("info",("query ready"));
     break;
   }
@@ -5684,6 +5680,9 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
                  Parser_state *parser_state)
 {
   int error __attribute__((unused));
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+  my_bool twitter_audit = opt_twitter_audit_log;
+#endif
   DBUG_ENTER("mysql_parse");
 
   DBUG_EXECUTE_IF("parser_debug", turn_parser_debug_on(););
@@ -5769,6 +5768,10 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
 
       query_cache_abort(&thd->query_cache_tls);
     }
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+    twitter_audit_log(thd, COM_QUERY, thd->query(), thd->query_length(),
+                      twitter_audit);
+#endif
     thd_proc_info(thd, "freeing items");
     sp_cache_enforce_limit(thd->sp_proc_cache, stored_program_cache_size);
     sp_cache_enforce_limit(thd->sp_func_cache, stored_program_cache_size);

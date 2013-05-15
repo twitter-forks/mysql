@@ -351,6 +351,7 @@ static struct show_privileges_st sys_privileges[]=
   {"Create tablespace", "Server Admin", "To create/alter/drop tablespaces"},
   {"Update", "Tables",  "To update existing rows"},
   {"Usage","Server Admin","No privileges - allow connect only"},
+  {"Ignore Logging", "Server Admin", "To skip Twitter audit logging"},
   {NullS, NullS, NullS}
 };
 

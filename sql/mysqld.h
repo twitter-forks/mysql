@@ -89,7 +89,6 @@ extern MY_BITMAP temp_pool;
 extern bool opt_large_files, server_id_supplied;
 extern bool opt_update_log, opt_bin_log, opt_error_log;
 extern my_bool opt_log, opt_slow_log;
-extern my_bool opt_log_super_only, opt_log_query_error;
 extern my_bool opt_backup_history_log;
 extern my_bool opt_backup_progress_log;
 extern ulonglong log_output_options;
@@ -220,6 +219,7 @@ extern TYPELIB thread_handling_typelib;
 extern my_decimal decimal_zero;
 extern my_bool opt_super_only;
 extern char *opt_minidump_dir;
+extern uint opt_twitter_audit_log;
 
 /*
   THR_MALLOC is a key which will be used to set/get MEM_ROOT** for a thread,

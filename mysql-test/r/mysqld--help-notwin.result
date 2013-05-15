@@ -174,10 +174,6 @@ The following options may be given as the first argument:
  mysql.general_logif --log-output=TABLE is used
  --general-log-file=name 
  Log connections and queries to given file
- --general-log-query-error 
- Record users query status in general log.
- --general-log-super-only 
- Don't allow non-superusers to log queries to general log.
  --group-concat-max-len=# 
  The maximum length of the result of function 
  GROUP_CONCAT()
@@ -709,6 +705,8 @@ The following options may be given as the first argument:
  --transaction-prealloc-size=# 
  Persistent buffer for transactions to be stored in binary
  log
+ --twitter-audit-logging[=#] 
+ Twitter DBA audit logging.
  --updatable-views-with-limit=name 
  YES = Don't issue an error message (warning only) if a
  VIEW without presence of a key of the underlying table is
@@ -773,8 +771,6 @@ ft-query-expansion-limit 20
 ft-stopword-file (No default value)
 gdb FALSE
 general-log FALSE
-general-log-query-error FALSE
-general-log-super-only FALSE
 group-concat-max-len 1024
 help TRUE
 ignore-builtin-innodb FALSE
@@ -934,6 +930,7 @@ tmp-table-size 16777216
 transaction-alloc-block-size 8192
 transaction-isolation REPEATABLE-READ
 transaction-prealloc-size 4096
+twitter-audit-logging 0
 updatable-views-with-limit YES
 verbose TRUE
 wait-timeout 28800

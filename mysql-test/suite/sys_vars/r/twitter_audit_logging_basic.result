@@ -1,0 +1,16 @@
+SET @old_general_log = @@GLOBAL.general_log;
+SET GLOBAL general_log = 1;
+
+# twitter_audit_logging is a global variable.
+SET @@SESSION.twitter_audit_logging = 0;
+ERROR HY000: Variable 'twitter_audit_logging' is a GLOBAL variable and should be set with SET GLOBAL
+SET GLOBAL general_log = OFF;
+SET GLOBAL twitter_audit_logging = 1;
+SET GLOBAL general_log = ON;
+SET GLOBAL twitter_audit_logging = 2;
+SELECT @@GLOBAL.twitter_audit_logging;
+@@GLOBAL.twitter_audit_logging
+2
+SET GLOBAL twitter_audit_logging = 0;
+SET GLOBAL general_log = OFF;
+SET GLOBAL general_log = @old_general_log;

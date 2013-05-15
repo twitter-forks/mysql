@@ -1,0 +1,124 @@
+--echo #
+--echo # Test Twitter DBA audit logging
+--echo #
+
+--source include/not_embedded.inc
+
+SET @old_general_log= @@global.general_log;
+SET @old_autocommit= @@global.autocommit;
+
+CREATE USER user1;
+CREATE USER user2;
+CREATE USER user3 IDENTIFIED BY 'password';
+
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+SET GLOBAL general_log = 0;
+SET GLOBAL twitter_audit_logging = 1;
+GRANT IGNORE LOGGING on *.* TO user1;
+
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+
+--echo # Connect root
+connect(con1,localhost,root,,);
+BEGIN;
+SET GLOBAL AUTOCOMMIT=0;
+INSERT INTO t1 VALUES (1, 1);
+INSERT INTO t1 VALUES (2, 2);
+--error ER_DUP_ENTRY
+INSERT INTO t1 SELECT 1, SLEEP(2);
+COMMIT;
+SELECT * FROM t1 where a <10;
+
+--echo # Connect user1
+connect(con1user1,localhost,user1,,);
+BEGIN;
+INSERT INTO t1 VALUES (3, 3);
+INSERT INTO t1 SELECT 4, SLEEP(2);
+UPDATE t1 SET b=33 WHERE a=3;
+COMMIT;
+
+--echo # Connect user2
+connect(con1user2,localhost,user2,,);
+BEGIN;
+ALTER TABLE t1 ADD (c INT);
+INSERT INTO t1 VALUES (5, 5, 5);
+INSERT INTO t1 SELECT 6, SLEEP(2), 6;
+COMMIT;
+SHOW OPEN TABLES;
+
+-- echo # Connection: root
+connection con1;
+REVOKE IGNORE LOGGING on *.* FROM user1;
+
+-- echo # Connect: user1
+connect(con2user1,localhost,user1,,);
+DELETE FROM t1 where a = 1;
+COMMIT;
+
+--replace_result $MASTER_MYSOCK MASTER_SOCKET $MASTER_MYPORT MASTER_PORT
+--error ER_ACCESS_DENIED_ERROR
+connect(con1user3,localhost,user3,,);
+--error ER_ACCESS_DENIED_ERROR
+connect(con2fake,localhost,user4,,);
+
+disconnect con1;
+disconnect con1user1;
+disconnect con1user2;
+disconnect con2user1;
+--echo # Connection: default
+connection default;
+SET GLOBAL twitter_audit_logging=2;
+SHOW GRANTS;
+SET GLOBAL twitter_audit_logging=0;
+
+DROP TABLE t1;
+DROP USER user1;
+DROP USER user2;
+DROP USER user3;
+
+let ERROR_LOG_FILE = $MYSQLTEST_VARDIR/log/twitter_dba_log.err;
+
+perl;
+  my $log_file = $ENV{'ERROR_LOG_FILE'};
+  open(FILE, $log_file) or die("Cannot open '$log_file': $!\n");
+  my $grant = grep /GRANT IGNORE LOGGING/, <FILE>;
+  $grant or die("Cannot find 'GRANT IGNORE LOGGING' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $cre = grep /CREATE TABLE/, <FILE>;
+  $cre or die("Cannot find 'CREATE TABLE' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $sel = grep /SELECT * FROM t1 where a <10/, <FILE>;
+  $sel == 0 or die("Find 'SELECT * FROM t1 where a <10' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $upd_user1 = grep /UPDATE t1 SET b=33 WHERE a=3/, <FILE>;
+  $upd_user1 == 0 or die("Find 'UPDATE t1 SET b=33 WHERE a=3' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $altc = grep /ALTER TABLE/, <FILE>;
+  $altc or die("Cannot find 'ALTER TABLE' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $showtabs = grep /SHOW OPEN TABLES/, <FILE>;
+  $showtabs == 0 or die("Find 'SHOW OPEN TABLES' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $revoke = grep /REVOKE IGNORE LOGGING/, <FILE>;
+  $revoke or die("Cannot find 'REVOKE IGNORE LOGGING' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $del = grep /DELETE/, <FILE>;
+  $del or die("Cannot find 'DELETE' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $user3fail = grep /Access denied for user \'user3\'/, <FILE>;
+  $user3fail or die("Cannot find 'Access denied for user \'user3\'' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $log2 = grep /twitter_audit_logging=2/, <FILE>;
+  $log2 or die("Find 'twitter_audit_logging=2' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $showgrants = grep /SHOW GRANTS/, <FILE>;
+  $showgrants or die("Find 'SHOW GRANTS' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $disable = grep /twitter_audit_logging=0/, <FILE>;
+  $disable or die("Find 'twitter_audit_logging=0' in '$log_file'\n");
+  close(FILE)
+EOF
+
+SET GLOBAL twitter_audit_logging = 0;
+SET GLOBAL general_log = @old_general_log;
+SEt GLOBAL autocommit = @old_autocommit;

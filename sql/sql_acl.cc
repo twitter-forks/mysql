@@ -5223,13 +5223,13 @@ static const char *command_array[]=
   "ALTER", "SHOW DATABASES", "SUPER", "CREATE TEMPORARY TABLES",
   "LOCK TABLES", "EXECUTE", "REPLICATION SLAVE", "REPLICATION CLIENT",
   "CREATE VIEW", "SHOW VIEW", "CREATE ROUTINE", "ALTER ROUTINE",
-  "CREATE USER", "EVENT", "TRIGGER", "CREATE TABLESPACE"
+  "CREATE USER", "EVENT", "TRIGGER", "CREATE TABLESPACE", "IGNORE LOGGING"
 };
 
 static uint command_lengths[]=
 {
   6, 6, 6, 6, 6, 4, 6, 8, 7, 4, 5, 10, 5, 5, 14, 5, 23, 11, 7, 17, 18, 11, 9,
-  14, 13, 11, 5, 7, 17
+  14, 13, 11, 5, 7, 17, 14
 };
 
 
@@ -8048,6 +8048,12 @@ static void login_failed_error(MPVIO_EXT *mpvio, int passwd_used)
     general_log_print(thd, COM_CONNECT, ER(ER_ACCESS_DENIED_NO_PASSWORD_ERROR),
                       mpvio->auth_info.user_name,
                       mpvio->auth_info.host_or_ip);
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+    twitter_audit_logins(thd, COM_CONNECT, (void *)mpvio->acl_user,
+                         ER(ER_ACCESS_DENIED_NO_PASSWORD_ERROR),
+                         mpvio->auth_info.user_name,
+                         mpvio->auth_info.host_or_ip);
+#endif
     /* 
       Log access denied messages to the error log when log-warnings = 2
       so that the overhead of the general query log is not required to track 
@@ -8070,6 +8076,13 @@ static void login_failed_error(MPVIO_EXT *mpvio, int passwd_used)
                       mpvio->auth_info.user_name,
                       mpvio->auth_info.host_or_ip,
                       passwd_used ? ER(ER_YES) : ER(ER_NO));
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+    twitter_audit_logins(thd, COM_CONNECT, (void *)mpvio->acl_user,
+                         ER(ER_ACCESS_DENIED_ERROR),
+                         mpvio->auth_info.user_name,
+                         mpvio->auth_info.host_or_ip,
+                         passwd_used ? ER(ER_YES) : ER(ER_NO));
+#endif
     /* 
       Log access denied messages to the error log when log-warnings = 2
       so that the overhead of the general query log is not required to track 
@@ -8226,11 +8239,21 @@ static bool secure_auth(MPVIO_EXT *mpvio)
     general_log_print(thd, COM_CONNECT, ER(ER_SERVER_IS_IN_SECURE_AUTH_MODE),
                       mpvio->auth_info.user_name,
                       mpvio->auth_info.host_or_ip);
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+    twitter_audit_logins(thd, COM_CONNECT, (void *)mpvio->acl_user,
+                         ER(ER_SERVER_IS_IN_SECURE_AUTH_MODE),
+                         mpvio->auth_info.user_name,
+                         mpvio->auth_info.host_or_ip);
+#endif
   }
   else
   {
     my_error(ER_NOT_SUPPORTED_AUTH_MODE, MYF(0));
     general_log_print(thd, COM_CONNECT, ER(ER_NOT_SUPPORTED_AUTH_MODE));
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+    twitter_audit_logins(thd, COM_CONNECT, (void *)mpvio->acl_user,
+                         ER(ER_NOT_SUPPORTED_AUTH_MODE));
+#endif
   }
   return 1;
 }
@@ -8303,6 +8326,10 @@ static bool send_plugin_request_packet(MPVIO_EXT *mpvio,
   {
     my_error(ER_NOT_SUPPORTED_AUTH_MODE, MYF(0));
     general_log_print(current_thd, COM_CONNECT, ER(ER_NOT_SUPPORTED_AUTH_MODE));
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+    twitter_audit_logins(current_thd, COM_CONNECT, (void *)mpvio->acl_user,
+                         ER(ER_NOT_SUPPORTED_AUTH_MODE));
+#endif
     DBUG_RETURN (1);
   }
 
@@ -8389,6 +8416,10 @@ static bool find_mpvio_user(MPVIO_EXT *mpvio)
                               old_password_plugin_name.str));
     my_error(ER_NOT_SUPPORTED_AUTH_MODE, MYF(0));
     general_log_print(current_thd, COM_CONNECT, ER(ER_NOT_SUPPORTED_AUTH_MODE));
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+    twitter_audit_logins(current_thd, COM_CONNECT, (void *)mpvio->acl_user,
+                         ER(ER_NOT_SUPPORTED_AUTH_MODE));
+#endif
     DBUG_RETURN (1);
   }
 
@@ -9540,11 +9571,24 @@ acl_authenticate(THD *thd, uint connect_errors, uint com_change_user_pkt_len)
                         mpvio.auth_info.authenticated_as ? 
                           mpvio.auth_info.authenticated_as : "anonymous",
                         mpvio.db.str ? mpvio.db.str : (char*) "");
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+      twitter_audit_logins(thd, command, (void *)acl_user, "%s@%s as %s on %s",
+                           mpvio.auth_info.user_name, mpvio.auth_info.host_or_ip,
+                           mpvio.auth_info.authenticated_as ?
+                           mpvio.auth_info.authenticated_as : "anonymous",
+                           mpvio.db.str ? mpvio.db.str : (char*) "");
+#endif
     }
-    else
+    else {
       general_log_print(thd, command, (char*) "%s@%s on %s",
                         mpvio.auth_info.user_name, mpvio.auth_info.host_or_ip,
                         mpvio.db.str ? mpvio.db.str : (char*) "");
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+      twitter_audit_logins(thd, command, (void *)acl_user, (char*) "%s@%s on %s",
+                           mpvio.auth_info.user_name, mpvio.auth_info.host_or_ip,
+                           mpvio.db.str ? mpvio.db.str : (char*) "");
+#endif
+    }
   }
 
   if (res > CR_OK && mpvio.status != MPVIO_EXT::SUCCESS)
@@ -9865,6 +9909,18 @@ static int old_password_authenticate(MYSQL_PLUGIN_VIO *vio,
   my_error(ER_HANDSHAKE_ERROR, MYF(0));
   return CR_ERROR;
 }
+
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+bool twitter_audit_acl_check(void *acl)
+{
+  const ACL_USER *acl_user = (const ACL_USER *)acl;
+  if (!acl_user ||
+      (((acl_user->access & GLOBAL_ACLS) != GLOBAL_ACLS) &&
+       (acl_user->access & IGNORE_LOGGING_ACL)))
+    return false;
+  return true;
+}
+#endif // NO_EMBEDDED_ACCESS_CHECKS
 
 static struct st_mysql_auth native_password_handler=
 {

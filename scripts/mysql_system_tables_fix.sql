@@ -617,6 +617,18 @@ ALTER TABLE user MODIFY Create_tablespace_priv enum('N','Y') COLLATE utf8_genera
 
 UPDATE user SET Create_tablespace_priv = Super_priv WHERE @hadCreateTablespacePriv = 0;
 
+#
+# user.Ignore_logging_priv
+#
+
+SET @hadIgnoreLoggingPriv := 0;
+SELECT @hadIgnoreLoggingPriv :=1 FROM user WHERE Ignore_logging_priv LIKE '%';
+
+ALTER TABLE user ADD Ignore_logging_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL AFTER Create_tablespace_priv;
+ALTER TABLE user MODIFY Ignore_logging_priv enum('N','Y') COLLATE utf8_general_ci DEFAULT 'N' NOT NULL AFTER Create_tablespace_priv;
+
+UPDATE user SET Ignore_logging_priv = Super_priv WHERE @hadIgnoreLoggingPriv = 0;
+
 --
 -- Unlike 'performance_schema', the 'mysql' database is reserved already,
 -- so no user procedure is supposed to be there.

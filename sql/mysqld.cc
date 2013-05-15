@@ -358,7 +358,6 @@ static mysql_cond_t COND_thread_cache, COND_flush_thread_cache;
 
 bool opt_bin_log, opt_ignore_builtin_innodb= 0;
 my_bool opt_log, opt_slow_log;
-my_bool opt_log_super_only= 0, opt_log_query_error= 0;
 ulonglong log_output_options;
 my_bool opt_log_queries_not_using_indexes= 0;
 bool opt_error_log= IF_WIN(1,0);
@@ -521,6 +520,7 @@ ulong rpl_recovery_rank=0;
   in the sp_cache for one connection.
 */
 ulong stored_program_cache_size= 0;
+uint opt_twitter_audit_log= 0;
 
 const double log_10[] = {
   1e000, 1e001, 1e002, 1e003, 1e004, 1e005, 1e006, 1e007, 1e008, 1e009,
