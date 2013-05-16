@@ -896,22 +896,18 @@ innodb_srv_conc_exit_innodb(
 }
 
 /******************************************************************//**
-Releases possible search latch and InnoDB thread FIFO ticket. These should
-be released at each SQL statement end, and also when mysqld passes the
-control to the client. It does no harm to release these also in the middle
-of an SQL statement. */
+Force a thread to leave InnoDB even if it has spare tickets. */
 static inline
 void
-innobase_release_stat_resources(
-/*============================*/
-	trx_t*	trx)	/*!< in: transaction object */
+innodb_srv_conc_force_exit_innodb(
+/*==============================*/
+	trx_t*	trx)	/*!< in: transaction handle */
 {
-	if (trx->has_search_latch) {
-		trx_search_latch_release_if_reserved(trx);
-	}
+#ifdef UNIV_SYNC_DEBUG
+	ut_ad(!sync_thread_levels_nonempty_trx(trx->has_search_latch));
+#endif /* UNIV_SYNC_DEBUG */
 
 	if (trx->declared_to_be_inside_innodb) {
-		/* Release our possible ticket in the FIFO */
 
 		srv_conc_force_exit_innodb(trx);
 	}
@@ -1037,9 +1033,10 @@ innobase_release_temporary_latches(
 
 	trx = thd_to_trx(thd);
 
-	if (trx) {
-		innobase_release_stat_resources(trx);
+	if (trx != NULL) {
+		trx_search_latch_release_if_reserved(trx);
 	}
+
 	return(0);
 }
 
@@ -2068,7 +2065,8 @@ innobase_query_caching_of_table_permitted(
 		mutex_exit(&kernel_mutex);
 	}
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	if (!thd_test_options(thd, OPTION_NOT_AUTOCOMMIT | OPTION_BEGIN)) {
 
@@ -2381,7 +2379,8 @@ ha_innobase::init_table_handle_for_HANDLER(void)
 	/* Initialize the prebuilt struct much like it would be inited in
 	external_lock */
 
-	innobase_release_stat_resources(prebuilt->trx);
+	trx_search_latch_release_if_reserved(prebuilt->trx);
+	innodb_srv_conc_force_exit_innodb(prebuilt->trx);
 
 	/* If the transaction is not started yet, start it */
 
@@ -3039,7 +3038,8 @@ innobase_start_trx_and_assign_read_view(
 	search latch. Since we will reserve the kernel mutex, we have to
 	release the search system latch first to obey the latching order. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	/* If the transaction is not started yet, start it */
 
@@ -3224,7 +3224,8 @@ innobase_rollback(
 	reserve the kernel mutex, we have to release the search system latch
 	first to obey the latching order. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	trx->n_autoinc_rows = 0; /* Reset the number AUTO-INC rows required */
 
@@ -3264,7 +3265,8 @@ innobase_rollback_trx(
 	reserve the kernel mutex, we have to release the search system latch
 	first to obey the latching order. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	/* If we had reserved the auto-inc lock for some table (if
 	we come here to roll back the latest SQL statement) we
@@ -3304,7 +3306,8 @@ innobase_rollback_to_savepoint(
 	reserve the kernel mutex, we have to release the search system latch
 	first to obey the latching order. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	/* TODO: use provided savepoint data area to store savepoint data */
 
@@ -3379,7 +3382,8 @@ innobase_savepoint(
 	reserve the kernel mutex, we have to release the search system latch
 	first to obey the latching order. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	/* Cannot happen outside of transaction */
 	DBUG_ASSERT(trx_is_registered_for_2pc(trx));
@@ -9519,7 +9523,8 @@ ha_innobase::start_stmt(
 	that may not be the case. We MUST release the search latch before an
 	INSERT, for example. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	/* Reset the AUTOINC statement level counter for multi-row INSERTs. */
 	trx->n_autoinc_rows = 0;
@@ -9714,7 +9719,8 @@ ha_innobase::external_lock(
 	may reserve the kernel mutex, we have to release the search
 	system latch first to obey the latching order. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	/* If the MySQL lock count drops to zero we know that the current SQL
 	statement has ended */
@@ -9867,7 +9873,8 @@ innodb_show_status(
 
 	trx = check_trx_exists(thd);
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	/* We let the InnoDB Monitor to output at most MAX_STATUS_SIZE
 	bytes of text. */
@@ -10863,7 +10870,8 @@ innobase_xa_prepare(
 	reserve the kernel mutex, we have to release the search system latch
 	first to obey the latching order. */
 
-	innobase_release_stat_resources(trx);
+	trx_search_latch_release_if_reserved(trx);
+	innodb_srv_conc_force_exit_innodb(trx);
 
 	if (!trx_is_registered_for_2pc(trx) && trx_is_started(trx)) {
 
