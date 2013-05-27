@@ -216,6 +216,9 @@ extern ulint	srv_max_n_threads;
 
 extern lint	srv_conc_n_threads;
 
+/* This mutex protects srv_conc data structures */
+extern	os_fast_mutex_t	srv_conc_mutex;
+
 extern ulint	srv_fast_shutdown;	 /* If this is 1, do not do a
 					 purge and index buffer merge.
 					 If this 2, do not even flush the
@@ -648,6 +651,13 @@ srv_conc_exit_innodb(
 /*=================*/
 	trx_t*	trx);	/*!< in: transaction object associated with the
 			thread */
+/*********************************************************************//**
+Wake all threads in the queue, this is called when the concurrency setting
+is set to 0 by the user. */
+UNIV_INTERN
+void
+srv_conc_wake_all(void);
+/*===================*/
 /***************************************************************//**
 Puts a MySQL OS thread to wait for a lock to be released. If an error
 occurs during the wait trx->error_state associated with thr is

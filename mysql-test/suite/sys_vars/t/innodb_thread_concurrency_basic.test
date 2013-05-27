@@ -89,6 +89,7 @@ SELECT @@global.innodb_thread_concurrency;
 #       Change the value of innodb_thread_concurrency to invalid value    #
 ########################################################################### 
 
+--error ER_WRONG_VALUE_FOR_VAR
 SET @@global.innodb_thread_concurrency = -1;
 SELECT @@global.innodb_thread_concurrency;
 
@@ -101,6 +102,7 @@ SET @@global.innodb_thread_concurrency = "Y";
 SELECT @@global.innodb_thread_concurrency;
 
 
+--error ER_WRONG_VALUE_FOR_VAR
 SET @@global.innodb_thread_concurrency = 1001;
 SELECT @@global.innodb_thread_concurrency;
 
