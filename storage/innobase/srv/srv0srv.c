@@ -1265,7 +1265,8 @@ retry:
 
 	ut_ad(srv_conc_n_threads >= 0);
 
-	if (srv_conc_n_threads < (lint)srv_thread_concurrency) {
+	if (srv_thread_concurrency == 0
+	    || srv_conc_n_threads < (lint) srv_thread_concurrency) {
 
 		srv_conc_n_threads++;
 		trx->declared_to_be_inside_innodb = TRUE;
@@ -1279,7 +1280,8 @@ retry:
 	/* If the transaction is not holding resources, let it sleep
 	for SRV_THREAD_SLEEP_DELAY microseconds, and try again then */
 
-	if (!has_slept && !trx->has_search_latch
+	if (!has_slept
+	    && !trx->has_search_latch
 	    && NULL == UT_LIST_GET_FIRST(trx->trx_locks)) {
 
 		has_slept = TRUE; /* We let it sleep only once to avoid
@@ -1498,6 +1500,27 @@ srv_conc_exit_innodb(
 	}
 
 	srv_conc_force_exit_innodb(trx);
+}
+
+/*********************************************************************//**
+Wake all threads in the queue, this is called when the concurrency setting
+is set to 0 by the user. */
+UNIV_INTERN
+void
+srv_conc_wake_all(void)
+/*===================*/
+{
+	srv_conc_slot_t*	slot;
+
+	for (slot = UT_LIST_GET_FIRST(srv_conc_queue);
+	     slot != NULL;
+	     slot = UT_LIST_GET_NEXT(srv_conc_queue, slot)) {
+
+		if (!slot->wait_ended) {
+			++srv_conc_n_threads;
+			os_event_set(slot->event);
+		}
+	}
 }
 
 /*========================================================================*/

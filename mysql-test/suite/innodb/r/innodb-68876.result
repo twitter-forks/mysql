@@ -1,0 +1,25 @@
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,1),(2,2),(3,3);
+SET GLOBAL innodb_thread_concurrency = 1;
+BEGIN;
+SELECT * FROM t1 WHERE a = 1;
+a	b
+1	1
+BEGIN;
+SELECT * FROM t1 WHERE a = 1;
+a	b
+1	1
+SET DEBUG_SYNC='innodb_row_update_for_mysql_begin SIGNAL inside_innodb WAIT_FOR go';
+UPDATE t1 SET b = b + 1 WHERE a = 2;
+SET DEBUG_SYNC='now WAIT_FOR inside_innodb';
+SELECT * FROM t1 WHERE a = 3;
+SET GLOBAL innodb_thread_concurrency = 0;
+SET DEBUG_SYNC='now SIGNAL go';
+# reap con1
+ROLLBACK;
+# reap con2
+a	b
+3	3
+ROLLBACK;
+SET GLOBAL innodb_thread_concurrency=0;
+DROP TABLE t1;

@@ -1,0 +1,49 @@
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+INSERT INTO t1 VALUES (1,1),(2,2),(3,3);
+
+let $innodb_thread_concurrency=`select @@innodb_thread_concurrency`;
+SET GLOBAL innodb_thread_concurrency = 1;
+
+connect(con1,localhost,root,,);
+BEGIN;
+SELECT * FROM t1 WHERE a = 1;
+
+connect(con2,localhost,root,,);
+BEGIN;
+SELECT * FROM t1 WHERE a = 1;
+
+connection con1;
+SET DEBUG_SYNC='innodb_row_update_for_mysql_begin SIGNAL inside_innodb WAIT_FOR go';
+send UPDATE t1 SET b = b + 1 WHERE a = 2;
+
+connection default;
+SET DEBUG_SYNC='now WAIT_FOR inside_innodb';
+
+connection con2;
+send SELECT * FROM t1 WHERE a = 3;
+
+connection default;
+let $wait_condition=
+  SELECT COUNT(*) = 1 FROM INFORMATION_SCHEMA.INNODB_TRX
+  WHERE trx_query = 'SELECT * FROM t1 WHERE a = 3' AND
+        trx_operation_state = 'waiting in InnoDB queue';
+--source include/wait_condition.inc
+
+SET GLOBAL innodb_thread_concurrency = 0;
+
+SET DEBUG_SYNC='now SIGNAL go';
+
+--echo # reap con1
+connection con1;
+reap;
+ROLLBACK;
+
+--echo # reap con2
+connection con2;
+reap;
+ROLLBACK;
+
+connection default;
+EVAL SET GLOBAL innodb_thread_concurrency=$innodb_thread_concurrency;
+DROP TABLE t1;
+

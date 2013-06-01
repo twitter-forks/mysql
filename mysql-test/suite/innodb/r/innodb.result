@@ -1727,11 +1727,10 @@ show variables like "innodb_thread_concurrency";
 Variable_name	Value
 innodb_thread_concurrency	0
 set global innodb_thread_concurrency=1001;
-Warnings:
-Warning	1292	Truncated incorrect innodb_thread_concurrency value: '1001'
+ERROR 42000: Variable 'innodb_thread_concurrency' can't be set to the value of '1001'
 show variables like "innodb_thread_concurrency";
 Variable_name	Value
-innodb_thread_concurrency	1000
+innodb_thread_concurrency	0
 set global innodb_thread_concurrency=0;
 show variables like "innodb_thread_concurrency";
 Variable_name	Value
