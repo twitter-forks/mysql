@@ -604,10 +604,6 @@ sync_array_deadlock_step(
 	new = sync_array_find_thread(arr, thread);
 
 	if (UNIV_UNLIKELY(new == start)) {
-		/* Stop running of other threads */
-
-		ut_dbg_stop_threads = TRUE;
-
 		/* Deadlock */
 		fputs("########################################\n"
 		      "DEADLOCK of threads detected!\n", stderr);
@@ -947,6 +943,8 @@ sync_array_print_long_waits(
 # define SYNC_ARRAY_TIMEOUT	240
 #endif
 
+	sync_array_enter(sync_primary_wait_array);
+
 	for (i = 0; i < sync_primary_wait_array->n_cells; i++) {
 
 		double	diff;
@@ -983,6 +981,7 @@ sync_array_print_long_waits(
 	}
 
 	*n_tmo = n_stalls;
+	sync_array_exit(sync_primary_wait_array);
 
 	if (noticed) {
 		fprintf(stderr,
