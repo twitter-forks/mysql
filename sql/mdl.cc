@@ -1696,7 +1696,8 @@ bool MDL_lock::has_no_wait_context(const MDL_context *ctx) const
 
   while ((ticket= it++))
   {
-    if (ticket->get_abort_conflicting_lock_requests())
+    MDL_context *octx= ticket->get_ctx();
+    if (ctx != octx && ticket->get_abort_conflicting_lock_requests())
       break;
   }
 
