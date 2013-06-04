@@ -5159,17 +5159,6 @@ bool LOGGER::log_command(THD *thd, enum enum_server_command command)
       return FALSE;
     }
 
-    /* Log command for superusers only, if enabled, except user connection
-       commands are always logged.
-     */
-#ifndef NO_EMBEDDED_ACCESS_CHECKS
-    if (opt_log_super_only && !(sctx->master_access & SUPER_ACL) &&
-        !(command == COM_CONNECT || command == COM_CHANGE_USER))
-    {
-      return FALSE;
-    }
-#endif
-
     return TRUE;
   }
 

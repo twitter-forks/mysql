@@ -1196,10 +1196,6 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
       mysql_parse(thd, beginning_of_next_stmt, length, &parser_state);
     }
 
-    if (opt_log_query_error && thd->is_error())
-      general_log_print(thd, command, "ERROR %5lu: %s",
-                        thd->stmt_da->sql_errno(), thd->stmt_da->message());
-
     DBUG_PRINT("info",("query ready"));
     break;
   }
