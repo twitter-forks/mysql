@@ -1067,6 +1067,7 @@ bool my_yyoverflow(short **a, YYSTYPE **b, ulong *yystacksize);
 %token  LOCKS_SYM
 %token  LOCK_SYM
 %token  LOGFILE_SYM
+%token  LOGGING_SYM                   /* Twitter DBA Audit Log */
 %token  LOGS_SYM
 %token  LONGBLOB
 %token  LONGTEXT
@@ -13644,6 +13645,7 @@ object_privilege:
         | EVENT_SYM               { Lex->grant |= EVENT_ACL;}
         | TRIGGER_SYM             { Lex->grant |= TRIGGER_ACL; }
         | CREATE TABLESPACE       { Lex->grant |= CREATE_TABLESPACE_ACL; }
+        | IGNORE_SYM LOGGING_SYM  { Lex->grant |= IGNORE_LOGGING_ACL; }
         ;
 
 opt_and:

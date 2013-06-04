@@ -676,6 +676,11 @@ public:
       return file_log_handler->get_mysql_log();
     return NULL;
   }
+
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+  void twitter_log_write(THD *thd, enum enum_server_command command,
+                         const char *query, uint query_length);
+#endif
 };
 
 enum enum_binlog_format {
@@ -708,6 +713,20 @@ bool general_log_print(THD *thd, enum enum_server_command command,
 
 bool general_log_write(THD *thd, enum enum_server_command command,
                        const char *query, uint query_length);
+
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+void twitter_audit_log(THD *thd, enum enum_server_command command,
+                       const char *query, uint query_length,
+                       my_bool twitter_audit = false, void *acl = 0);
+
+void twitter_audit_print(THD *thd, enum enum_server_command command,
+                         void *acl, const char *format, va_list args);
+
+void twitter_audit_logins(THD *thd, enum enum_server_command command,
+                          void *acl, const char *format,...);
+
+bool twitter_audit_acl_check(void *acl);
+#endif
 
 void sql_perror(const char *message);
 bool flush_error_log();

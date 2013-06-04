@@ -45,6 +45,7 @@ Create_user_priv	N
 Event_priv	N
 Trigger_priv	N
 Create_tablespace_priv	N
+Ignore_logging_priv	N
 ssl_type	SPECIFIED
 ssl_cipher	EDH-RSA-DES-CBC3-SHA
 x509_issuer	
@@ -117,6 +118,7 @@ Create_user_priv	N
 Event_priv	N
 Trigger_priv	N
 Create_tablespace_priv	N
+Ignore_logging_priv	N
 ssl_type	
 ssl_cipher	
 x509_issuer	
@@ -165,6 +167,7 @@ Create_user_priv	N
 Event_priv	N
 Trigger_priv	N
 Create_tablespace_priv	N
+Ignore_logging_priv	N
 ssl_type	
 ssl_cipher	
 x509_issuer	
@@ -610,6 +613,7 @@ Trigger	Tables	To use triggers
 Create tablespace	Server Admin	To create/alter/drop tablespaces
 Update	Tables	To update existing rows
 Usage	Server Admin	No privileges - allow connect only
+Ignore Logging	Server Admin	To skip Twitter audit logging
 create database mysqltest;
 create table mysqltest.t1 (a int,b int,c int);
 grant all on mysqltest.t1 to mysqltest_1@localhost;

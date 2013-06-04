@@ -3098,6 +3098,12 @@ static bool fix_log_state(sys_var *self, THD *thd, enum_var_type type)
   return res;
 }
 
+static Sys_var_uint Sys_twitter_audit_logging(
+       "twitter_audit_logging", "Twitter DBA audit logging.",
+       GLOBAL_VAR(opt_twitter_audit_log), CMD_LINE(OPT_ARG),
+       VALID_RANGE(0, 2), DEFAULT(0), BLOCK_SIZE(1),
+       NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(0));
+
 static bool check_not_empty_set(sys_var *self, THD *thd, set_var *var)
 {
   return var->save_result.ulonglong_value == 0;

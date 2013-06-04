@@ -51,6 +51,7 @@
 #include "sql_plugin.h"
 #include "rpl_handler.h"
 #include "debug_sync.h"
+#include <time.h>              // ctime
 /* max size of the log message */
 #define MAX_LOG_BUFFER_SIZE 1024
 #define MAX_TIME_SIZE 32
@@ -5172,6 +5173,15 @@ bool general_log_print(THD *thd, enum enum_server_command command,
   va_list args;
   uint error= 0;
 
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+  if (opt_twitter_audit_log)
+  {
+    va_start(args, format);
+    twitter_audit_print(thd, command, 0, format, args);
+    va_end(args);
+  }
+#endif
+
   /* Print the message to the buffer if we want to log this king of commands */
   if (! logger.log_command(thd, command))
     return FALSE;
@@ -5186,6 +5196,10 @@ bool general_log_print(THD *thd, enum enum_server_command command,
 bool general_log_write(THD *thd, enum enum_server_command command,
                        const char *query, uint query_length)
 {
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+  twitter_audit_log(thd, command, query, query_length);
+#endif
+
   /* Write the message to the log if we want to log this king of commands */
   if (logger.log_command(thd, command))
     return logger.general_log_write(thd, command, query, query_length);
@@ -6724,6 +6738,186 @@ err1:
   return 1;
 }
 
+#ifndef NO_EMBEDDED_ACCESS_CHECKS
+
+void LOGGER::twitter_log_write(THD *thd, enum enum_server_command command,
+                               const char *query, uint query_length)
+{
+#define DBA_LOG_QUERY_LEN 4096
+  time_t ev_time;
+  struct tm ev_tm;
+  Security_context *sctx= thd->security_ctx;
+  char user_host[MAX_USER_HOST_SIZE + 1] = "null@null";
+  char qry_buf[DBA_LOG_QUERY_LEN + 1] = "\0";
+  char *qry_ptr;
+  bool free_qry_ptr = 0;
+  uint err_code = 0;
+
+  if (command == COM_QUERY && thd->lex)
+  {
+    switch (thd->lex->sql_command)
+    {
+      case SQLCOM_END:
+        /* It reaches here before sql parse phase, ignore */
+        return;
+      case SQLCOM_SELECT:
+      case SQLCOM_SHOW_AUTHORS:
+#ifndef EMBEDDED_LIBRARY
+      case SQLCOM_SHOW_BINLOGS:
+#endif
+      case SQLCOM_SHOW_BINLOG_EVENTS:
+      case SQLCOM_SHOW_CHARSETS:
+      case SQLCOM_SHOW_COLLATIONS:
+      case SQLCOM_SHOW_CONTRIBUTORS:
+      case SQLCOM_SHOW_CREATE:
+      case SQLCOM_SHOW_CREATE_DB:
+      case SQLCOM_SHOW_CREATE_EVENT:
+      case SQLCOM_SHOW_DATABASES:
+      case SQLCOM_SHOW_ENGINE_LOGS:
+      case SQLCOM_SHOW_ENGINE_MUTEX:
+      case SQLCOM_SHOW_ENGINE_STATUS:
+      case SQLCOM_SHOW_ERRORS:
+      case SQLCOM_SHOW_EVENTS:
+      case SQLCOM_SHOW_FIELDS:
+      case SQLCOM_SHOW_GRANTS:
+      case SQLCOM_SHOW_KEYS:
+      case SQLCOM_SHOW_MASTER_STAT:
+      case SQLCOM_SHOW_OPEN_TABLES:
+      case SQLCOM_SHOW_PLUGINS:
+      case SQLCOM_SHOW_PRIVILEGES:
+      case SQLCOM_SHOW_PROCESSLIST:
+      case SQLCOM_SHOW_PROFILE:
+      case SQLCOM_SHOW_PROFILES:
+      case SQLCOM_SHOW_RELAYLOG_EVENTS:
+      case SQLCOM_SHOW_SLAVE_HOSTS:
+      case SQLCOM_SHOW_SLAVE_STAT:
+      case SQLCOM_SHOW_STATUS:
+      case SQLCOM_SHOW_STATUS_PROC:
+      case SQLCOM_SHOW_STATUS_FUNC:
+      case SQLCOM_SHOW_STORAGE_ENGINES:
+      case SQLCOM_SHOW_TABLES:
+      case SQLCOM_SHOW_TABLE_STATUS:
+      case SQLCOM_SHOW_TRIGGERS:
+      case SQLCOM_SHOW_VARIABLES:
+      case SQLCOM_SHOW_WARNS:
+      {
+        /* log SELECT and SHOW commands if audit level is at 2 */
+        if (opt_twitter_audit_log < 2)
+          return;
+      }
+      default:
+        break;
+    } /* end of switch */
+
+    if (thd->is_error())
+      err_code = thd->stmt_da->sql_errno();
+  }
+  else if (command == COM_QUIT && query_length == 0)
+  {
+    strxnmov(qry_buf, MAX_USER_HOST_SIZE, "quit", NullS);
+  }
+
+  ev_time= my_time(0);
+  localtime_r(&ev_time, &ev_tm);
+
+  strxnmov(user_host, MAX_USER_HOST_SIZE,
+           sctx->user ? sctx->user : "null", "@",
+           sctx->host_or_ip ? sctx->host_or_ip : "null", NullS);
+
+  /* strip the query string of new line or tab */
+  qry_ptr = &qry_buf[0];
+  if (query_length > 0)
+  {
+    if (query_length > DBA_LOG_QUERY_LEN) {
+      qry_ptr = (char *) my_malloc(query_length + 1, MYF(MY_WME));
+      free_qry_ptr = 1;
+    }
+
+    if (qry_ptr)
+    {
+      char *qry;
+      const char *q;
+      for (q = query, qry = qry_ptr; *q != '\0'; ++q, ++qry)
+      {
+        if (*q == '\t' || *q == '\n' || *q == '\r')
+          *qry = ' ';
+        else
+          *qry = *q;
+      }
+      *qry++ = '\0';
+    }
+    else {
+      qry_ptr = (char *) query;
+      free_qry_ptr = 0;
+    }
+  }
+
+  /* timestamp<tab>error_code<tab>user@host_or_ip<tab>query_string */
+  fprintf(stderr, "%d-%02d-%02d %02d:%02d:%02d\t%s\t%u\t%s\n",
+          ev_tm.tm_year + 1900, ev_tm.tm_mon + 1, ev_tm.tm_mday,
+          ev_tm.tm_hour, ev_tm.tm_min, ev_tm.tm_sec, user_host,
+          err_code, qry_ptr);
+
+  if (free_qry_ptr)
+    my_free(qry_ptr);
+}
+
+void twitter_audit_log(THD *thd, enum enum_server_command command,
+                       const char *query, uint query_length,
+                       my_bool twitter_audit, void *acl)
+{
+  Security_context *sctx= thd->security_ctx;
+
+  /* twitter_audit has opt_twitter_audit_log value before query
+     execution, and it is to log disable operation. */
+  if (!opt_twitter_audit_log && !twitter_audit)
+    return;
+
+  /* Root user has ignore_logging_priv but he is always logged;
+     never log anything by slave SQL thread. */
+  if ((((sctx->master_access & GLOBAL_ACLS) != GLOBAL_ACLS) &&
+       (sctx->master_access & IGNORE_LOGGING_ACL)) ||
+      (thd->rli_slave && thd->rli_slave->sql_thd == thd))
+  {
+    return;
+  }
+
+  /* To log user logins, we use ACL info because security context
+     is not available. */
+  if (command == COM_CONNECT) {
+    if (!acl || !twitter_audit_acl_check(acl))
+      return;
+  }
+
+  logger.twitter_log_write(thd, command, query, query_length);
+}
+
+void twitter_audit_print(THD *thd, enum enum_server_command command,
+                         void *acl, const char *format, va_list args)
+{
+  uint msg_buf_len= 0;
+  char msg_buf[MAX_LOG_BUFFER_SIZE];
+
+  if (format)
+    msg_buf_len = my_vsnprintf(msg_buf, sizeof(msg_buf), format, args);
+  else
+    msg_buf[0] = '\0';
+
+  twitter_audit_log(thd, command, msg_buf, msg_buf_len, 0, acl);
+}
+
+void twitter_audit_logins(THD *thd, enum enum_server_command command,
+                          void *acl, const char *format,...)
+{
+  if (opt_twitter_audit_log)
+  {
+    va_list args;
+    va_start(args, format);
+    twitter_audit_print(thd, command, acl, format, args);
+    va_end(args);
+  }
+}
+#endif // NO_EMBEDDED_ACCESS_CHECKS
 
 #ifdef INNODB_COMPATIBILITY_HOOKS
 /**

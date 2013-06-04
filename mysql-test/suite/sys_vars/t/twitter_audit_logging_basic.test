@@ -1,0 +1,20 @@
+--source include/not_embedded.inc
+
+SET @old_general_log = @@GLOBAL.general_log;
+SET GLOBAL general_log = 1;
+
+--echo
+--echo # twitter_audit_logging is a global variable.
+--error ER_GLOBAL_VARIABLE
+SET @@SESSION.twitter_audit_logging = 0;
+
+SET GLOBAL general_log = OFF;
+SET GLOBAL twitter_audit_logging = 1;
+
+SET GLOBAL general_log = ON;
+SET GLOBAL twitter_audit_logging = 2;
+SELECT @@GLOBAL.twitter_audit_logging;
+SET GLOBAL twitter_audit_logging = 0;
+SET GLOBAL general_log = OFF;
+
+SET GLOBAL general_log = @old_general_log;

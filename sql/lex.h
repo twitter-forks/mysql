@@ -309,6 +309,7 @@ static SYMBOL symbols[] = {
   { "LOCK",		SYM(LOCK_SYM)},
   { "LOCKS",		SYM(LOCKS_SYM)},
   { "LOGFILE",		SYM(LOGFILE_SYM)},
+  { "LOGGING",		SYM(LOGGING_SYM)},
   { "LOGS",		SYM(LOGS_SYM)},
   { "LONG",		SYM(LONG_SYM)},
   { "LONGBLOB",		SYM(LONGBLOB)},

@@ -1,0 +1,62 @@
+#
+# Test Twitter DBA audit logging
+#
+SET @old_general_log= @@global.general_log;
+SET @old_autocommit= @@global.autocommit;
+CREATE USER user1;
+CREATE USER user2;
+CREATE USER user3 IDENTIFIED BY 'password';
+SET GLOBAL general_log = 0;
+SET GLOBAL twitter_audit_logging = 1;
+GRANT IGNORE LOGGING on *.* TO user1;
+CREATE TABLE t1 (a INT PRIMARY KEY, b INT) ENGINE=InnoDB;
+# Connect root
+BEGIN;
+SET GLOBAL AUTOCOMMIT=0;
+INSERT INTO t1 VALUES (1, 1);
+INSERT INTO t1 VALUES (2, 2);
+INSERT INTO t1 SELECT 1, SLEEP(2);
+ERROR 23000: Duplicate entry '1' for key 'PRIMARY'
+COMMIT;
+SELECT * FROM t1 where a <10;
+a	b
+1	1
+2	2
+# Connect user1
+BEGIN;
+INSERT INTO t1 VALUES (3, 3);
+INSERT INTO t1 SELECT 4, SLEEP(2);
+UPDATE t1 SET b=33 WHERE a=3;
+COMMIT;
+# Connect user2
+BEGIN;
+ALTER TABLE t1 ADD (c INT);
+INSERT INTO t1 VALUES (5, 5, 5);
+INSERT INTO t1 SELECT 6, SLEEP(2), 6;
+COMMIT;
+SHOW OPEN TABLES;
+Database	Table	In_use	Name_locked
+test	t1	0	0
+# Connection: root
+REVOKE IGNORE LOGGING on *.* FROM user1;
+# Connect: user1
+DELETE FROM t1 where a = 1;
+COMMIT;
+connect(localhost,user3,,test,MASTER_PORT,MASTER_SOCKET);
+ERROR 28000: Access denied for user 'user3'@'localhost' (using password: NO)
+connect(localhost,user4,,test,MASTER_PORT,MASTER_SOCKET);
+ERROR 28000: Access denied for user 'user4'@'localhost' (using password: NO)
+# Connection: default
+SET GLOBAL twitter_audit_logging=2;
+SHOW GRANTS;
+Grants for root@localhost
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION
+GRANT PROXY ON ''@'' TO 'root'@'localhost' WITH GRANT OPTION
+SET GLOBAL twitter_audit_logging=0;
+DROP TABLE t1;
+DROP USER user1;
+DROP USER user2;
+DROP USER user3;
+SET GLOBAL twitter_audit_logging = 0;
+SET GLOBAL general_log = @old_general_log;
+SEt GLOBAL autocommit = @old_autocommit;
