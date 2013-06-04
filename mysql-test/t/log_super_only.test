@@ -55,6 +55,12 @@ perl;
   my $count = grep /ERROR/, <FILE>;
   $count or die("Cannot find 'ERROR' in '$log_file'\n");
   seek(FILE,0,0);
+  my $conn = grep /Connect/, <FILE>;
+  $conn or die("Cannot find 'Connect' in '$log_file'\n");
+  seek(FILE,0,0);
+  my $errconn = grep /Access denied/, <FILE>;
+  $errconn or die("Cannot find 'Access denied' in '$log_file'\n");
+  seek(FILE,0,0);
   my $updc = grep /UPDATE/, <FILE>;
   $updc == 0 or die("Cannot find 'UPDATE' in '$log_file'\n");
   close(FILE)
