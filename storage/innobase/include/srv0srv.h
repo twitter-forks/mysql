@@ -880,6 +880,8 @@ struct export_var_struct{
 	ib_uint64_t innodb_purge_undo_no;	/*!< purge_sys->purge_undo_no */
 	ulint innodb_thread_concurrency_active;	/*!< srv_conc_n_threads */
 	ulint innodb_thread_concurrency_waiting;/*!< srv_conc_n_waiting_threads */
+	ulint innodb_btree_row_searches;        /*!< btr_cur_n_non_sea */
+	ulint innodb_hash_row_searches;         /*!< btr_cur_n_sea */
 	ib_int64_t innodb_mysql_master_log_pos;	/*!< Master binlog file position. */
 	char innodb_mysql_master_log_name[TRX_SYS_MYSQL_LOG_NAME_LEN + 1];
 						/*!< Master binlog file name. */

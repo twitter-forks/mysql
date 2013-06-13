@@ -2299,6 +2299,8 @@ srv_export_innodb_status(void)
 		srv_conc_n_threads;
 	export_vars.innodb_thread_concurrency_waiting =
 		srv_conc_n_waiting_threads;
+	export_vars.innodb_btree_row_searches = btr_cur_n_non_sea;
+	export_vars.innodb_hash_row_searches = btr_cur_n_sea;
 
 #ifdef UNIV_DEBUG
 	{

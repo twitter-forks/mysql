@@ -1348,6 +1348,10 @@ SELECT variable_value - @innodb_row_lock_current_waits_orig FROM information_sch
 SELECT variable_value - @innodb_row_lock_time_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_row_lock_time';
 SELECT variable_value - @innodb_row_lock_time_max_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_row_lock_time_max';
 SELECT variable_value - @innodb_row_lock_time_avg_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_row_lock_time_avg';
+SET @innodb_rows_search_btree_index_orig = (SELECT variable_value FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_btree_index');
+SET @innodb_rows_search_hash_index_orig = (SELECT variable_value FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_hash_index');
+SELECT variable_value - @innodb_rows_search_btree_index_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_btree_index';
+SELECT variable_value - @innodb_rows_search_hash_index_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_hash_index';
 
 # Test for innodb_sync_spin_loops variable
 SET @innodb_sync_spin_loops_orig = @@innodb_sync_spin_loops;

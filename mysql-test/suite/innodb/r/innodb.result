@@ -1706,6 +1706,14 @@ variable_value - @innodb_row_lock_time_max_orig
 SELECT variable_value - @innodb_row_lock_time_avg_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_row_lock_time_avg';
 variable_value - @innodb_row_lock_time_avg_orig
 0
+SET @innodb_rows_search_btree_index_orig = (SELECT variable_value FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_btree_index');
+SET @innodb_rows_search_hash_index_orig = (SELECT variable_value FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_hash_index');
+SELECT variable_value - @innodb_rows_search_btree_index_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_btree_index';
+variable_value - @innodb_rows_search_btree_index_orig
+0
+SELECT variable_value - @innodb_rows_search_hash_index_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'innodb_rows_search_hash_index';
+variable_value - @innodb_rows_search_hash_index_orig
+0
 SET @innodb_sync_spin_loops_orig = @@innodb_sync_spin_loops;
 show variables like "innodb_sync_spin_loops";
 Variable_name	Value
