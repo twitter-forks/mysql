@@ -3629,11 +3629,15 @@ enum_monotonicity_info Item_func_utc_extract::get_monotonicity_info() const
 }
 
 
-longlong Item_func_utc_extract::val_int_endpoint(bool, bool *)
+longlong Item_func_utc_extract::val_int_endpoint(bool left_endp,
+                                                 bool *incl_endp)
 {
   MYSQL_TIME time;
 
   DBUG_ASSERT(fixed == 1);
+
+  /* Include current timestamp-based partition (MYSQL-164) */
+  *incl_endp= true;
 
   if (get_utc_time(&time))
     return LONGLONG_MIN;
