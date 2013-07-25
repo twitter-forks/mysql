@@ -1,4 +1,4 @@
-# Copyright (c) 2006, 2010, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2006, 2013, Oracle and/or its affiliates. All rights reserved.
 # 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,3 +34,12 @@ ENDFOREACH()
 IF(HAVE_MY_TIMER)
   MY_ADD_TEST(my_timer)
 ENDIF()
+
+IF(WIN32)
+  ADD_EXECUTABLE(explain_filename-t explain_filename-t.cc
+                                    ../../sql/nt_servc.cc)
+ELSE()
+  ADD_EXECUTABLE(explain_filename-t explain_filename-t.cc)
+ENDIF()
+TARGET_LINK_LIBRARIES(explain_filename-t sql mytap)
+ADD_TEST(explain_filename explain_filename-t)
