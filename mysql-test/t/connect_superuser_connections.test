@@ -1,0 +1,83 @@
+--source include/not_embedded.inc
+
+SET @old_max_connections = @@global.max_connections;
+SET @old_superuser_connections = @@global.superuser_connections;
+
+CREATE USER user1;
+CREATE USER user2;
+CREATE USER user3;
+
+-- echo # reduce max_connections
+SET GLOBAL max_connections = 4;
+
+--echo # connect root
+connect(con1,localhost,root,,);
+BEGIN;
+CREATE TABLE t1 (c1 integer primary key, c2 integer) engine=InnoDB;
+insert t1 select 1,1;
+COMMIT;
+
+--echo # connect user1
+connect(con1user1,localhost,user1,,);
+BEGIN;
+INSERT INTO t1 (c1,c2) VALUES (2,2);
+COMMIT;
+
+--echo # connect user2
+connect(con2user2,localhost,user2,,);
+BEGIN;
+INSERT INTO t1 (c1,c2) VALUES (3,3);
+COMMIT;
+
+-- echo # connect root in reserved connection #1
+connect(con2,localhost,root,,);
+BEGIN;
+INSERT INTO t1 (c1,c2) VALUES (4,4);
+COMMIT;
+
+--replace_result $MASTER_MYSOCK MASTER_SOCKET $MASTER_MYPORT MASTER_PORT
+--error ER_CON_COUNT_ERROR
+connect(con3,localhost,root,,);
+
+--echo # increase reserved connections for SUPER users
+SET GLOBAL superuser_connections = 2;
+
+--echo # connect: root in reserved connection #2
+connect(con3root,localhost,root,,);
+--replace_column 1 ### 3 ### 6 ### 7 ###
+SHOW PROCESSLIST;
+INSERT t1 select 5,5;
+COMMIT;
+
+--replace_result $MASTER_MYSOCK MASTER_SOCKET $MASTER_MYPORT MASTER_PORT
+--error ER_CON_COUNT_ERROR
+connect(con3user3,localhost,user3,,);
+
+--replace_result $MASTER_MYSOCK MASTER_SOCKET $MASTER_MYPORT MASTER_PORT 08004 HY000
+--error ER_CON_COUNT_ERROR
+connect(con3,localhost,root,,);
+
+--echo # connection: user1
+connection con1user1;
+SELECT * FROM t1;
+
+--echo # disconnect reserved root connection
+disconnect con3root;
+--replace_result $MASTER_MYSOCK MASTER_SOCKET $MASTER_MYPORT MASTER_PORT 08004 HY000
+--error ER_CON_COUNT_ERROR
+connect(con3user3,localhost,user3,,);
+
+disconnect con1;
+disconnect con2;
+disconnect con1user1;
+disconnect con2user2;
+
+--echo # connection: default
+connection default;
+DROP USER user1;
+DROP USER user2;
+DROP USER user3;
+DROP TABLE t1;
+
+SET GLOBAL superuser_connections = @old_superuser_connections;
+SET GLOBAL max_connections = @old_max_connections;

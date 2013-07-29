@@ -1,0 +1,31 @@
+--source include/load_sysvars.inc
+
+SET @old_superuser_connections = @@global.superuser_connections;
+SELECT @old_superuser_connections;
+
+SET @@global.superuser_connections= 3;
+SELECT @@global.superuser_connections;
+SET @@global.superuser_connections= 10;
+SELECT @@global.superuser_connections;
+SET @@global.superuser_connections= DEFAULT;
+SELECT @@global.superuser_connections;
+
+--Error ER_WRONG_TYPE_FOR_VAR
+SET @@global.superuser_connections = 5.01;
+--Error ER_WRONG_TYPE_FOR_VAR
+SET @@global.superuser_connections = ON;
+--Error ER_WRONG_TYPE_FOR_VAR
+SET @@global.superuser_connections = '5';
+
+SET @@global.superuser_connections = 11;
+SELECT @@global.superuser_connections;
+SET @@global.superuser_connections = -6;
+SELECT @@global.superuser_connections;
+
+--Error ER_GLOBAL_VARIABLE
+SET @@session.superuser_connections = 6;
+--Error ER_INCORRECT_GLOBAL_LOCAL_VAR
+SELECT @@session.superuser_connections;
+
+SET GLOBAL superuser_connections= @old_superuser_connections;
+SELECT @@global.superuser_connections;

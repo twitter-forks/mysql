@@ -1193,7 +1193,7 @@ static Sys_var_ulong Sys_max_binlog_size(
 static bool fix_max_connections(sys_var *self, THD *thd, enum_var_type type)
 {
 #ifndef EMBEDDED_LIBRARY
-  resize_thr_alarm(max_connections +
+  resize_thr_alarm(max_connections + superuser_connections +
                    global_system_variables.max_insert_delayed_threads + 10);
 #endif
   return false;
@@ -1214,6 +1214,13 @@ static Sys_var_ulong Sys_max_connect_errors(
        GLOBAL_VAR(max_connect_errors), CMD_LINE(REQUIRED_ARG),
        VALID_RANGE(1, ULONG_MAX), DEFAULT(MAX_CONNECT_ERRORS),
        BLOCK_SIZE(1));
+
+static Sys_var_ulong Sys_superuser_connections(
+       "superuser_connections",
+       "The number of reserved superuser connections",
+       GLOBAL_VAR(superuser_connections), CMD_LINE(REQUIRED_ARG),
+       VALID_RANGE(1, 10), DEFAULT(1), BLOCK_SIZE(1), NO_MUTEX_GUARD,
+       NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(fix_max_connections));
 
 static bool check_max_delayed_threads(sys_var *self, THD *thd, set_var *var)
 {

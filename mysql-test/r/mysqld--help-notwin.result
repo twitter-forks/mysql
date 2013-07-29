@@ -655,6 +655,8 @@ The following options may be given as the first argument:
  The soft upper limit for number of cached stored routines
  for one connection.
  --super-only        Don't allow non-superusers to execute statements.
+ --superuser-connections=# 
+ The number of reserved superuser connections
  -s, --symbolic-links 
  Enable symbolic link support.
  --sync-binlog=#     Synchronously flush binary log to disk after every #th
@@ -910,6 +912,7 @@ sporadic-binlog-dump-fail FALSE
 sql-mode 
 stored-program-cache 256
 super-only FALSE
+superuser-connections 1
 symbolic-links FALSE
 sync-binlog 0
 sync-frm TRUE

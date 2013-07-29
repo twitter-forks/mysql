@@ -1,0 +1,42 @@
+SET @old_superuser_connections = @@global.superuser_connections;
+SELECT @old_superuser_connections;
+@old_superuser_connections
+1
+SET @@global.superuser_connections= 3;
+SELECT @@global.superuser_connections;
+@@global.superuser_connections
+3
+SET @@global.superuser_connections= 10;
+SELECT @@global.superuser_connections;
+@@global.superuser_connections
+10
+SET @@global.superuser_connections= DEFAULT;
+SELECT @@global.superuser_connections;
+@@global.superuser_connections
+1
+SET @@global.superuser_connections = 5.01;
+ERROR 42000: Incorrect argument type to variable 'superuser_connections'
+SET @@global.superuser_connections = ON;
+ERROR 42000: Incorrect argument type to variable 'superuser_connections'
+SET @@global.superuser_connections = '5';
+ERROR 42000: Incorrect argument type to variable 'superuser_connections'
+SET @@global.superuser_connections = 11;
+Warnings:
+Warning	1292	Truncated incorrect superuser_connections value: '11'
+SELECT @@global.superuser_connections;
+@@global.superuser_connections
+10
+SET @@global.superuser_connections = -6;
+Warnings:
+Warning	1292	Truncated incorrect superuser_connections value: '-6'
+SELECT @@global.superuser_connections;
+@@global.superuser_connections
+1
+SET @@session.superuser_connections = 6;
+ERROR HY000: Variable 'superuser_connections' is a GLOBAL variable and should be set with SET GLOBAL
+SELECT @@session.superuser_connections;
+ERROR HY000: Variable 'superuser_connections' is a GLOBAL variable
+SET GLOBAL superuser_connections= @old_superuser_connections;
+SELECT @@global.superuser_connections;
+@@global.superuser_connections
+1

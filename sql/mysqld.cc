@@ -489,6 +489,7 @@ ulong specialflag=0;
 ulong binlog_cache_use= 0, binlog_cache_disk_use= 0;
 ulong binlog_stmt_cache_use= 0, binlog_stmt_cache_disk_use= 0;
 ulong max_connections, max_connect_errors;
+ulong superuser_connections;
 /*
   Maximum length of parameter value which can be set through
   mysql_send_long_data() call.
@@ -3329,7 +3330,7 @@ static int init_common_variables()
     uint files, wanted_files, max_open_files;
 
     /* MyISAM requires two file handles per table. */
-    wanted_files= 10+max_connections+table_cache_size*2;
+    wanted_files= 10+superuser_connections+max_connections+table_cache_size*2;
     /*
       We are trying to allocate no less than max_connections*5 file
       handles (i.e. we are trying to set the limit so that they will
@@ -3352,17 +3353,19 @@ static int init_common_variables()
           If we have requested too much file handles than we bring
           max_connections in supported bounds.
         */
-        max_connections= (ulong) min(files-10-TABLE_OPEN_CACHE_MIN*2,
-                                     max_connections);
+        max_connections= (ulong)
+          min(files-10-superuser_connections-TABLE_OPEN_CACHE_MIN*2,
+              max_connections);
         /*
           Decrease table_cache_size according to max_connections, but
           not below TABLE_OPEN_CACHE_MIN.  Outer min() ensures that we
           never increase table_cache_size automatically (that could
           happen if max_connections is decreased above).
         */
-        table_cache_size= (ulong) min(max((files-10-max_connections)/2,
-                                          TABLE_OPEN_CACHE_MIN),
-                                      table_cache_size);
+        table_cache_size= (ulong)
+          min(max((files-10-superuser_connections-max_connections)/2,
+                  TABLE_OPEN_CACHE_MIN),
+              table_cache_size);
 	DBUG_PRINT("warning",
 		   ("Changed limits: max_open_files: %u  max_connections: %ld  table_cache: %ld",
 		    files, max_connections, table_cache_size));
@@ -5080,12 +5083,13 @@ static void create_new_thread(THD *thd)
 
   /*
     Don't allow too many connections. We roughly check here that we allow
-    only (max_connections + 1) connections.
+    only (max_connections + superuser_connections) connections.
   */
 
   mysql_mutex_lock(&LOCK_connection_count);
 
-  if (connection_count >= max_connections + 1 || abort_loop)
+  if (connection_count >= max_connections + superuser_connections ||
+      abort_loop)
   {
     mysql_mutex_unlock(&LOCK_connection_count);
 
