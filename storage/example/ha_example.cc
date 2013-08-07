@@ -1043,7 +1043,18 @@ static MYSQL_SYSVAR_DOUBLE(
   double_var,
   srv_double_var,
   PLUGIN_VAR_RQCMDARG,
-  "0.0..1000.0",
+  "0.500000..1000.500000",
+  NULL,
+  NULL,
+  8.5,
+  0.5,
+  1000.5,
+  0);                             // reserved always 0
+
+static MYSQL_THDVAR_DOUBLE(
+  double_thdvar,
+  PLUGIN_VAR_RQCMDARG,
+  "0.500000..1000.500000",
   NULL,
   NULL,
   8.5,
@@ -1055,6 +1066,7 @@ static struct st_mysql_sys_var* example_system_variables[]= {
   MYSQL_SYSVAR(enum_var),
   MYSQL_SYSVAR(ulong_var),
   MYSQL_SYSVAR(double_var),
+  MYSQL_SYSVAR(double_thdvar),
   NULL
 };
 

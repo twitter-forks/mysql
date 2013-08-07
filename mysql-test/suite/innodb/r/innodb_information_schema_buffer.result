@@ -191,6 +191,7 @@ WHERE (space, page_number)
 NOT IN (SELECT space, page_number FROM information_schema.innodb_buffer_page
 WHERE page_type IN ("INDEX"));
 SPACE	PAGE_NUMBER
+0	4
 SELECT * FROM information_schema.innodb_buffer_page
 WHERE (space, page_number)
 NOT IN (SELECT space, page_number FROM information_schema.innodb_buffer_page_basic)

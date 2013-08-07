@@ -2059,6 +2059,7 @@ typedef DECLARE_MYSQL_SYSVAR_SIMPLE(sysvar_longlong_t, longlong);
 typedef DECLARE_MYSQL_SYSVAR_SIMPLE(sysvar_uint_t, uint);
 typedef DECLARE_MYSQL_SYSVAR_SIMPLE(sysvar_ulong_t, ulong);
 typedef DECLARE_MYSQL_SYSVAR_SIMPLE(sysvar_ulonglong_t, ulonglong);
+typedef DECLARE_MYSQL_SYSVAR_SIMPLE(sysvar_double_t, double);
 
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_int_t, int);
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_long_t, long);
@@ -2066,8 +2067,6 @@ typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_longlong_t, longlong);
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_uint_t, uint);
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_ulong_t, ulong);
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_ulonglong_t, ulonglong);
-
-typedef DECLARE_MYSQL_SYSVAR_SIMPLE(sysvar_double_t, double);
 typedef DECLARE_MYSQL_THDVAR_SIMPLE(thdvar_double_t, double);
 
 /****************************************************************************
@@ -2191,21 +2190,6 @@ static int check_func_longlong(THD *thd, struct st_mysql_sys_var *var,
 }
 
 
-static int check_func_double(THD *thd, struct st_mysql_sys_var *var,
-                             void *save, st_mysql_value *value)
-{
-  double v;
-  my_bool fixed;
-  struct my_option option;
-
-  value->val_real(value, &v);
-  plugin_opt_set_limits(&option, var);
-  *(double *) save= getopt_double_limit_value(v, &option, &fixed);
-
-  return throw_bounds_warning(thd, var->name, fixed, v);
-}
-
-
 static int check_func_str(THD *thd, struct st_mysql_sys_var *var,
                           void *save, st_mysql_value *value)
 {
@@ -2299,6 +2283,20 @@ err:
   return 1;
 }
 
+static int check_func_double(THD *thd, struct st_mysql_sys_var *var,
+                             void *save, st_mysql_value *value)
+{
+  double v;
+  my_bool fixed;
+  struct my_option option;
+
+  value->val_real(value, &v);
+  plugin_opt_set_limits(&option, var);
+  *(double *) save= getopt_double_limit_value(v, &option, &fixed);
+
+  return throw_bounds_warning(thd, var->name, fixed, v);
+}
+
 
 static void update_func_bool(THD *thd, struct st_mysql_sys_var *var,
                              void *tgt, const void *save)
@@ -2334,13 +2332,11 @@ static void update_func_str(THD *thd, struct st_mysql_sys_var *var,
   *(char **) tgt= *(char **) save;
 }
 
-
 static void update_func_double(THD *thd, struct st_mysql_sys_var *var,
                                void *tgt, const void *save)
 {
   *(double *) tgt= *(double *) save;
 }
-
 
 /****************************************************************************
   System Variables support
@@ -3135,13 +3131,12 @@ bool sys_var_pluginvar::global_update(THD *thd, set_var *var)
   options->max_value= (opt)->max_val; \
   options->block_size= (long) (opt)->blk_sz
 
-
 #define OPTION_SET_LIMITS_DOUBLE(options, opt) \
   options->var_type= GET_DOUBLE; \
   options->def_value= (longlong) getopt_double2ulonglong((opt)->def_val); \
   options->min_value= (longlong) getopt_double2ulonglong((opt)->min_val); \
   options->max_value= getopt_double2ulonglong((opt)->max_val); \
-  options->block_size= (long) (opt)->blk_sz
+  options->block_size= (long) (opt)->blk_sz;
 
 
 static void plugin_opt_set_limits(struct my_option *options,

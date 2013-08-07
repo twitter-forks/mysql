@@ -899,6 +899,9 @@ enum index_hint_type
   INDEX_HINT_FORCE
 };
 
+/* Bitmap of table's fields */
+typedef Bitmap<MAX_FIELDS> Field_map;
+
 struct TABLE
 {
   TABLE() {}                               /* Remove gcc warning */
