@@ -39,6 +39,7 @@ Created 5/7/1996 Heikki Tuuri
 #include "dict0mem.h"
 #include "trx0sys.h"
 #include "btr0btr.h"
+#include "mysql/plugin.h"
 
 /* Restricts the length of search we will do in the waits-for
 graph of transactions */
@@ -3351,11 +3352,13 @@ lock_deadlock_trx_print(
 	ulint	max_query_len)	/*!< in: max query length to print, or 0 to
 				use the default max length */
 {
+	thd_set_deadlock_report(trx->mysql_thd, 1);
 	trx_print(lock_latest_err_file, trx, max_query_len);
 
 	if (srv_print_all_deadlocks) {
 		trx_print(stderr, trx, max_query_len);
 	}
+	thd_set_deadlock_report(trx->mysql_thd, 0);
 }
 
 /*********************************************************************//**

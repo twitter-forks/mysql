@@ -2134,6 +2134,7 @@ public:
   /* set during loop of derived table processing */
   bool       derived_tables_processing;
   my_bool    tablespace_op;	/* This is TRUE in DISCARD/IMPORT TABLESPACE */
+  bool       deadlock_report;
 
   sp_rcontext *spcont;		// SP runtime context
   sp_cache   *sp_proc_cache;

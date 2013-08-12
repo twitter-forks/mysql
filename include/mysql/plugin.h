@@ -602,6 +602,14 @@ int thd_killed(const MYSQL_THD thd);
 void thd_set_kill_status(const MYSQL_THD thd);
 
 /**
+ Set deadlock report status to print more deadlock info.
+
+ @param thd   user thread connection handle
+ @param val   true or false
+*/
+void thd_set_deadlock_report(MYSQL_THD thd, int val);
+
+/**
   Return the thread id of a user thread
 
   @param thd  user thread connection handle
