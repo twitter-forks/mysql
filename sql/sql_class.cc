@@ -722,7 +722,7 @@ char *thd_security_context(THD *thd, char *buffer, unsigned int length,
     str.append(proc_info);
   }
 
-  if (thd == current_thd && thd->query())
+  if ((thd == current_thd || thd->deadlock_report) && thd->query())
   {
     if (max_query_len < 1)
       len= thd->query_length();
@@ -799,6 +799,7 @@ THD::THD()
    in_lock_tables(0),
    bootstrap(0),
    derived_tables_processing(FALSE),
+   deadlock_report(FALSE),
    spcont(NULL),
    m_parser_state(NULL),
 #if defined(ENABLED_DEBUG_SYNC)
@@ -3569,6 +3570,11 @@ extern "C" int thd_killed(const MYSQL_THD thd)
 extern "C" void thd_set_kill_status(const MYSQL_THD thd)
 {
   thd->send_kill_message();
+}
+
+extern "C" void thd_set_deadlock_report(MYSQL_THD thd, int val)
+{
+  thd->deadlock_report = val;
 }
 
 /**

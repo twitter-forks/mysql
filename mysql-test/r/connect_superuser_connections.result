@@ -1,0 +1,61 @@
+SET @old_max_connections = @@global.max_connections;
+SET @old_superuser_connections = @@global.superuser_connections;
+CREATE USER user1;
+CREATE USER user2;
+CREATE USER user3;
+# reduce max_connections
+SET GLOBAL max_connections = 4;
+# connect root
+BEGIN;
+CREATE TABLE t1 (c1 integer primary key, c2 integer) engine=InnoDB;
+insert t1 select 1,1;
+COMMIT;
+# connect user1
+BEGIN;
+INSERT INTO t1 (c1,c2) VALUES (2,2);
+COMMIT;
+# connect user2
+BEGIN;
+INSERT INTO t1 (c1,c2) VALUES (3,3);
+COMMIT;
+# connect root in reserved connection #1
+BEGIN;
+INSERT INTO t1 (c1,c2) VALUES (4,4);
+COMMIT;
+connect(localhost,root,,test,MASTER_PORT,MASTER_SOCKET);
+ERROR HY000: Too many connections
+# increase reserved connections for SUPER users
+SET GLOBAL superuser_connections = 2;
+# connect: root in reserved connection #2
+SHOW PROCESSLIST;
+Id	User	Host	db	Command	Time	State	Info
+###	root	###	test	Sleep	###	###	NULL
+###	root	###	test	Sleep	###	###	NULL
+###	user1	###	test	Sleep	###	###	NULL
+###	user2	###	test	Sleep	###	###	NULL
+###	root	###	test	Sleep	###	###	NULL
+###	root	###	test	Query	###	###	SHOW PROCESSLIST
+INSERT t1 select 5,5;
+COMMIT;
+connect(localhost,user3,,test,MASTER_PORT,MASTER_SOCKET);
+ERROR HY000: Too many connections
+connect(localhost,root,,test,MASTER_PORT,MASTER_SOCKET);
+ERROR HY000: Too many connections
+# connection: user1
+SELECT * FROM t1;
+c1	c2
+1	1
+2	2
+3	3
+4	4
+5	5
+# disconnect reserved root connection
+connect(localhost,user3,,test,MASTER_PORT,MASTER_SOCKET);
+ERROR HY000: Too many connections
+# connection: default
+DROP USER user1;
+DROP USER user2;
+DROP USER user3;
+DROP TABLE t1;
+SET GLOBAL superuser_connections = @old_superuser_connections;
+SET GLOBAL max_connections = @old_max_connections;
