@@ -44,10 +44,12 @@ extern "C" {
 
 /* flags for hash_init */
 #define HASH_UNIQUE     1       /* hash_insert fails on duplicate key */
+#define HASH_KEEP_HASH  2       /* entry data retains hash value */
 
 typedef uint my_hash_value_type;
 typedef uchar *(*my_hash_get_key)(const uchar *,size_t*,my_bool);
 typedef void (*my_hash_free_key)(void *);
+typedef my_hash_value_type (*my_hash_get_key_hash)(const uchar *);
 
 typedef struct st_hash {
   size_t key_offset,key_length;		/* Length of key if const length */
@@ -57,6 +59,7 @@ typedef struct st_hash {
   DYNAMIC_ARRAY array;				/* Place for hash_keys */
   my_hash_get_key get_key;
   void (*free)(void *);
+  my_hash_get_key_hash get_hash;
   CHARSET_INFO *charset;
 } HASH;
 
@@ -72,6 +75,16 @@ my_bool _my_hash_init(HASH *hash, uint growth_size, CHARSET_INFO *charset,
                       size_t key_length, my_hash_get_key get_key,
                       void (*free_element)(void*),
                       uint flags);
+#define my_hash_init_extra(A,B,C,D,E,F,G,H,I) \
+  _my_hash_init_extra(A,0,B,C,D,E,F,G,H,I)
+#define my_hash_init_extra2(A,B,C,D,E,F,G,H,I,J) \
+  _my_hash_init_extra(A,B,C,D,E,F,G,H,I,J)
+my_bool _my_hash_init_extra(HASH *hash, uint growth_size, CHARSET_INFO *charset,
+                      ulong default_array_elements, size_t key_offset,
+                      size_t key_length, my_hash_get_key get_key,
+                      void (*free_element)(void*),
+                      my_hash_get_key_hash get_hash,
+                      uint flags);
 void my_hash_free(HASH *tree);
 void my_hash_reset(HASH *hash);
 uchar *my_hash_element(HASH *hash, ulong idx);
@@ -79,6 +92,10 @@ uchar *my_hash_search(const HASH *info, const uchar *key, size_t length);
 uchar *my_hash_search_using_hash_value(const HASH *info,
                                        my_hash_value_type hash_value,
                                        const uchar *key, size_t length);
+uchar *my_hash_search_using_hash_value_fast(const HASH *info,
+                                            my_hash_value_type hash_value,
+                                            const uchar *key, size_t length,
+                                            bool fast_path);
 my_hash_value_type my_calc_hash(const HASH *info,
                                 const uchar *key, size_t length);
 uchar *my_hash_first(const HASH *info, const uchar *key, size_t length,
@@ -87,7 +104,8 @@ uchar *my_hash_first_from_hash_value(const HASH *info,
                                      my_hash_value_type hash_value,
                                      const uchar *key,
                                      size_t length,
-                                     HASH_SEARCH_STATE *state);
+                                     HASH_SEARCH_STATE *state,
+                                     bool fast_path);
 uchar *my_hash_next(const HASH *info, const uchar *key, size_t length,
                     HASH_SEARCH_STATE *state);
 my_bool my_hash_insert(HASH *info, const uchar *data);

@@ -221,6 +221,8 @@ extern my_decimal decimal_zero;
 extern my_bool opt_super_only;
 extern char *opt_minidump_dir;
 extern uint opt_twitter_audit_log;
+extern uint opt_twitter_query_stats;
+extern uint opt_twitter_query_stats_max;
 extern ulonglong rows_sent, rows_examined;
 
 /*
@@ -257,6 +259,7 @@ extern PSI_mutex_key key_BINLOG_LOCK_index, key_BINLOG_LOCK_prep_xids,
   key_structure_guard_mutex, key_TABLE_SHARE_LOCK_ha_data,
   key_LOCK_error_messages, key_LOCK_thread_count, key_PARTITION_LOCK_auto_inc;
 extern PSI_mutex_key key_RELAYLOG_LOCK_index;
+extern PSI_mutex_key key_LOCK_query_stats_cache;
 
 extern PSI_rwlock_key key_rwlock_LOCK_grant, key_rwlock_LOCK_logger,
   key_rwlock_LOCK_sys_init_connect, key_rwlock_LOCK_sys_init_slave,

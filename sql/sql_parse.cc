@@ -97,6 +97,9 @@
 
 #include "sql_timer.h"        // thd_timer_set, thd_timer_reset
 
+#include "my_rdtsc.h"         // my_timer_microseconds
+#include "query_stats.h"
+
 #define FLAGSTR(V,F) ((V)&(F)?#F" ":"")
 
 /**
@@ -1988,10 +1991,18 @@ mysql_execute_command(THD *thd)
   /* have table map for update for multi-update statement (BUG#37051) */
   bool have_table_map_for_update= FALSE;
 #endif
+  ulonglong query_start_time= 0;
+  QUERY_STATS *qry_stats= 0;
   DBUG_ENTER("mysql_execute_command");
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   thd->work_part_info= 0;
 #endif
+
+  if (opt_twitter_query_stats && TRACK_QUERY(lex->sql_command))
+  {
+    qry_stats= track_query_stats(thd->query(), thd->query_length());
+    query_start_time= my_timer_microseconds();
+  }
 
   DBUG_ASSERT(thd->transaction.stmt.is_empty() || thd->in_sub_stmt);
   /*
@@ -4593,6 +4604,18 @@ finish:
 
   if (reset_timer)
     reset_statement_timer(thd);
+
+  if (opt_twitter_query_stats && qry_stats)
+  {
+    DBUG_ASSERT(qry_stats->magic == QUERY_STATS_MAGIC);
+    ulonglong elapsed = my_timer_microseconds() - query_start_time;
+    my_atomic_add64((longlong*)&qry_stats->latency, elapsed);
+    my_atomic_add64((longlong*)&qry_stats->count, 1);
+    ulonglong old_max_latency = qry_stats->max_latency;
+    if (elapsed > old_max_latency)
+      my_atomic_cas64((longlong*)&qry_stats->max_latency,
+                      (longlong*)&old_max_latency, elapsed);
+  }
 
   if (! thd->in_sub_stmt)
   {

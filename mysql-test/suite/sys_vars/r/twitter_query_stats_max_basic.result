@@ -1,0 +1,50 @@
+SET @old_twitter_query_stats_max = @@global.twitter_query_stats_max;
+SELECT @old_twitter_query_stats_max;
+@old_twitter_query_stats_max
+10240
+SET @@global.twitter_query_stats_max = DEFAULT;
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+10240
+# twitter_query_stats_max is a global variable.
+SET @@session.twitter_query_stats_max = 10240;
+ERROR HY000: Variable 'twitter_query_stats_max' is a GLOBAL variable and should be set with SET GLOBAL
+SELECT @@twitter_query_stats_max;
+@@twitter_query_stats_max
+10240
+SET @@global.twitter_query_stats_max = 2048;
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+2048
+SET @@global.twitter_query_stats_max = 20480;
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+20480
+SET @@global.twitter_query_stats_max = 1000000;
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+1000000
+SET @@global.twitter_query_stats_max = 4096.01;
+ERROR 42000: Incorrect argument type to variable 'twitter_query_stats_max'
+SET @@global.twitter_query_stats_max = 'one';
+ERROR 42000: Incorrect argument type to variable 'twitter_query_stats_max'
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+1000000
+# set twitter_query_stats to wrong value
+SET @@global.twitter_query_stats_max = 1048576;
+Warnings:
+Warning	1292	Truncated incorrect twitter_query_stats_max value: '1048576'
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+1000000
+SET @@global.twitter_query_stats_max = 2000000;
+Warnings:
+Warning	1292	Truncated incorrect twitter_query_stats_max value: '2000000'
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+1000000
+SET @@global.twitter_query_stats_max = @old_twitter_query_stats_max;
+SELECT @@global.twitter_query_stats_max;
+@@global.twitter_query_stats_max
+10240

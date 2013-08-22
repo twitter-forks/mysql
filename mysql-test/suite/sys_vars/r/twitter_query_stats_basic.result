@@ -1,0 +1,44 @@
+SET @old_twitter_query_stats = @@global.twitter_query_stats;
+SELECT @old_twitter_query_stats;
+@old_twitter_query_stats
+0
+SET @@global.twitter_query_stats = DEFAULT;
+SELECT @@global.twitter_query_stats;
+@@global.twitter_query_stats
+0
+# twitter_query_stats is a global variable.
+SET @@session.twitter_query_stats = 1;
+ERROR HY000: Variable 'twitter_query_stats' is a GLOBAL variable and should be set with SET GLOBAL
+SELECT @@twitter_query_stats;
+@@twitter_query_stats
+0
+SET @@global.twitter_query_stats = 2;
+SELECT @@global.twitter_query_stats;
+@@global.twitter_query_stats
+2
+SET @@global.twitter_query_stats = 1;
+ERROR 42000: Variable 'twitter_query_stats' can't be set to the value of '1'
+SET @@global.twitter_query_stats = 0;
+SET @@global.twitter_query_stats = 1;
+SELECT @@global.twitter_query_stats;
+@@global.twitter_query_stats
+1
+SET @@global.twitter_query_stats = 0;
+SET @@global.twitter_query_stats = 1.01;
+ERROR 42000: Incorrect argument type to variable 'twitter_query_stats'
+SET @@global.twitter_query_stats = 'one';
+ERROR 42000: Incorrect argument type to variable 'twitter_query_stats'
+SELECT @@global.twitter_query_stats;
+@@global.twitter_query_stats
+0
+# set twitter_query_stats to wrong value
+SET @@global.twitter_query_stats = 30;
+Warnings:
+Warning	1292	Truncated incorrect twitter_query_stats value: '30'
+SELECT @@global.twitter_query_stats;
+@@global.twitter_query_stats
+2
+SET @@global.twitter_query_stats = @old_twitter_query_stats;
+SELECT @@global.twitter_query_stats;
+@@global.twitter_query_stats
+0

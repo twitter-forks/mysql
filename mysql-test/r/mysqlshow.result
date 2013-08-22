@@ -95,6 +95,7 @@ Database: information_schema
 | PLUGINS                               |
 | PROCESSLIST                           |
 | PROFILING                             |
+| QUERY_STATISTICS                      |
 | REFERENTIAL_CONSTRAINTS               |
 | ROUTINES                              |
 | SCHEMATA                              |
@@ -143,6 +144,7 @@ Database: INFORMATION_SCHEMA
 | PLUGINS                               |
 | PROCESSLIST                           |
 | PROFILING                             |
+| QUERY_STATISTICS                      |
 | REFERENTIAL_CONSTRAINTS               |
 | ROUTINES                              |
 | SCHEMATA                              |

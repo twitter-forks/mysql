@@ -1,0 +1,33 @@
+--source include/load_sysvars.inc
+
+SET @old_twitter_query_stats_max = @@global.twitter_query_stats_max;
+SELECT @old_twitter_query_stats_max;
+
+SET @@global.twitter_query_stats_max = DEFAULT;
+SELECT @@global.twitter_query_stats_max;
+
+-- echo # twitter_query_stats_max is a global variable.
+--error ER_GLOBAL_VARIABLE
+SET @@session.twitter_query_stats_max = 10240;
+SELECT @@twitter_query_stats_max;
+
+SET @@global.twitter_query_stats_max = 2048;
+SELECT @@global.twitter_query_stats_max;
+SET @@global.twitter_query_stats_max = 20480;
+SELECT @@global.twitter_query_stats_max;
+SET @@global.twitter_query_stats_max = 1000000;
+SELECT @@global.twitter_query_stats_max;
+
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@global.twitter_query_stats_max = 4096.01;
+--error ER_WRONG_TYPE_FOR_VAR
+SET @@global.twitter_query_stats_max = 'one';
+SELECT @@global.twitter_query_stats_max;
+-- echo # set twitter_query_stats to wrong value
+SET @@global.twitter_query_stats_max = 1048576;
+SELECT @@global.twitter_query_stats_max;
+SET @@global.twitter_query_stats_max = 2000000;
+SELECT @@global.twitter_query_stats_max;
+
+SET @@global.twitter_query_stats_max = @old_twitter_query_stats_max;
+SELECT @@global.twitter_query_stats_max;

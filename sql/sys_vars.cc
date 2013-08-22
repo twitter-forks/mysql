@@ -51,6 +51,8 @@
 #include "../storage/perfschema/pfs_server.h"
 #endif /* WITH_PERFSCHEMA_STORAGE_ENGINE */
 
+#include "query_stats.h"
+
 TYPELIB bool_typelib={ array_elements(bool_values)-1, "", bool_values, 0 };
 
 /*
@@ -3132,6 +3134,35 @@ static Sys_var_set Sys_log_output(
        GLOBAL_VAR(log_output_options), CMD_LINE(REQUIRED_ARG),
        log_output_names, DEFAULT(LOG_FILE), NO_MUTEX_GUARD, NOT_IN_BINLOG,
        ON_CHECK(check_not_empty_set), ON_UPDATE(fix_log_output));
+
+static bool check_query_stats_level(sys_var *self, THD *thd, set_var *var)
+{
+  /* disallow level change except changing from or to level 0 */
+  ulonglong new_val = var->save_result.ulonglong_value;
+  if (new_val == 0 || (opt_twitter_query_stats == 0 && new_val))
+    return false;
+  return true;
+}
+
+static bool change_query_stats_level(sys_var *self, THD *thd, enum_var_type type)
+{
+  reset_query_stats_cache();
+  return false;
+}
+
+static Sys_var_uint Sys_twitter_query_stats(
+       "twitter_query_stats", "Collect user query stats.",
+       GLOBAL_VAR(opt_twitter_query_stats), CMD_LINE(OPT_ARG),
+       VALID_RANGE(0, TWEQS_BY_CLIENT_ID), DEFAULT(0), BLOCK_SIZE(1),
+       NO_MUTEX_GUARD, NOT_IN_BINLOG,
+       ON_CHECK(check_query_stats_level),
+       ON_UPDATE(change_query_stats_level));
+
+static Sys_var_uint Sys_twitter_query_stats_max(
+       "twitter_query_stats_max", "User query stats hash table size.",
+       GLOBAL_VAR(opt_twitter_query_stats_max), CMD_LINE(OPT_ARG),
+       VALID_RANGE(0, QUERY_STATS_CACHE_MAX), DEFAULT(QUERY_STATS_CACHE_SIZE),
+       BLOCK_SIZE(1), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(0));
 
 #ifdef HAVE_REPLICATION
 static Sys_var_mybool Sys_log_slave_updates(

@@ -1,0 +1,63 @@
+--echo #
+--echo # Test Twitter query stats and I_S.query_statistics
+--echo #
+
+--source include/not_embedded.inc
+
+SET @old_twitter_query_stats= @@global.twitter_query_stats;
+SET @old_twitter_query_stats_max= @@global.twitter_query_stats_max;
+
+create table e_1_0360_e (src integer, dst integer, st integer);
+create table e_2_0160_m (src integer, cnt integer, st integer);
+
+SET GLOBAL twitter_query_stats=1;
+
+INSERT INTO e_1_0360_e (src, dst, st) VALUES (336404498,14173346,0) /*["client_host" : "127.0.0.1", "client_id" : "tbird", "service_name" : "test"]*/;
+
+INSERT INTO e_2_0160_m VALUES (244693074, 1, 0) ON DUPLICATE KEY UPDATE cnt = cnt + (CASE st WHEN 0 THEN 1 WHEN 1 THEN -1 ELSE 0 END);
+
+SELECT dst FROM e_1_0360_e where src = 102194292 AND st IN(0) AND dst IN (1256420941,1192146938,1142100012,1136381576,1126594460,1100798592);
+
+(SELECT dst FROM e_1_0360_e WHERE src = 236738600 AND st IN (0) AND dst >=629636489 ORDER BY dst ASC LIMIT 1) UNION ALL (SELECT dst FROM e_1_0360_e WHERE src = 236738600 AND st IN (0) AND dst <629636489 ORDER BY dst DESC LIMIT 1101) /*["client_host" : "127.0.0.1", "service_name" : "test"]*/;
+
+DELETE FROM e_1_0360_e WHERE src = 961210320 AND dst = 790271982 AND st = 1 LIMIT 1 /*["client_host" : "127.0.0.1", "client_id" : "flock_service", "service_name" : "test"]*/;
+
+SELECT dst FROM e_1_0360_e where src = 201249692 AND st IN(0) AND dst IN (501806312,498610405,497759503,491359093);
+
+DELETE FROM e_1_0360_e WHERE src = 69212023 AND dst = 977022891 AND st = 0 LIMIT 2 /*["client_host" : "127.0.0.1", "client_id" : "flock_service", "service_name" : "test"]*/;
+
+SELECT query_type, client_id, count FROM information_schema.query_statistics order by count;
+
+--echo # change to query stats per client_id
+SET GLOBAL twitter_query_stats=0;
+SET GLOBAL twitter_query_stats=2;
+
+DELETE FROM e_1_0360_e WHERE src = 961210320 AND dst = 790271982 AND st = 1 LIMIT 1 /*["client_host" : "127.0.0.1", "client_id" : "flock_service", "service_name" : "test"]*/;
+
+SELECT dst FROM e_1_0360_e where src = 201249692 AND st IN(0) AND dst IN (501806312,498610405,497759503,491359093);
+
+DELETE FROM e_1_0360_e WHERE src = 69212023 AND dst = 977022891 AND st = 0 LIMIT 2 /*["client_host" : "127.0.0.1", "client_id" : "tflock_timeline_service", "service_name" : "test"]*/;
+
+(SELECT dst FROM e_1_0360_e WHERE src = 236738600 AND st IN (0) AND dst >=629636489 ORDER BY dst ASC LIMIT 1) UNION ALL (SELECT dst FROM e_1_0360_e WHERE src = 236738600 AND st IN (0) AND dst <629636489 ORDER BY dst DESC LIMIT 250) /*["client_host" : "127.0.0.1", "client_id" : "tflock_timeline_service", "service_name" : "test"]*/;
+
+(SELECT dst FROM e_1_0360_e WHERE src = 347849711 AND st IN (0) AND dst >=518636489 ORDER BY dst ASC LIMIT 1) UNION ALL (SELECT dst FROM e_1_0360_e WHERE src = 347849711 AND st IN (3) AND dst <518636489 ORDER BY dst DESC LIMIT 251) /*["client_host" : "127.0.0.1", "client_id" : "flock_service", "service_name" : "test"]*/;
+
+SELECT query_type, client_id, count FROM information_schema.query_statistics order by client_id,count;
+
+--echo # change query stats max to small value
+FLUSH STATUS;
+SET GLOBAL twitter_query_stats_max=5;
+
+INSERT INTO e_1_0360_e (src, dst, st) VALUES (336404498,14173346,0) /*["client_host" : "127.0.0.1", "client_id" : "tbird", "service_name" : "test"]*/;
+
+DELETE FROM e_1_0360_e WHERE src = 961210320 AND dst = 790271982 AND st = 1 LIMIT 1 /*["client_host" : "127.0.0.1", "client_id" : "millions_birds_none_stop_fly_service_twenty_four_seven", "service_name" : "test"]*/;
+
+--echo # expect to not see above query types
+SELECT query_type, hash_code, client_id, count FROM information_schema.query_statistics where client_id="tbird";
+SELECT query_type, hash_code, client_id, count FROM information_schema.query_statistics where client_id="flock_service";
+
+DROP TABLE e_1_0360_e;
+DROP TABLE e_2_0160_m;
+
+SET global twitter_query_stats = @old_twitter_query_stats;
+SET global twitter_query_stats_max = @old_twitter_query_stats_max;

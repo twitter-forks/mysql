@@ -38,6 +38,7 @@ static uint my_hash_mask(my_hash_value_type hashnr,
 static void movelink(HASH_LINK *array,uint pos,uint next_link,uint newlink);
 static int hashcmp(const HASH *hash, HASH_LINK *pos, const uchar *key,
                    size_t length);
+static int hash_get_head(const HASH *hash, HASH_LINK *pos, size_t keylen);
 
 static my_hash_value_type calc_hash(const HASH *hash,
                                     const uchar *key, size_t length)
@@ -87,11 +88,36 @@ _my_hash_init(HASH *hash, uint growth_size, CHARSET_INFO *charset,
   hash->get_key=get_key;
   hash->free=free_element;
   hash->flags=flags;
+  hash->get_hash=0;
   hash->charset=charset;
   DBUG_RETURN(my_init_dynamic_array_ci(&hash->array, 
                                        sizeof(HASH_LINK), size, growth_size));
 }
 
+
+my_bool
+_my_hash_init_extra(HASH *hash, uint growth_size, CHARSET_INFO *charset,
+                    ulong size, size_t key_offset, size_t key_length,
+                    my_hash_get_key get_key,
+                    void (*free_element)(void*),
+                    my_hash_get_key_hash get_hash, uint flags)
+{
+  DBUG_ENTER("my_hash_init");
+  DBUG_PRINT("enter",("hash: 0x%lx  size: %u", (long) hash, (uint) size));
+
+  DBUG_ASSERT(get_hash && (flags & HASH_KEEP_HASH));
+  hash->records=0;
+  hash->key_offset=key_offset;
+  hash->key_length=key_length;
+  hash->blength=1;
+  hash->get_key=get_key;
+  hash->free=free_element;
+  hash->get_hash=get_hash;
+  hash->flags=flags;
+  hash->charset=charset;
+  DBUG_RETURN(my_init_dynamic_array_ci(&hash->array,
+                                       sizeof(HASH_LINK), size, growth_size));
+}
 
 /*
   Call hash->free on all elements in hash.
@@ -222,7 +248,18 @@ uchar* my_hash_search_using_hash_value(const HASH *hash,
 {
   HASH_SEARCH_STATE state;
   return my_hash_first_from_hash_value(hash, hash_value,
-                                       key, length, &state);
+                                       key, length, &state, 0);
+}
+
+uchar* my_hash_search_using_hash_value_fast(const HASH *hash,
+                                            my_hash_value_type hash_value,
+                                            const uchar *key,
+                                            size_t length,
+                                            bool fast_path)
+{
+  HASH_SEARCH_STATE state;
+  return my_hash_first_from_hash_value(hash, hash_value,
+                                       key, length, &state, fast_path);
 }
 
 my_hash_value_type my_calc_hash(const HASH *hash,
@@ -246,7 +283,7 @@ uchar* my_hash_first(const HASH *hash, const uchar *key, size_t length,
   if (my_hash_inited(hash))
     res= my_hash_first_from_hash_value(hash,
                    calc_hash(hash, key, length ? length : hash->key_length),
-                   key, length, current_record);
+                   key, length, current_record, 0);
   else
     res= 0;
   return res;
@@ -257,11 +294,15 @@ uchar* my_hash_first_from_hash_value(const HASH *hash,
                                      my_hash_value_type hash_value,
                                      const uchar *key,
                                      size_t length,
-                                     HASH_SEARCH_STATE *current_record)
+                                     HASH_SEARCH_STATE *current_record,
+                                     bool fast_path)
 {
   HASH_LINK *pos;
   uint flag,idx;
+  my_bool cmp_hash = (hash->flags & HASH_KEEP_HASH);
   DBUG_ENTER("my_hash_first_from_hash_value");
+
+  DBUG_ASSERT(!cmp_hash || hash->get_hash);
 
   flag=1;
   if (hash->records)
@@ -270,8 +311,12 @@ uchar* my_hash_first_from_hash_value(const HASH *hash,
                       hash->blength, hash->records);
     do
     {
+      my_hash_value_type pos_hash = -1;
       pos= dynamic_element(&hash->array,idx,HASH_LINK*);
-      if (!hashcmp(hash,pos,key,length))
+      if (cmp_hash)
+        pos_hash= (*hash->get_hash)(pos->data);
+      if ((fast_path && hash_get_head(hash,pos,length)) ||
+          ((!cmp_hash || hash_value == pos_hash) && !hashcmp(hash,pos,key,length)))
       {
 	DBUG_PRINT("exit",("found key at %d",idx));
 	*current_record= idx;
@@ -283,6 +328,7 @@ uchar* my_hash_first_from_hash_value(const HASH *hash,
 	if (my_hash_rec_mask(hash, pos, hash->blength, hash->records) != idx)
 	  break;				/* Wrong link */
       }
+      fast_path= 0;
     }
     while ((idx=pos->next) != NO_RECORD);
   }
@@ -360,6 +406,20 @@ static int hashcmp(const HASH *hash, HASH_LINK *pos, const uchar *key,
 		       (uchar*) key, rec_keylength));
 }
 
+static int hash_get_head(const HASH *hash, HASH_LINK *pos, size_t keylen)
+{
+  size_t rec_keylen;
+  uchar *rec_key= (uchar*) my_hash_key(hash, pos->data, &rec_keylen, 1);
+  my_bool cmp_hash = (hash->flags & HASH_KEEP_HASH);
+  my_hash_value_type rec_hash= 0;
+  if (cmp_hash)
+  {
+    DBUG_ASSERT(hash->get_key);
+    rec_hash = (*hash->get_hash)(pos->data);
+  }
+  return (rec_key && keylen && keylen == rec_keylen &&
+          (!cmp_hash || rec_hash == calc_hash(hash,rec_key,rec_keylen)));
+}
 
 	/* Write a hash-key to the hash-index */
 

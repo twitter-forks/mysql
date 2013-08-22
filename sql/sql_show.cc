@@ -54,6 +54,7 @@
 #include "lock.h"                           // MYSQL_OPEN_IGNORE_FLUSH
 #include "debug_sync.h"
 #include "datadict.h"   // dd_frm_type()
+#include "query_stats.h"
 
 #define STR_OR_NIL(S) ((S) ? (S) : "<nil>")
 
@@ -7836,6 +7837,8 @@ ST_SCHEMA_TABLE schema_tables[]=
   {"PROFILING", query_profile_statistics_info, create_schema_table,
     fill_query_profile_statistics_info, make_profile_table_for_show, 
     NULL, -1, -1, false, 0},
+  {"QUERY_STATISTICS", query_stats_fields_info, create_schema_table,
+   fill_query_stats, NULL, NULL, -1, -1, 0, 0},
   {"REFERENTIAL_CONSTRAINTS", referential_constraints_fields_info,
    create_schema_table, get_all_tables, 0, get_referential_constraints_record,
    1, 9, 0, OPTIMIZE_I_S_TABLE|OPEN_TABLE_ONLY},

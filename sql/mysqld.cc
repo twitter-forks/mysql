@@ -94,6 +94,8 @@
 
 #include "my_timer.h"    // my_timer_init_ext, my_timer_deinit
 
+#include "query_stats.h"
+
 #ifdef HAVE_POLL_H
 #include <poll.h>
 #endif
@@ -522,6 +524,8 @@ ulong rpl_recovery_rank=0;
 */
 ulong stored_program_cache_size= 0;
 uint opt_twitter_audit_log= 0;
+uint opt_twitter_query_stats= 0;
+uint opt_twitter_query_stats_max= 0;
 ulonglong rows_sent= 0, rows_examined= 0;
 
 const double log_10[] = {
@@ -675,6 +679,7 @@ pthread_t signal_thread;
 pthread_attr_t connection_attrib;
 mysql_mutex_t LOCK_server_started;
 mysql_cond_t COND_server_started;
+mysql_mutex_t LOCK_query_stats_cache;
 
 int mysqld_server_started= 0;
 
@@ -1513,6 +1518,7 @@ void clean_up(bool print_message)
   my_free(opt_bin_logname);
   bitmap_free(&temp_pool);
   free_max_user_conn();
+  free_query_stats_cache();
 #ifdef HAVE_REPLICATION
   end_slave_list();
 #endif
@@ -1623,6 +1629,7 @@ static void clean_up_mutexes()
   mysql_cond_destroy(&COND_thread_cache);
   mysql_cond_destroy(&COND_flush_thread_cache);
   mysql_cond_destroy(&COND_manager);
+  mysql_mutex_destroy(&LOCK_query_stats_cache);
 }
 #endif /*EMBEDDED_LIBRARY*/
 
@@ -3620,6 +3627,8 @@ static int init_thread_environment()
 #ifdef HAVE_EVENT_SCHEDULER
   Events::init_mutexes();
 #endif
+  mysql_mutex_init(key_LOCK_query_stats_cache,
+                   &LOCK_query_stats_cache, MY_MUTEX_INIT_FAST);
   /* Parameter for threads created for connections */
   (void) pthread_attr_init(&connection_attrib);
   (void) pthread_attr_setdetachstate(&connection_attrib,
@@ -4132,6 +4141,7 @@ a file name for --log-bin-index option", opt_binlog_index_name);
 
   init_max_user_conn();
   init_update_queries();
+  init_query_stats_cache();
   DBUG_RETURN(0);
 }
 
@@ -7806,6 +7816,9 @@ void refresh_status(THD *thd)
   mysql_mutex_lock(&LOCK_thread_count);
   max_used_connections= thread_count-delayed_insert_threads;
   mysql_mutex_unlock(&LOCK_thread_count);
+
+  /* Reset query type stats */
+  reset_query_stats_cache();
 }
 
 
@@ -7857,6 +7870,7 @@ PSI_mutex_key key_BINLOG_LOCK_index, key_BINLOG_LOCK_prep_xids,
   key_PARTITION_LOCK_auto_inc;
 PSI_mutex_key key_RELAYLOG_LOCK_index;
 PSI_mutex_key key_LOCK_thread_created;
+PSI_mutex_key key_LOCK_query_stats_cache;
 
 static PSI_mutex_info all_server_mutexes[]=
 {
@@ -7910,7 +7924,8 @@ static PSI_mutex_info all_server_mutexes[]=
   { &key_LOG_INFO_lock, "LOG_INFO::lock", 0},
   { &key_LOCK_thread_count, "LOCK_thread_count", PSI_FLAG_GLOBAL},
   { &key_PARTITION_LOCK_auto_inc, "HA_DATA_PARTITION::LOCK_auto_inc", 0},
-  { &key_LOCK_thread_created, "LOCK_thread_created", PSI_FLAG_GLOBAL }
+  { &key_LOCK_thread_created, "LOCK_thread_created", PSI_FLAG_GLOBAL },
+  { &key_LOCK_query_stats_cache, "LOCK_query_stats_cache", PSI_FLAG_GLOBAL}
 };
 
 PSI_rwlock_key key_rwlock_LOCK_grant, key_rwlock_LOCK_logger,
