@@ -354,6 +354,23 @@ DROP FUNCTION f1;
 
 # End of 5.1 tests
 
+# Twitter tests
+
+connect (con_twttr,localhost,root,,);
+connection con_twttr;
+FLUSH STATUS;
+CREATE TABLE t_status (c1 integer, c2 integer);
+INSERT INTO t_status (c1,c2) values (1,1),(2,2),(3,3);
+SELECT c1 FROM t_status where c2 < 3;
+SHOW GLOBAL STATUS like 'rows%';
+FLUSH STATUS;
+SHOW GLOBAL STATUS like 'rows%';
+DROP TABLE t_status;
+disconnect con_twttr;
+connection default;
+
+# End of Twitter tests
+
 # Restore global concurrent_insert value. Keep in the end of the test file.
 --connection default
 set @@global.concurrent_insert= @old_concurrent_insert;

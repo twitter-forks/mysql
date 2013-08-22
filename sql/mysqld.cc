@@ -522,6 +522,7 @@ ulong rpl_recovery_rank=0;
 */
 ulong stored_program_cache_size= 0;
 uint opt_twitter_audit_log= 0;
+ulonglong rows_sent= 0, rows_examined= 0;
 
 const double log_10[] = {
   1e000, 1e001, 1e002, 1e003, 1e004, 1e005, 1e006, 1e007, 1e008, 1e009,
@@ -6587,6 +6588,8 @@ SHOW_VAR status_vars[]= {
 #endif /*HAVE_QUERY_CACHE*/
   {"Queries",                  (char*) &show_queries,            SHOW_FUNC},
   {"Questions",                (char*) offsetof(STATUS_VAR, questions), SHOW_LONG_STATUS},
+  {"Rows_examined",            (char*) &rows_examined,        SHOW_LONG},
+  {"Rows_sent",                (char*) &rows_sent,        SHOW_LONG},
 #ifdef HAVE_REPLICATION
   {"Rpl_status",               (char*) &show_rpl_status,          SHOW_FUNC},
 #endif

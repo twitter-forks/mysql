@@ -221,6 +221,7 @@ extern my_decimal decimal_zero;
 extern my_bool opt_super_only;
 extern char *opt_minidump_dir;
 extern uint opt_twitter_audit_log;
+extern ulonglong rows_sent, rows_examined;
 
 /*
   THR_MALLOC is a key which will be used to set/get MEM_ROOT** for a thread,

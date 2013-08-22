@@ -238,5 +238,22 @@ SELECT 9;
 9
 DROP PROCEDURE p1;
 DROP FUNCTION f1;
+FLUSH STATUS;
+CREATE TABLE t_status (c1 integer, c2 integer);
+INSERT INTO t_status (c1,c2) values (1,1),(2,2),(3,3);
+SELECT c1 FROM t_status where c2 < 3;
+c1
+1
+2
+SHOW GLOBAL STATUS like 'rows%';
+Variable_name	Value
+Rows_examined	3
+Rows_sent	2
+FLUSH STATUS;
+SHOW GLOBAL STATUS like 'rows%';
+Variable_name	Value
+Rows_examined	0
+Rows_sent	0
+DROP TABLE t_status;
 set @@global.concurrent_insert= @old_concurrent_insert;
 SET GLOBAL log_output = @old_log_output;

@@ -5499,6 +5499,10 @@ void THD::reset_for_next_command()
   thd->stmt_da->reset_diagnostics_area();
   thd->warning_info->reset_for_next_command();
   thd->rand_used= 0;
+
+  /* maintain global stats before resetting per-thread stats */
+  my_atomic_add64((longlong*)&rows_sent, thd->sent_row_count);
+  my_atomic_add64((longlong*)&rows_examined, thd->examined_row_count);
   thd->sent_row_count= thd->examined_row_count= 0;
 
   thd->reset_current_stmt_binlog_format_row();
