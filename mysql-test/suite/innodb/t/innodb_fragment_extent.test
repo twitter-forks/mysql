@@ -49,7 +49,7 @@ let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 --source include/wait_condition.inc
 
 --echo # The free_frag list should now only contain one extent.
---exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd space-list-iterate -L free_frag
+--exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd list-summary -L free_frag
 
 --echo # Show that the fragment extent was leased and its pages used.
 --exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd space-page-type-regions
@@ -71,7 +71,7 @@ let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 --source include/wait_condition.inc
 
 --echo # Show that the fragment extent is returned to the free_frag list.
---exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd space-list-iterate -L free_frag
+--exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd list-summary -L free_frag
 
 --echo # Repopulate table.
 CALL p1(114400, 15600);
@@ -82,7 +82,7 @@ let $wait_condition = SELECT PAGES_DIRTY = 0 FROM buffer_pool;
 --source include/wait_condition.inc
 
 --echo # Show that the fragment extent can be reused.
---exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd space-list-iterate -L free_frag
+--exec innodb_space -f $MYSQLD_DATADIR/test/t1.ibd list-summary -L free_frag
 
 --echo # Cleanup.
 DROP TABLE t1;

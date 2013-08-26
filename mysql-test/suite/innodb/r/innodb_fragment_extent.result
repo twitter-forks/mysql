@@ -29,7 +29,7 @@ END|
 # Populate table so that more than 16384 pages are used.
 CALL p1(0, 130000);
 # The free_frag list should now only contain one extent.
-start_page  page_used_bitmap                                                
+start_page  bitmap                                                          
 0           ##########################################################......
 # Show that the fragment extent was leased and its pages used.
 start       end         count       type                
@@ -46,13 +46,13 @@ start       end         count       type
 # Delete rows so that the fragment extent becomes unused.
 DELETE FROM t1 WHERE a >= 114400;
 # Show that the fragment extent is returned to the free_frag list.
-start_page  page_used_bitmap                                                
+start_page  bitmap                                                          
 0           #######################################################..#......
 16384       ##..............................................................
 # Repopulate table.
 CALL p1(114400, 15600);
 # Show that the fragment extent can be reused.
-start_page  page_used_bitmap                                                
+start_page  bitmap                                                          
 0           #######################################################..###....
 # Cleanup.
 DROP TABLE t1;
