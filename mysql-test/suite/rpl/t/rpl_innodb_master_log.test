@@ -41,7 +41,6 @@ let $master_log_pos= query_get_value(SHOW GLOBAL STATUS LIKE 'Innodb_mysql_maste
 --replace_result $master_log_pos MASTER_LOG_POS
 eval CHANGE MASTER TO MASTER_LOG_POS=$master_log_pos;
 
-SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;
 START SLAVE;
 --source include/wait_for_slave_to_start.inc
 sync_with_master;

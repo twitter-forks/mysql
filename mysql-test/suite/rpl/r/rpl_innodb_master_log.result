@@ -27,7 +27,6 @@ a	b
 # Get the slave position according to InnoDB.
 # Restart slave from the retrieved position.
 CHANGE MASTER TO MASTER_LOG_POS=MASTER_LOG_POS;
-SET GLOBAL SQL_SLAVE_SKIP_COUNTER=1;
 START SLAVE;
 include/wait_for_slave_to_start.inc
 # Check that only the remaining statements were executed.

@@ -5692,6 +5692,19 @@ int Xid_log_event::do_apply_event(Relay_log_info const *rli)
   /* For a slave Xid_log_event is COMMIT */
   general_log_print(thd, COM_QUERY,
                     "COMMIT /* implicit, from Xid_log_event */");
+
+  /*
+    InnoDB internally stores the master log position it has executed so far,
+    i.e. the position just after the COMMIT event.
+    When InnoDB will want to store, the positions in rli won't have
+    been updated yet, so group_master_log_* will point to old BEGIN
+    and event_master_log* will point to the beginning of current COMMIT.
+    But log_pos of the COMMIT Query event is what we want, i.e. the pos of the
+    END of the current log event (COMMIT). We save it in rli so that InnoDB can
+    access it.
+  */
+  const_cast<Relay_log_info*>(rli)->future_group_master_log_pos= log_pos;
+
   res= trans_commit(thd); /* Automatically rolls back on error. */
   thd->mdl_context.release_transactional_locks();
 
