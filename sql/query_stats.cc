@@ -449,8 +449,6 @@ void init_query_stats_cache()
 {
   query_stats_reader = 0;
   query_stats_cache_count = 0;
-  mysql_mutex_init(key_LOCK_query_stats_cache,
-                   &LOCK_query_stats_cache, MY_MUTEX_INIT_FAST);
   if (my_hash_init_extra2(&query_stats_cache, 512, system_charset_info,
                           max_connections, 0 /* key offset */, 0 /* key length */,
                           (my_hash_get_key)get_query_stats_key,
@@ -466,7 +464,6 @@ void init_query_stats_cache()
 void free_query_stats_cache()
 {
   my_hash_free(&query_stats_cache);
-  mysql_mutex_destroy(&LOCK_query_stats_cache);
   query_stats_cache_count = 0;
 }
 
