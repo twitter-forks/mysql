@@ -33,7 +33,8 @@
 %global mysqld_group    mysql
 %global mysqldatadir    /var/lib/mysql
 
-%define release         1
+%global release         1  
+
 
 #
 # Macros we use which are not available in all supported versions of RPM
@@ -239,7 +240,7 @@
 # Configuration based upon above user input, not to be set directly
 ##############################################################################
 
-%if %{commercial}
+%if 0%{?commercial}
 %define license_files_server    %{src_dir}/LICENSE.mysql
 %define license_type            Commercial
 %else
@@ -304,9 +305,12 @@ Requires:       %{distro_requires}
 %else
 #Obsoletes:      MySQL-server-advanced
 %endif
-#Obsoletes:      mysql-server mysql-advanced mysql-server-advanced
+#Obsoletes:      mysql-server < %{version}-%{release}
+#Obsoletes:      mysql-server-advanced
 #Obsoletes:      MySQL-server-classic MySQL-server-community MySQL-server-enterprise
 #Obsoletes:      MySQL-server-advanced-gpl MySQL-server-enterprise-gpl
+Provides:       mysql-server = %{version}-%{release}
+Provides:       mysql-server%{?_isa} = %{version}-%{release}
 
 %description -n MySQL-server%{product_suffix}
 The MySQL(TM) software delivers a very fast, multi-threaded, multi-user,
@@ -346,7 +350,7 @@ Group:          Applications/Databases
 #Obsoletes:      MySQL-client-classic MySQL-client-community MySQL-client-enterprise
 #Obsoletes:      MySQL-client-advanced-gpl MySQL-client-enterprise-gpl
 Provides:       mysql = %{version}-%{release} 
-
+Provides:       mysql%{?_isa} = %{version}-%{release}
 
 %description -n MySQL-client%{product_suffix}
 This package contains the standard MySQL clients and administration tools.
@@ -364,10 +368,13 @@ Requires:       MySQL-client-advanced perl
 Requires:       MySQL-client perl
 #Obsoletes:      MySQL-test-advanced
 %endif
-#Obsoletes:      mysql-test mysql-test-advanced
+#Obsoletes:      mysql-test < %{version}-%{release}
+#Obsoletes:      mysql-test-advanced
 #Obsoletes:      mysql-bench MySQL-bench
 #Obsoletes:      MySQL-test-classic MySQL-test-community MySQL-test-enterprise
 #Obsoletes:      MySQL-test-advanced-gpl MySQL-test-enterprise-gpl
+Provides:       mysql-test = %{version}-%{release}
+Provides:       mysql-test%{?_isa} = %{version}-%{release}
 AutoReqProv:    no
 
 %description -n MySQL-test%{product_suffix}
@@ -384,9 +391,12 @@ Group:          Applications/Databases
 %else
 #Obsoletes:      MySQL-devel-advanced
 %endif
-#Obsoletes:      mysql-devel mysql-embedded-devel mysql-devel-advanced mysql-embedded-devel-advanced
+#Obsoletes:      mysql-devel < %{version}-%{release}
+#Obsoletes:      mysql-embedded-devel mysql-devel-advanced mysql-embedded-devel-advanced
 #Obsoletes:      MySQL-devel-classic MySQL-devel-community MySQL-devel-enterprise
 #Obsoletes:      MySQL-devel-advanced-gpl MySQL-devel-enterprise-gpl
+Provides:       mysql-devel = %{version}-%{release}
+Provides:       mysql-devel%{?_isa} = %{version}-%{release}
 
 %description -n MySQL-devel%{product_suffix}
 This package contains the development header files and libraries necessary
@@ -424,10 +434,13 @@ Requires:       MySQL-devel-advanced
 Requires:       MySQL-devel
 #Obsoletes:      MySQL-embedded-advanced
 %endif
-#Obsoletes:      mysql-embedded mysql-embedded-advanced
+#Obsoletes:      mysql-embedded < %{version}-%{release}
+#Obsoletes:      mysql-embedded-advanced
 #Obsoletes:      MySQL-embedded-pro
 #Obsoletes:      MySQL-embedded-classic MySQL-embedded-community MySQL-embedded-enterprise
 #Obsoletes:      MySQL-embedded-advanced-gpl MySQL-embedded-enterprise-gpl
+Provides:       mysql-embedded = %{version}-%{release}
+Provides:       mysql-emdedded%{?_isa} = %{version}-%{release}
 
 %description -n MySQL-embedded%{product_suffix}
 This package contains the MySQL server as an embedded library.
@@ -707,7 +720,7 @@ fi
 
 # We assume that if there is exactly one ".pid" file,
 # it contains the valid PID of a running MySQL server.
-NR_PID_FILES=`ls $PID_FILE_PATT 2>/dev/null | wc -l`
+NR_PID_FILES=`ls -1 $PID_FILE_PATT 2>/dev/null | wc -l`
 case $NR_PID_FILES in
 	0 ) SERVER_TO_START=''  ;;  # No "*.pid" file == no running server
 	1 ) SERVER_TO_START='true' ;;
@@ -1212,6 +1225,12 @@ echo "====="                                     >> $STATUS_HISTORY
 # merging BK trees)
 ##############################################################################
 %changelog
+* Mon Sep 09 2013 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com>
+- Updated logic to get the correct count of PID files 
+
+* Fri Aug 16 2013 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com>
+- Added provides lowercase mysql tags  
+
 * Tue Aug 6 2013 Inaam Rana <irana@twitter.com>
 
 - Comment off Obsoletes metadata for Sub package definition in the newer upstream version of this file.

@@ -224,6 +224,7 @@ extern uint opt_twitter_audit_log;
 extern uint opt_twitter_query_stats;
 extern uint opt_twitter_query_stats_max;
 extern ulonglong rows_sent, rows_examined;
+void init_sql_statement_names();
 
 /*
   THR_MALLOC is a key which will be used to set/get MEM_ROOT** for a thread,

@@ -680,7 +680,7 @@ char *thd_security_context(THD *thd, char *buffer, unsigned int length,
                            unsigned int max_query_len)
 {
   String str(buffer, length, &my_charset_latin1);
-  const Security_context *sctx= &thd->main_security_ctx;
+  Security_context *sctx= &thd->main_security_ctx;
   char header[256];
   int len;
   /*
@@ -698,16 +698,16 @@ char *thd_security_context(THD *thd, char *buffer, unsigned int length,
   str.length(0);
   str.append(header, len);
 
-  if (sctx->host)
+  if (sctx->get_host()->length())
   {
     str.append(' ');
-    str.append(sctx->host);
+    str.append(sctx->get_host()->ptr());
   }
 
-  if (sctx->ip)
+  if (sctx->get_ip()->length())
   {
     str.append(' ');
-    str.append(sctx->ip);
+    str.append(sctx->get_ip()->ptr());
   }
 
   if (sctx->user)
@@ -780,6 +780,7 @@ THD::THD()
               /* statement id */ 0),
    rli_fake(0), rli_slave(NULL),
    user_time(0), in_sub_stmt(0),
+   fill_status_recursion_level(0),
    binlog_unsafe_warning_flags(0),
    binlog_table_maps(0),
    table_map_for_update(0),
@@ -3361,7 +3362,10 @@ void THD::set_status_var_init()
 
 void Security_context::init()
 {
-  host= user= ip= external_user= 0;
+  user= 0;
+  ip.set("", 0, system_charset_info);
+  host.set("", 0, system_charset_info);
+  external_user.set("", 0, system_charset_info);
   host_or_ip= "connecting host";
   priv_user[0]= priv_host[0]= proxy_user[0]= '\0';
   master_access= 0;
@@ -3370,29 +3374,35 @@ void Security_context::init()
 #endif
 }
 
-
 void Security_context::destroy()
 {
-  // If not pointer to constant
-  if (host != my_localhost)
+  if (host.ptr() != my_localhost && host.length())
   {
-    my_free(host);
-    host= NULL;
+    char *c= (char *) host.ptr();
+    host.set("", 0, system_charset_info);
+    my_free(c);
   }
-  if (user != delayed_user)
+
+  if (user && user != delayed_user)
   {
     my_free(user);
     user= NULL;
   }
 
-  if (external_user)
+  if (external_user.length())
   {
-    my_free(external_user);
-    user= NULL;
+    char *c= (char *) external_user.ptr();
+    external_user.set("", 0, system_charset_info);
+    my_free(c);
   }
 
-  my_free(ip);
-  ip= NULL;
+  if (ip.length())
+  {
+    char *c= (char *) ip.ptr();
+    ip.set("", 0, system_charset_info);
+    my_free(c);
+  }
+
 }
 
 
@@ -3410,6 +3420,45 @@ bool Security_context::set_user(char *user_arg)
   my_free(user);
   user= my_strdup(user_arg, MYF(0));
   return user == 0;
+}
+
+String *Security_context::get_host()
+{
+  return (&host);
+}
+
+String *Security_context::get_ip()
+{
+  return (&ip);
+}
+
+String *Security_context::get_external_user()
+{
+  return (&external_user);
+}
+
+void Security_context::set_host(const char *str)
+{
+  uint len= str ? strlen(str) :  0;
+  host.set(str, len, system_charset_info);
+}
+
+void Security_context::set_ip(const char *str)
+{
+  uint len= str ? strlen(str) :  0;
+  ip.set(str, len, system_charset_info);
+}
+
+void Security_context::set_external_user(const char *str)
+{
+  uint len= str ? strlen(str) :  0;
+  external_user.set(str, len, system_charset_info);
+}
+
+void Security_context::set_host(const char * str, size_t len)
+{
+  host.set(str, len, system_charset_info);
+  host.c_ptr_quick();
 }
 
 #ifndef NO_EMBEDDED_ACCESS_CHECKS
@@ -3587,6 +3636,10 @@ extern "C" unsigned long thd_get_thread_id(const MYSQL_THD thd)
   return((unsigned long)thd->thread_id);
 }
 
+extern "C" enum_tx_isolation thd_get_trx_isolation(const MYSQL_THD thd)
+{
+	return thd->tx_isolation;
+}
 
 #ifdef INNODB_COMPATIBILITY_HOOKS
 extern "C" struct charset_info_st *thd_charset(MYSQL_THD thd)
