@@ -8024,6 +8024,7 @@ struct MPVIO_EXT :public MYSQL_PLUGIN_VIO
   } cached_server_packet;
   int packets_read, packets_written; ///< counters for send/received packets
   uint connect_errors;      ///< if there were connect errors for this host
+  bool make_it_fail;
   /** when plugin returns a failure this tells us what really happened */
   enum { SUCCESS, FAILURE, RESTART } status;
 
@@ -8371,14 +8372,14 @@ static bool send_plugin_request_packet(MPVIO_EXT *mpvio,
 /**
    Finds acl entry in user database for authentication purposes.
    
-   Finds a user and copies it into mpvio. Reports an authentication
-   failure if a user is not found.
+   Finds a user and copies it into mpvio. Creates a fake user
+   if no matching user account is found.
 
    @note find_acl_user is not the same, because it doesn't take into
    account the case when user is not empty, but acl_user->user is empty
 
    @retval 0    found
-   @retval 1    not found
+   @retval 1    error
 */
 static bool find_mpvio_user(MPVIO_EXT *mpvio)
 {
@@ -8409,8 +8410,32 @@ static bool find_mpvio_user(MPVIO_EXT *mpvio)
 
   if (!mpvio->acl_user)
   {
-    login_failed_error(mpvio, mpvio->auth_info.password_used);
-    DBUG_RETURN (1);
+    /*
+      A matching user was not found. Fake it. Take any user, make the
+      authentication fail later.
+      This way we get a realistically looking failure, with occasional
+      "change auth plugin" requests even for nonexistent users. The ratio
+      of "change auth plugin" request will be the same for real and
+      nonexistent users.
+      Note, that we cannot pick any user at random, it must always be
+      the same user account for the incoming sctx->user name.
+    */
+    ulong nr1=1, nr2=4;
+    CHARSET_INFO *cs= &my_charset_latin1;
+    cs->coll->hash_sort(cs, (uchar*) mpvio->auth_info.user_name,
+                        mpvio->auth_info.user_name_length, &nr1, &nr2);
+
+    mysql_mutex_lock(&acl_cache->lock);
+    uint i= nr1 % acl_users.elements;
+    ACL_USER *acl_user_tmp= dynamic_element(&acl_users, i, ACL_USER*);
+    mpvio->acl_user= acl_user_tmp->copy(mpvio->mem_root);
+    make_lex_string_root(mpvio->mem_root, 
+                         &mpvio->acl_user_plugin, 
+                         acl_user_tmp->plugin.str, 
+                         acl_user_tmp->plugin.length, 0);
+    mysql_mutex_unlock(&acl_cache->lock);
+
+    mpvio->make_it_fail= true;
   }
 
   /* user account requires non-default plugin and the client is too old */
@@ -8480,6 +8505,9 @@ static bool parse_com_change_user_packet(MPVIO_EXT *mpvio, uint packet_length)
   */
   uint passwd_len= (mpvio->client_capabilities & CLIENT_SECURE_CONNECTION ?
                     (uchar) (*passwd++) : strlen(passwd));
+
+  if (passwd_len)
+    mpvio->auth_info.password_used= PASSWORD_USED_YES;
 
   db+= passwd_len + 1;
   /*
@@ -9206,6 +9234,10 @@ static int server_mpvio_read_packet(MYSQL_PLUGIN_VIO *param, uchar **buf)
       *buf= (uchar*) mpvio->cached_client_reply.pkt;
       mpvio->cached_client_reply.pkt= 0;
       mpvio->packets_read++;
+
+      if (mpvio->make_it_fail)
+        goto err;
+
       DBUG_RETURN ((int) mpvio->cached_client_reply.pkt_len);
     }
 
@@ -9248,13 +9280,22 @@ static int server_mpvio_read_packet(MYSQL_PLUGIN_VIO *param, uchar **buf)
   else
     *buf= mpvio->net->read_pos;
 
+  if (mpvio->make_it_fail)
+    goto err;
+
   DBUG_RETURN((int)pkt_len);
 
 err:
   if (mpvio->status == MPVIO_EXT::FAILURE)
   {
     inc_host_errors(mpvio->ip);
-    my_error(ER_HANDSHAKE_ERROR, MYF(0));
+    if (!current_thd->is_error())
+    {
+      if (mpvio->make_it_fail)
+        login_failed_error(mpvio, mpvio->auth_info.password_used);
+      else
+        my_error(ER_HANDSHAKE_ERROR, MYF(0));
+    }
   }
   DBUG_RETURN(-1);
 }
@@ -9446,6 +9487,7 @@ server_mpvio_initialize(THD *thd, MPVIO_EXT *mpvio, uint connect_errors,
   mpvio->auth_info.user_name_length= 0;
   mpvio->connect_errors= connect_errors;
   mpvio->status= MPVIO_EXT::FAILURE;
+  mpvio->make_it_fail= false;
 
   mpvio->client_capabilities= thd->client_capabilities;
   mpvio->mem_root= thd->mem_root;
