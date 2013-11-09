@@ -2820,6 +2820,7 @@ public:
 #include "item_timefunc.h"
 #include "item_subselect.h"
 #include "item_xmlfunc.h"
+#include "item_inetfunc.h"
 #include "item_create.h"
 #endif
 

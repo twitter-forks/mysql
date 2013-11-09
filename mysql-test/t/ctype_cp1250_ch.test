@@ -82,3 +82,11 @@ drop table t1;
 --error 1649
 set global LC_MESSAGES=convert((@@global.log_bin_trust_function_creators) 
     using cp1250);
+
+--echo # Bugs#12635232: VALGRIND WARNINGS: IS_IPV6, IS_IPV4, INET6_ATON,
+--echo # INET6_NTOA + MULTIBYTE CHARSET.
+--echo #
+
+SET NAMES cp1250;
+--source include/ctype_inet.inc
+

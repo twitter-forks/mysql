@@ -190,3 +190,10 @@ DROP TABLE t1;
 --echo #
 --echo # End of 5.5 tests
 --echo #
+
+--echo # Bugs#12635232: VALGRIND WARNINGS: IS_IPV6, IS_IPV4, INET6_ATON,
+--echo # INET6_NTOA + MULTIBYTE CHARSET.
+--echo #
+
+SET NAMES sjis;
+--source include/ctype_inet.inc

@@ -161,3 +161,10 @@ SET collation_connection='tis620_bin';
 -- source include/ctype_like_escape.inc
 
 # End of 4.1 tests
+
+--echo # Bugs#12635232: VALGRIND WARNINGS: IS_IPV6, IS_IPV4, INET6_ATON,
+--echo # INET6_NTOA + MULTIBYTE CHARSET.
+--echo #
+
+SET NAMES tis620;
+--source include/ctype_inet.inc

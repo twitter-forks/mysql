@@ -50,3 +50,11 @@ SELECT group_concat(a collate latin2_croatian_ci order by binary a) from t1 grou
 drop table t1;
 
 # End of 4.1 tests
+
+--echo # Bugs#12635232: VALGRIND WARNINGS: IS_IPV6, IS_IPV4, INET6_ATON,
+--echo # INET6_NTOA + MULTIBYTE CHARSET.
+--echo #
+
+SET NAMES latin2;
+--source include/ctype_inet.inc
+
