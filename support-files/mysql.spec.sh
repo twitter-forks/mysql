@@ -424,35 +424,35 @@ This package contains the shared libraries (*.so*) which certain languages
 and applications need to dynamically load and use MySQL.
 
 # ----------------------------------------------------------------------------
-%package -n MySQL-embedded%{product_suffix}
-Summary:        MySQL - Embedded library
-Group:          Applications/Databases
-%if 0%{?commercial}
-Requires:       MySQL-devel-advanced
-#Obsoletes:      MySQL-embedded
-%else
-Requires:       MySQL-devel
-#Obsoletes:      MySQL-embedded-advanced
-%endif
-#Obsoletes:      mysql-embedded < %{version}-%{release}
-#Obsoletes:      mysql-embedded-advanced
-#Obsoletes:      MySQL-embedded-pro
-#Obsoletes:      MySQL-embedded-classic MySQL-embedded-community MySQL-embedded-enterprise
-#Obsoletes:      MySQL-embedded-advanced-gpl MySQL-embedded-enterprise-gpl
-Provides:       mysql-embedded = %{version}-%{release}
-Provides:       mysql-emdedded%{?_isa} = %{version}-%{release}
-
-%description -n MySQL-embedded%{product_suffix}
-This package contains the MySQL server as an embedded library.
-
-The embedded MySQL server library makes it possible to run a full-featured
-MySQL server inside the client application. The main benefits are increased
-speed and more simple management for embedded applications.
-
-The API is identical for the embedded MySQL version and the
-client/server version.
-
-For a description of MySQL see the base MySQL RPM or http://www.mysql.com/
+#%package -n MySQL-embedded%{product_suffix}
+#Summary:        MySQL - Embedded library
+#Group:          Applications/Databases
+#%if 0%{?commercial}
+#Requires:       MySQL-devel-advanced
+##Obsoletes:      MySQL-embedded
+#%else
+#Requires:       MySQL-devel
+##Obsoletes:      MySQL-embedded-advanced
+#%endif
+##Obsoletes:      mysql-embedded < %{version}-%{release}
+##Obsoletes:      mysql-embedded-advanced
+##Obsoletes:      MySQL-embedded-pro
+##Obsoletes:      MySQL-embedded-classic MySQL-embedded-community MySQL-embedded-enterprise
+##Obsoletes:      MySQL-embedded-advanced-gpl MySQL-embedded-enterprise-gpl
+#Provides:       mysql-embedded = %{version}-%{release}
+#Provides:       mysql-emdedded%{?_isa} = %{version}-%{release}
+#
+#%description -n MySQL-embedded%{product_suffix}
+#This package contains the MySQL server as an embedded library.
+#
+#The embedded MySQL server library makes it possible to run a full-featured
+#MySQL server inside the client application. The main benefits are increased
+#speed and more simple management for embedded applications.
+#
+#The API is identical for the embedded MySQL version and the
+#client/server version.
+#
+#For a description of MySQL see the base MySQL RPM or http://www.mysql.com/
 
 ##############################################################################
 %prep
@@ -1204,8 +1204,9 @@ echo "====="                                     >> $STATUS_HISTORY
 %defattr(-, root, root, 0755)
 %attr(-, root, root) %{_datadir}/mysql-test
 %attr(755, root, root) %{_bindir}/mysql_client_test
-%attr(755, root, root) %{_bindir}/mysql_client_test_embedded
-%attr(755, root, root) %{_bindir}/mysqltest_embedded
+# Twitter MySQL - disable MySQL-embedded
+#%attr(755, root, root) %{_bindir}/mysql_client_test_embedded
+#%attr(755, root, root) %{_bindir}/mysqltest_embedded
 %doc %attr(644, root, man) %{_mandir}/man1/mysql_client_test.1*
 %doc %attr(644, root, man) %{_mandir}/man1/mysql-stress-test.pl.1*
 %doc %attr(644, root, man) %{_mandir}/man1/mysql-test-run.pl.1*
@@ -1213,11 +1214,12 @@ echo "====="                                     >> $STATUS_HISTORY
 %doc %attr(644, root, man) %{_mandir}/man1/mysqltest_embedded.1*
 
 # ----------------------------------------------------------------------------
-%files -n MySQL-embedded%{product_suffix}
-%defattr(-, root, root, 0755)
-%attr(755, root, root) %{_bindir}/mysql_embedded
-%attr(644, root, root) %{_libdir}/mysql/libmysqld.a
-%attr(644, root, root) %{_libdir}/mysql/libmysqld-debug.a
+# Twitter MySQL - disable MySQL-embedded
+#%files -n MySQL-embedded%{product_suffix}
+#%defattr(-, root, root, 0755)
+#%attr(755, root, root) %{_bindir}/mysql_embedded
+#%attr(644, root, root) %{_libdir}/mysql/libmysqld.a
+#%attr(644, root, root) %{_libdir}/mysql/libmysqld-debug.a
 
 ##############################################################################
 # The spec file changelog only includes changes made to the spec file
@@ -1225,6 +1227,11 @@ echo "====="                                     >> $STATUS_HISTORY
 # merging BK trees)
 ##############################################################################
 %changelog
+* Thu Nov 7 2013 Liang Guo <lguo@twitter.com>
+
+- Comment off MySQL-embedded-* stuffs because we discontinue building 
+  MySQL-embedded RPM package.
+
 * Mon Sep 09 2013 Balasubramanian Kandasamy <balasubramanian.kandasamy@oracle.com>
 - Updated logic to get the correct count of PID files 
 
