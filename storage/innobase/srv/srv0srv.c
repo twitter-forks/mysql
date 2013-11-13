@@ -1517,6 +1517,7 @@ srv_conc_wake_all(void)
 	     slot = UT_LIST_GET_NEXT(srv_conc_queue, slot)) {
 
 		if (!slot->wait_ended) {
+			slot->wait_ended = TRUE;
 			++srv_conc_n_threads;
 			os_event_set(slot->event);
 		}
