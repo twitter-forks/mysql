@@ -1,0 +1,63 @@
+include/master-slave.inc
+[connection master]
+DROP TABLE IF EXISTS t1;
+CREATE TABLE t1 (id INT(11) NOT NULL AUTO_INCREMENT, PRIMARY KEY(id)) ENGINE=InnoDB;
+INSERT INTO t1 VALUES ();
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+1
+include/rpl_restart_server.inc [server_number=2]
+include/start_slave.inc
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+1
+include/stop_slave.inc
+INSERT INTO t1 VALUES();
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+2
+START SLAVE IO_THREAD;
+include/wait_for_slave_io_to_start.inc
+include/sync_slave_io_with_master.inc
+include/stop_slave_io.inc
+SET GLOBAL debug="+d,crash_commit_before";
+START SLAVE SQL_THREAD;
+include/rpl_start_server.inc [server_number=2]
+include/start_slave.inc
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+2
+include/stop_slave.inc
+INSERT INTO t1 VALUES();
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+3
+START SLAVE IO_THREAD;
+include/wait_for_slave_io_to_start.inc
+include/sync_slave_io_with_master.inc
+include/stop_slave_io.inc
+SET GLOBAL debug="+d,crash_innodb_after_prepare";
+START SLAVE SQL_THREAD;
+include/rpl_start_server.inc [server_number=2]
+include/start_slave.inc
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+3
+include/stop_slave.inc
+INSERT INTO t1 VALUES();
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+4
+START SLAVE IO_THREAD;
+include/wait_for_slave_io_to_start.inc
+include/sync_slave_io_with_master.inc
+include/stop_slave_io.inc
+SET GLOBAL debug="+d,crash_innodb_before_commit";
+START SLAVE SQL_THREAD;
+include/rpl_start_server.inc [server_number=2]
+include/start_slave.inc
+SELECT COUNT(*) FROM t1;
+COUNT(*)
+4
+DROP TABLE t1;
+include/rpl_end.inc

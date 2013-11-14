@@ -1,0 +1,3 @@
+SELECT @@global.innodb_recovery_update_relay_log;
+@@global.innodb_recovery_update_relay_log
+0

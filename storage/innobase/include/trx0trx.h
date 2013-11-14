@@ -592,6 +592,11 @@ struct trx_struct{
 					replication slave, this is the
 					position in the log file up to which
 					replication has processed */
+					/* For true crash safe slave */
+	const char*	css_mysql_master_log_file_name;
+	ib_int64_t	css_mysql_master_log_pos;
+	const char*	css_mysql_relay_log_file_name;
+	ib_int64_t	css_mysql_relay_log_pos;
 	/*------------------------------*/
 	ulint		n_mysql_tables_in_use; /* number of Innobase tables
 					used in the processing of the current

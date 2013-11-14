@@ -1,0 +1,81 @@
+###########################################################################
+# Bug 1092593: crash-resistant replication doesn't work when InnoDB
+#              operates with binary log disabled
+#
+# Test the slave running with --log-slave-updates first, then
+# restarting without this option, and crashing.  With the bug
+# present, crash recovery will restore binlog position that was
+# written before the restart and thus is outdated
+###########################################################################
+
+--source include/have_innodb.inc
+--source include/not_valgrind.inc
+--source include/not_crashrep.inc
+--source include/master-slave.inc
+
+--disable_query_log
+call mtr.add_suppression("InnoDB: Warning: innodb_overwrite_relay_log_info is enabled.");
+--enable_query_log
+
+connection master;
+
+# InnoDB and binlog are operating using two-phase commit protocol
+# at slave, both "prepare" and "commit" points are updated with
+# binlog coordinates
+
+--disable_warnings
+DROP TABLE IF EXISTS x;
+--enable_warnings
+
+CREATE TABLE x (a INT) engine=InnoDB;
+
+INSERT INTO x VALUES (1);
+
+sync_slave_with_master;
+
+# Restart the slave.
+# Now InnoDB is operating using one-phase commit protocol at
+# slave.  Before the fix, only the "commit" point was being
+# updated.
+--let $rpl_server_number= 2
+--let $rpl_server_parameters= --log-slave-updates=FALSE
+--source include/rpl_restart_server.inc
+--source include/start_slave.inc
+
+connection master;
+
+INSERT INTO x VALUES (2);
+
+sync_slave_with_master;
+
+SELECT a FROM x ORDER BY a;
+
+# Kill the slave to trigger binlog position recovery from
+# "prepare" point on the next startup
+-- exec echo "wait" > $MYSQLTEST_VARDIR/tmp/mysqld.2.expect
+-- shutdown_server 0
+-- source include/wait_until_disconnected.inc
+
+--let $rpl_server_number= 2
+--let $rpl_server_parameters= --log-slave-updates=FALSE
+--source include/rpl_start_server.inc
+
+# This will fail if the bug is present: the binlog coordinates
+# at "prepare" point have been last updated before the server
+# restart.  After the restart the slave was running without
+# --log-slave-updates, skipping the "prepare" point update.  Thus
+# on startup slave will read the obsolete position and fail.
+# After the fix the "prepare" point will be current.
+--source include/start_slave.inc
+
+connection master;
+
+sync_slave_with_master;
+
+SELECT a FROM x ORDER BY a;
+
+connection master;
+
+DROP TABLE x;
+
+--source include/rpl_end.inc

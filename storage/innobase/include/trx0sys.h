@@ -53,6 +53,11 @@ there was no master log position info inside InnoDB.*/
 extern ib_int64_t	trx_sys_mysql_master_log_pos;
 /* @} */
 
+extern char		trx_sys_css_mysql_master_log_name[];
+extern ib_int64_t	trx_sys_css_mysql_master_log_pos;
+extern char		trx_sys_css_mysql_relay_log_name[];
+extern ib_int64_t	trx_sys_css_mysql_relay_log_pos;
+
 /** If this MySQL server uses binary logging, after InnoDB has been inited
 and if it has done a crash recovery, we store the binlog file name and position
 here. */
@@ -302,7 +307,8 @@ UNIV_INTERN
 void
 trx_sys_update_mysql_binlog_offset(
 /*===============================*/
-	const char*	file_name,/*!< in: MySQL log file name */
+	trx_sysf_t*	sys_header,
+	const char*	file_name_in,/*!< in: MySQL log file name */
 	ib_int64_t	offset,	/*!< in: position in that log file */
 	ulint		field,	/*!< in: offset of the MySQL log info field in
 				the trx sys header */
@@ -313,6 +319,14 @@ the magic number shows it valid. */
 UNIV_INTERN
 void
 trx_sys_print_mysql_binlog_offset(void);
+/*===================================*/
+/*****************************************************************//**
+Prints to stderr the MySQL master log offset info in the trx system header
+COMMIT set of fields if the magic number shows it valid and stores it
+in global variables. */
+UNIV_INTERN
+void
+trx_sys_print_committed_mysql_master_log_pos(void);
 /*===================================*/
 /*****************************************************************//**
 Prints to stderr the MySQL master log offset info in the trx system header if
@@ -502,14 +516,41 @@ rollback segment.  It initialized some arrays with this number of entries.
 We must remember this limit in order to keep file compatibility. */
 #define TRX_SYS_OLD_N_RSEGS		256
 
+#define TRX_SYS_MYSQL_MASTER_LOG_NAME_LEN	480	/* (500 - 12) is dead line. */
 /** Contents of TRX_SYS_MYSQL_LOG_MAGIC_N_FLD */
 #define TRX_SYS_MYSQL_LOG_MAGIC_N	873422344
 
 #if UNIV_PAGE_SIZE < 4096
 # error "UNIV_PAGE_SIZE < 4096"
 #endif
+
+/** Crash Safe Slave
+The offset of the MySQL replication info in the trx system header;
+this contains the same fields as TRX_SYS_MYSQL_LOG_INFO below. These are
+written at prepare time and are the main copy.
+The twitter code calculates the mysql master log position slightly
+differently than the crash safe slave implementation does. It uses
+rli.future_group_master_log_pos where as the crash safe slave needs a more
+complex calculation to obtain the correct position for recovery:
+rli->group_master_log_pos +
+	(rli->future_event_relay_log_pos - rli->group_relay_log_pos);
+There is a twitter feature that exposes the master log info through new
+Innodb_mysql_master_log_file and Innodb_mysql_master_log_position status
+variables along with an MTR test case that relies on the original way of
+figuring the master log position value. So, we are storing a separate
+copy using the necessary calculation mentioned above */
+#define TRX_SYS_CSS_MYSQL_MASTER_LOG_INFO	(UNIV_PAGE_SIZE - 3500)
+#define TRX_SYS_CSS_MYSQL_RELAY_LOG_INFO	(UNIV_PAGE_SIZE - 1500)
+
+/** Crash Safe Slave
+The copy of the above which is made at transaction COMMIT time. If binlog
+crash recovery rollbacks a PREPAREd transaction, they are copied back. */
+#define TRX_SYS_CSS_COMMIT_MASTER_LOG_INFO	(UNIV_PAGE_SIZE - 3000)
+#define TRX_SYS_CSS_COMMIT_RELAY_LOG_INFO	(UNIV_PAGE_SIZE - 2500)
+
 /** The offset of the MySQL replication info in the trx system header;
-this contains the same fields as TRX_SYS_MYSQL_LOG_INFO below */
+this contains the same fields as TRX_SYS_MYSQL_LOG_INFO below. These are
+written at prepare time and are the main copy. */
 #define TRX_SYS_MYSQL_MASTER_LOG_INFO	(UNIV_PAGE_SIZE - 2000)
 
 /** The offset of the MySQL binlog offset info in the trx system header */

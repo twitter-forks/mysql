@@ -1,0 +1,128 @@
+# Tests for Percona crash-resistant replication feature
+--source include/have_innodb.inc
+--source include/not_valgrind.inc
+--source include/not_crashrep.inc
+--source include/have_debug.inc
+
+#
+# Setup
+#
+--source include/master-slave.inc
+
+--disable_warnings
+DROP TABLE IF EXISTS t1;
+--enable_warnings
+
+--disable_query_log
+call mtr.add_suppression("InnoDB: Warning: innodb_overwrite_relay_log_info is enabled.");
+--enable_query_log
+
+CREATE TABLE t1 (id INT(11) NOT NULL AUTO_INCREMENT, PRIMARY KEY(id)) ENGINE=InnoDB;
+
+#
+# Test the non-crashing case
+#
+
+INSERT INTO t1 VALUES ();
+SELECT COUNT(*) FROM t1;
+
+sync_slave_with_master;
+--let $rpl_server_number= 2
+--source include/rpl_restart_server.inc
+--source include/start_slave.inc
+SELECT COUNT(*) FROM t1;
+
+#
+# Test the crashing case where relay-log.info needs not to be overwritten
+#
+
+--source include/stop_slave.inc
+
+connection master;
+INSERT INTO t1 VALUES();
+SELECT COUNT(*) FROM t1;
+
+connection slave;
+# Get the master.info written to the disk before the SQL thread starts and crashes
+START SLAVE IO_THREAD;
+--source include/wait_for_slave_io_to_start.inc
+connection master;
+--source include/sync_slave_io_with_master.inc
+--source include/stop_slave_io.inc
+
+SET GLOBAL debug="+d,crash_commit_before";
+--exec echo "wait" > $MYSQLTEST_VARDIR/tmp/mysqld.2.expect
+--error 0,2013
+START SLAVE SQL_THREAD;
+--source include/wait_until_disconnected.inc
+
+--let $rpl_server_number= 2
+--source include/rpl_start_server.inc
+--source include/start_slave.inc
+connection master;
+sync_slave_with_master;
+SELECT COUNT(*) FROM t1;
+
+#
+# Test the rollback of slave position stored in the InnoDB trx header.
+#
+--source include/stop_slave.inc
+
+connection master;
+INSERT INTO t1 VALUES();
+SELECT COUNT(*) FROM t1;
+
+connection slave;
+# Get the master.info written to the disk before the SQL thread starts and crashes
+START SLAVE IO_THREAD;
+--source include/wait_for_slave_io_to_start.inc
+connection master;
+--source include/sync_slave_io_with_master.inc
+--source include/stop_slave_io.inc
+SET GLOBAL debug="+d,crash_innodb_after_prepare";
+--exec echo "wait" > $MYSQLTEST_VARDIR/tmp/mysqld.2.expect
+--error 0,2013
+START SLAVE SQL_THREAD;
+--source include/wait_until_disconnected.inc
+
+--let $rpl_server_number= 2
+--source include/rpl_start_server.inc
+--source include/start_slave.inc
+connection master;
+sync_slave_with_master;
+SELECT COUNT(*) FROM t1;
+
+#
+# Test crash with XA transaction recovery (bug 1012715)
+#
+--source include/stop_slave.inc
+connection master;
+INSERT INTO t1 VALUES();
+SELECT COUNT(*) FROM t1;
+
+connection slave;
+# Get the master.info written to the disk before the SQL thread starts and crashes
+START SLAVE IO_THREAD;
+--source include/wait_for_slave_io_to_start.inc
+connection master;
+--source include/sync_slave_io_with_master.inc
+--source include/stop_slave_io.inc
+SET GLOBAL debug="+d,crash_innodb_before_commit";
+--exec echo "wait" > $MYSQLTEST_VARDIR/tmp/mysqld.2.expect
+--error 0,2013
+START SLAVE SQL_THREAD;
+--source include/wait_until_disconnected.inc
+
+--let $rpl_server_number= 2
+--source include/rpl_start_server.inc
+--source include/start_slave.inc
+SELECT COUNT(*) FROM t1;
+
+#
+# Cleanup
+#
+
+connection master;
+DROP TABLE t1;
+
+--source include/rpl_end.inc
