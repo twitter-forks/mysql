@@ -3101,6 +3101,9 @@ end_with_restore_list:
       thd->first_successful_insert_id_in_cur_stmt=
         thd->first_successful_insert_id_in_prev_stmt;
 
+    /* maintain global count of inserts that touch zero rows */
+    if (0 == thd->get_row_count_func())
+      my_atomic_add64((longlong*)&com_insert_noop, 1);
     DBUG_EXECUTE_IF("after_mysql_insert",
                     {
                       const char act[]=

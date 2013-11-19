@@ -527,6 +527,7 @@ uint opt_twitter_audit_log= 0;
 uint opt_twitter_query_stats= 0;
 uint opt_twitter_query_stats_max= 0;
 ulonglong rows_sent= 0, rows_examined= 0;
+ulonglong com_insert_noop= 0;
 
 const double log_10[] = {
   1e000, 1e001, 1e002, 1e003, 1e004, 1e005, 1e006, 1e007, 1e008, 1e009,
@@ -6618,6 +6619,7 @@ SHOW_VAR status_vars[]= {
   {"Handler_savepoint_rollback",(char*) offsetof(STATUS_VAR, ha_savepoint_rollback_count), SHOW_LONG_STATUS},
   {"Handler_update",           (char*) offsetof(STATUS_VAR, ha_update_count), SHOW_LONG_STATUS},
   {"Handler_write",            (char*) offsetof(STATUS_VAR, ha_write_count), SHOW_LONG_STATUS},
+  {"Insert_noop",              (char*) &com_insert_noop, SHOW_LONG},
   {"Key_blocks_not_flushed",   (char*) offsetof(KEY_CACHE, global_blocks_changed), SHOW_KEY_CACHE_LONG},
   {"Key_blocks_unused",        (char*) offsetof(KEY_CACHE, blocks_unused), SHOW_KEY_CACHE_LONG},
   {"Key_blocks_used",          (char*) offsetof(KEY_CACHE, blocks_used), SHOW_KEY_CACHE_LONG},

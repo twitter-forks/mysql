@@ -239,7 +239,7 @@ SELECT 9;
 DROP PROCEDURE p1;
 DROP FUNCTION f1;
 FLUSH STATUS;
-CREATE TABLE t_status (c1 integer, c2 integer);
+CREATE TABLE t_status (c1 integer primary key, c2 integer);
 INSERT INTO t_status (c1,c2) values (1,1),(2,2),(3,3);
 SELECT c1 FROM t_status where c2 < 3;
 c1
@@ -254,6 +254,31 @@ SHOW GLOBAL STATUS like 'rows%';
 Variable_name	Value
 Rows_examined	0
 Rows_sent	0
+SET @com_insert_orig = (SELECT variable_value FROM information_schema.global_status WHERE LOWER(variable_name) = 'com_insert');
+SET @insert_noop_orig = (SELECT variable_value FROM information_schema.global_status WHERE LOWER(variable_name) = 'insert_noop');
+INSERT t_status values (2,2) ON DUPLICATE KEY UPDATE c2=20;
+INSERT t_status values (3,3) ON DUPLICATE KEY UPDATE c2=30;
+SELECT variable_value - @com_insert_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'com_insert';
+variable_value - @com_insert_orig
+2
+SELECT variable_value - @insert_noop_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'insert_noop';
+variable_value - @insert_noop_orig
+0
+INSERT t_status values (2,2) ON DUPLICATE KEY UPDATE c2=20;
+SELECT variable_value - @com_insert_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'com_insert';
+variable_value - @com_insert_orig
+3
+SELECT variable_value - @insert_noop_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'insert_noop';
+variable_value - @insert_noop_orig
+1
+INSERT t_status values (3,3) ON DUPLICATE KEY UPDATE c2=30;
+INSERT t_status values (4,4) ON DUPLICATE KEY UPDATE c2=40;
+SELECT variable_value - @com_insert_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'com_insert';
+variable_value - @com_insert_orig
+5
+SELECT variable_value - @insert_noop_orig FROM information_schema.global_status WHERE LOWER(variable_name) = 'insert_noop';
+variable_value - @insert_noop_orig
+2
 DROP TABLE t_status;
 set @@global.concurrent_insert= @old_concurrent_insert;
 SET GLOBAL log_output = @old_log_output;
