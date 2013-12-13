@@ -807,6 +807,7 @@ THD::THD()
 #if defined(ENABLED_DEBUG_SYNC)
    debug_sync_control(0),
 #endif /* defined(ENABLED_DEBUG_SYNC) */
+   query_stats(0),
    main_warning_info(0, false)
 {
   ulong tmp;

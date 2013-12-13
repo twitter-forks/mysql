@@ -56,6 +56,7 @@ class User_level_lock;
 class user_var_entry;
 
 struct st_thd_timer;
+struct query_stats_st;
 
 enum enum_enable_or_disable { LEAVE_AS_IS, ENABLE, DISABLE };
 enum enum_ha_read_modes { RFIRST, RNEXT, RPREV, RLAST, RKEY, RNEXT_SAME };
@@ -2237,6 +2238,10 @@ public:
   /* Debug Sync facility. See debug_sync.cc. */
   struct st_debug_sync_control *debug_sync_control;
 #endif /* defined(ENABLED_DEBUG_SYNC) */
+
+  /* current query statistics structure */
+  query_stats_st *query_stats;
+
   THD();
   ~THD();
 

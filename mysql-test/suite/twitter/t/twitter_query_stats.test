@@ -43,6 +43,8 @@ DELETE FROM e_1_0360_e WHERE src = 69212023 AND dst = 977022891 AND st = 0 LIMIT
 (SELECT dst FROM e_1_0360_e WHERE src = 347849711 AND st IN (0) AND dst >=518636489 ORDER BY dst ASC LIMIT 1) UNION ALL (SELECT dst FROM e_1_0360_e WHERE src = 347849711 AND st IN (3) AND dst <518636489 ORDER BY dst DESC LIMIT 251) /*["client_host" : "127.0.0.1", "client_id" : "flock_service", "service_name" : "test"]*/;
 
 SELECT query_type, client_id, count FROM information_schema.query_statistics order by client_id,count;
+-- echo # examine row stats
+SELECT query_type, client_id, rows_sent, rows_examined FROM information_schema.query_statistics order by client_id,rows_sent;
 
 --echo # change query stats max to small value
 FLUSH STATUS;

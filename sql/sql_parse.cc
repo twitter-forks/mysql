@@ -2023,7 +2023,6 @@ mysql_execute_command(THD *thd)
   bool have_table_map_for_update= FALSE;
 #endif
   ulonglong query_start_time= 0;
-  QUERY_STATS *qry_stats= 0;
   DBUG_ENTER("mysql_execute_command");
 #ifdef WITH_PARTITION_STORAGE_ENGINE
   thd->work_part_info= 0;
@@ -2031,7 +2030,7 @@ mysql_execute_command(THD *thd)
 
   if (opt_twitter_query_stats && TRACK_QUERY(lex->sql_command))
   {
-    qry_stats= track_query_stats(thd->query(), thd->query_length());
+    thd->query_stats= track_query_stats(thd->query(), thd->query_length());
     query_start_time= my_timer_microseconds();
   }
 
@@ -4646,8 +4645,9 @@ finish:
   if (reset_timer)
     reset_statement_timer(thd);
 
-  if (opt_twitter_query_stats && qry_stats)
+  if (opt_twitter_query_stats && thd->query_stats)
   {
+    QUERY_STATS *qry_stats = thd->query_stats;
     DBUG_ASSERT(qry_stats->magic == QUERY_STATS_MAGIC);
     ulonglong elapsed = my_timer_microseconds() - query_start_time;
     my_atomic_add64((longlong*)&qry_stats->latency, elapsed);
@@ -5577,6 +5577,14 @@ void THD::reset_for_next_command()
   /* maintain global stats before resetting per-thread stats */
   my_atomic_add64((longlong*)&rows_sent, thd->sent_row_count);
   my_atomic_add64((longlong*)&rows_examined, thd->examined_row_count);
+  /* maintain query row stats before clear per-thread query stats */
+  if (thd->query_stats)
+  {
+    DBUG_ASSERT(thd->query_stats->magic == QUERY_STATS_MAGIC);
+    my_atomic_add64((longlong*)&thd->query_stats->rows_sent, thd->sent_row_count);
+    my_atomic_add64((longlong*)&thd->query_stats->rows_examined, thd->examined_row_count);
+    thd->query_stats= 0;
+  }
   thd->sent_row_count= thd->examined_row_count= 0;
 
   thd->reset_current_stmt_binlog_format_row();

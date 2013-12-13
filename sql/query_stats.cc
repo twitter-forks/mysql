@@ -499,6 +499,8 @@ ST_FIELD_INFO query_stats_fields_info[]=
   {"COUNT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0, 0, 0, SKIP_OPEN_TABLE},
   {"LATENCY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0, 0, 0, SKIP_OPEN_TABLE},
   {"MAX_LATENCY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0, 0, 0, SKIP_OPEN_TABLE},
+  {"ROWS_SENT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0, 0, 0, SKIP_OPEN_TABLE},
+  {"ROWS_EXAMINED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0, 0, 0, SKIP_OPEN_TABLE},
   {0, 0, MYSQL_TYPE_STRING, 0, 0, 0, SKIP_OPEN_TABLE}
 };
 
@@ -541,6 +543,8 @@ int fill_query_stats(THD *thd, TABLE_LIST *tables, Item *cond)
     table->field[fidx++]->store(qry_stats->count, TRUE);
     table->field[fidx++]->store(qry_stats->latency, TRUE);
     table->field[fidx++]->store(qry_stats->max_latency, TRUE);
+    table->field[fidx++]->store(qry_stats->rows_sent, TRUE);
+    table->field[fidx++]->store(qry_stats->rows_examined, TRUE);
 
     if (schema_table_store_record(thd, table))
     {

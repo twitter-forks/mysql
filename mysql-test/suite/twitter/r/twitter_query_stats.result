@@ -48,6 +48,21 @@ DELETE FROM e_?_?_e WHERE src = ? AND dst = ? AND st = ? LIMIT ? 	flock_service	
 (SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst >=? ORDER BY dst ASC LIMIT ?) UNION ALL (SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst <? ORDER BY dst DESC LIMIT ?) 	flock_service	1
 DELETE FROM e_?_?_e WHERE src = ? AND dst = ? AND st = ? LIMIT ? 	tflock_timeline_service	1
 (SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst >=? ORDER BY dst ASC LIMIT ?) UNION ALL (SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst <? ORDER BY dst DESC LIMIT ?) 	tflock_timeline_service	1
+# examine row stats
+SELECT query_type, client_id, rows_sent, rows_examined FROM information_schema.query_statistics order by client_id,rows_sent;
+query_type	client_id	rows_sent	rows_examined
+INSERT INTO e_?_?_e (src, dst, st) VALUES (?) 		0	0
+INSERT INTO e_?_?_m VALUES (?) ON DUPLICATE KEY UPDATE cnt = cnt + (CASE st WHEN ? THEN ? WHEN ? THEN ? ELSE ? END)		0	0
+(SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst >=? ORDER BY dst ASC LIMIT ?) UNION ALL (SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst <? ORDER BY dst DESC LIMIT ?) 		0	0
+SELECT query_type, client_id, rows_sent, rows_examined FROM information_schema.query_statistics order by client_id,rows_sent		0	0
+SELECT dst FROM e_?_?_e where src = ? AND st IN(?) AND dst IN (?)		0	0
+SELECT query_type, client_id, count FROM information_schema.query_statistics order by count		0	0
+DELETE FROM e_?_?_e WHERE src = ? AND dst = ? AND st = ? LIMIT ? 		0	0
+SELECT query_type, client_id, count FROM information_schema.query_statistics order by client_id,count		11	22
+DELETE FROM e_?_?_e WHERE src = ? AND dst = ? AND st = ? LIMIT ? 	flock_service	0	1
+(SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst >=? ORDER BY dst ASC LIMIT ?) UNION ALL (SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst <? ORDER BY dst DESC LIMIT ?) 	flock_service	0	0
+DELETE FROM e_?_?_e WHERE src = ? AND dst = ? AND st = ? LIMIT ? 	tflock_timeline_service	0	1
+(SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst >=? ORDER BY dst ASC LIMIT ?) UNION ALL (SELECT dst FROM e_?_?_e WHERE src = ? AND st IN (?) AND dst <? ORDER BY dst DESC LIMIT ?) 	tflock_timeline_service	0	0
 # change query stats max to small value
 FLUSH STATUS;
 SET GLOBAL twitter_query_stats_max=5;

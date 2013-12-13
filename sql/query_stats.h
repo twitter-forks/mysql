@@ -48,7 +48,7 @@ enum enum_query_stats_level
 #define QUERY_ID_MAX_LENGTH  48
 #define QUERY_STATS_MAGIC    0xBEEFBEEF
 
-typedef struct query_stats
+typedef struct query_stats_st
 {
   char *query_stats_key;                 /* canonicalized query type key */
   uint  query_stats_key_len;             /* hash key length */
@@ -65,6 +65,9 @@ typedef struct query_stats
   ulonglong count;                      /* number of executions */
   ulonglong latency;                    /* accumulated latency */
   ulonglong max_latency;                /* max query latency */
+
+  ulonglong rows_sent;                  /* number of rows sent */
+  ulonglong rows_examined;              /* number of rows examined */
 
   uint magic;
 } QUERY_STATS;
@@ -89,6 +92,8 @@ QUERY_STATS* track_query_stats(const char *query, uint32 query_length);
     qstats->count    = 0;         \
     qstats->latency  = 0;         \
     qstats->max_latency = 0;      \
+    qstats->rows_sent = 0;        \
+    qstats->rows_examined = 0;    \
   }
 
 /* Information schema query_statistics */
