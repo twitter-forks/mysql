@@ -947,3 +947,22 @@ t1
 SHOW TABLES IN test;
 Tables_in_test
 SET GLOBAL SERVER_ID = 1;
+SET @old_binlog_user_info = @@session.binlog_write_user_info;
+SET @@session.binlog_write_user_info = 1;
+RESET MASTER;
+CREATE DATABASE test1;
+USE test1;
+CREATE TABLE t1 (a INT);
+INSERT INTO t1 values(1234);
+FLUSH LOGS;
+We expect this value to be 5
+That is because we executed 5 statements above after
+enabling binlog_write_user_info
+
+SELECT count(*) FROM patch WHERE a LIKE '%user@host%';
+count(*)
+5
+SET @@session.binlog_write_user_info = @old_binlog_user_info;
+DROP TABLE patch;
+DROP TABLE t1;
+DROP DATABASE test1;

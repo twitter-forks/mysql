@@ -518,6 +518,7 @@ typedef struct system_variables
   ulong protocol_mode;
   ulong max_statement_time;
   my_bool binlog_row_write_table_metadata;
+  my_bool binlog_write_user_info;
 } SV;
 
 

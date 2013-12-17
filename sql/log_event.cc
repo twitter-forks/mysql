@@ -2391,7 +2391,17 @@ bool Query_log_event::write(IO_CACHE* file)
     start+= 4;
   }
 
-  if (thd && thd->need_binlog_invoker())
+  /* This is a little tricky but it works. We write user info in
+  two cases:
+  1) When slave needs this information. Currently REVOKE and GRANT
+  2) For mysqlbinlog to display the user@host info
+  When slave reads this information it'll call set_invoker() and that
+  will set the info in the slave THD. This means that the information
+  will be there even when the slave thread doesn't need it i.e.: when
+  the query is not GRANT or REVOKE. But this is ok because slave thread
+  only access this when THD::m_binlog_invoker is set. */
+  if (thd && (thd->need_binlog_invoker()
+              || thd->variables.binlog_write_user_info))
   {
     LEX_STRING user;
     LEX_STRING host;
@@ -3048,9 +3058,14 @@ void Query_log_event::print_query_header(IO_CACHE* file,
   if (!print_event_info->short_form)
   {
     print_header(file, print_event_info, FALSE);
-    my_b_printf(file, "\t%s\tthread_id=%lu\texec_time=%lu\terror_code=%d\n",
+    my_b_printf(file, "\t%s\tthread_id=%lu\texec_time=%lu\terror_code=%d",
                 get_type_str(), (ulong) thread_id, (ulong) exec_time,
                 error_code);
+    if (user.length > 0)
+    {
+      my_b_printf(file, "\tuser@host=%*s@%*s", user.length, user.str, host.length, host.str);
+    }
+    my_b_printf(file, "\n");
   }
 
   if ((flags & LOG_EVENT_SUPPRESS_USE_F))

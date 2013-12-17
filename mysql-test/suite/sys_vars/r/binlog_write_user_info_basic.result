@@ -1,0 +1,124 @@
+#
+# Basic testing of the protocol_mode variable.
+#
+
+# Save default value.
+
+SET @start_value = @@global.binlog_write_user_info;
+SELECT @start_value;
+@start_value
+0
+
+# Default values.
+
+SET @@global.binlog_write_user_info = 1;
+SET @@global.binlog_write_user_info = DEFAULT;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = @start_value;
+SELECT @@global.binlog_write_user_info = 0;
+@@global.binlog_write_user_info = 0
+1
+
+# Valid values.
+
+SET @@global.binlog_write_user_info = 0;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = 1;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+1
+SET @@global.binlog_write_user_info = TRUE;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+1
+SET @@global.binlog_write_user_info = FALSE;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = ON;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+1
+SET @@global.binlog_write_user_info = OFF;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+
+# Invalid values.
+
+SET @@global.binlog_write_user_info = -1;
+ERROR 42000: Variable 'binlog_write_user_info' can't be set to the value of '-1'
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = 4294967296;
+ERROR 42000: Variable 'binlog_write_user_info' can't be set to the value of '4294967296'
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = 10240022115;
+ERROR 42000: Variable 'binlog_write_user_info' can't be set to the value of '10240022115'
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = 10000.01;
+ERROR 42000: Incorrect argument type to variable 'binlog_write_user_info'
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = -1024;
+ERROR 42000: Variable 'binlog_write_user_info' can't be set to the value of '-1024'
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = 42949672950;
+ERROR 42000: Variable 'binlog_write_user_info' can't be set to the value of '42949672950'
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+SET @@global.binlog_write_user_info = 'test';
+ERROR 42000: Variable 'binlog_write_user_info' can't be set to the value of 'test'
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0
+
+# Information schema global/session variables tables.
+
+SELECT IF(@@global.binlog_write_user_info, "ON", "OFF") = VARIABLE_VALUE
+FROM INFORMATION_SCHEMA.GLOBAL_VARIABLES
+WHERE VARIABLE_NAME='binlog_write_user_info';
+IF(@@global.binlog_write_user_info, "ON", "OFF") = VARIABLE_VALUE
+1
+SELECT IF(@@binlog_write_user_info, "ON", "OFF") = VARIABLE_VALUE
+FROM INFORMATION_SCHEMA.SESSION_VARIABLES
+WHERE VARIABLE_NAME='binlog_write_user_info';
+IF(@@binlog_write_user_info, "ON", "OFF") = VARIABLE_VALUE
+1
+
+# Scope.
+
+SET @@global.binlog_write_user_info = 1;
+SELECT @@binlog_write_user_info = @@global.binlog_write_user_info;
+@@binlog_write_user_info = @@global.binlog_write_user_info
+0
+SET local.binlog_write_user_info = 1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'binlog_write_user_info = 1' at line 1
+SELECT local.binlog_write_user_info;
+ERROR 42S02: Unknown table 'local' in field list
+SET global.binlog_write_user_info = 1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'binlog_write_user_info = 1' at line 1
+SELECT global.binlog_write_user_info;
+ERROR 42S02: Unknown table 'global' in field list
+SELECT binlog_write_user_info = @@session.binlog_write_user_info;
+ERROR 42S22: Unknown column 'binlog_write_user_info' in 'field list'
+
+# Restore default value.
+
+SET @@global.binlog_write_user_info = @start_value;
+SELECT @@global.binlog_write_user_info;
+@@global.binlog_write_user_info
+0

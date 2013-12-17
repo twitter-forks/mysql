@@ -547,3 +547,39 @@ SHOW TABLES IN test;
 --exec $MYSQL_BINLOG --server-id=2 $MYSQLD_DATADIR/$master_binlog | $MYSQL
 SHOW TABLES IN test;
 eval SET GLOBAL SERVER_ID = $old_server_id;
+
+#
+# Test binlog_write_user_info
+#
+SET @old_binlog_user_info = @@session.binlog_write_user_info;
+SET @@session.binlog_write_user_info = 1;
+RESET MASTER;
+CREATE DATABASE test1;
+USE test1;
+CREATE TABLE t1 (a INT);
+INSERT INTO t1 values(1234);
+--let $master_binlog = query_get_value(SHOW MASTER STATUS, File, 1)
+FLUSH LOGS;
+
+# We are trying to test if user@host is displayed when binlog_write_user_info
+# is set. To do this we put mysqlbinlog output in a table and do a select on
+# that table with LIKE.
+--disable_query_log
+CREATE TABLE patch (a BLOB);
+--exec $MYSQL_BINLOG --base64-output=decode-rows $MYSQLD_DATADIR/$master_binlog > $MYSQLTEST_VARDIR/tmp/mysqlbinlog_tmp.dat
+eval LOAD DATA LOCAL INFILE '$MYSQLTEST_VARDIR/tmp/mysqlbinlog_tmp.dat'
+     INTO TABLE patch FIELDS TERMINATED BY '\n' LINES STARTING BY '#';
+--remove_file $MYSQLTEST_VARDIR/tmp/mysqlbinlog_tmp.dat
+--enable_query_log
+
+--echo We expect this value to be 5
+--echo That is because we executed 5 statements above after
+--echo enabling binlog_write_user_info
+--echo
+SELECT count(*) FROM patch WHERE a LIKE '%user@host%';
+
+SET @@session.binlog_write_user_info = @old_binlog_user_info;
+DROP TABLE patch;
+DROP TABLE t1;
+DROP DATABASE test1;
+

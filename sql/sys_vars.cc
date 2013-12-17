@@ -460,6 +460,12 @@ static Sys_var_mybool Sys_binlog_rows_table_metadata(
        SESSION_VAR(binlog_row_write_table_metadata),
        CMD_LINE(OPT_ARG), DEFAULT(FALSE));
 
+static Sys_var_mybool Sys_binlog_write_user_info(
+       "binlog_write_user_info",
+       "Write user@host to the binary log.",
+       SESSION_VAR(binlog_write_user_info),
+       CMD_LINE(OPT_ARG), DEFAULT(FALSE));
+
 static Sys_var_ulong Sys_bulk_insert_buff_size(
        "bulk_insert_buffer_size", "Size of tree cache used in bulk "
        "insert optimisation. Note that this is a limit per thread!",
