@@ -1099,7 +1099,7 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
       thd->variables.character_set_results= save_character_set_results;
       thd->update_charset();
       thd->failed_com_change_user++;
-      my_sleep(1000000);
+      sleep(1);
     }
     else
     {

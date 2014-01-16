@@ -669,6 +669,9 @@ DROP TABLE tmp_proxies_priv;
 --
 ALTER TABLE user ADD max_statement_time int(11) unsigned DEFAULT 0 NOT NULL;
 
+# Convering the host name to lower case for existing users
+UPDATE user SET host=LOWER( host ) WHERE LOWER( host ) <> host;
+
 # Activate the new, possible modified privilege tables
 # This should not be needed, but gives us some extra testing that the above
 # changes was correct
