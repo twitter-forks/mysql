@@ -1068,9 +1068,10 @@ echo "====="                                     >> $STATUS_HISTORY
 %doc release/Docs/INFO_BIN*
 %doc release/support-files/my-*.cnf
 
-%if 0%{?commercial}
+# Twitter MySQL keep mysql.info for rpm build
+#%if 0%{?commercial}
 %doc %attr(644, root, root) %{_infodir}/mysql.info*
-%endif
+#%endif
 
 %doc %attr(644, root, man) %{_mandir}/man1/innochecksum.1*
 %doc %attr(644, root, man) %{_mandir}/man1/my_print_defaults.1*
@@ -1229,6 +1230,9 @@ echo "====="                                     >> $STATUS_HISTORY
 # merging BK trees)
 ##############################################################################
 %changelog
+* Thu Jan 16 2014 Liang Guo <lguo@twitter.com>
+- Include doc/mysql.info for rpm build
+
 * Thu Nov 7 2013 Liang Guo <lguo@twitter.com>
 
 - Comment off MySQL-embedded-* stuffs because we discontinue building 
