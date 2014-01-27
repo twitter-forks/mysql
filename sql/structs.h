@@ -25,6 +25,7 @@
 #include "my_time.h"                   /* enum_mysql_timestamp_type */
 #include "thr_lock.h"                  /* thr_lock_type */
 #include "my_base.h"                   /* ha_rows, ha_key_alg */
+#include "mysql_com.h"
 
 struct TABLE;
 class Field;
@@ -219,6 +220,119 @@ typedef struct  user_conn {
   /* Maximum amount of resources which account is allowed to consume. */
   USER_RESOURCES user_resources;
 } USER_CONN;
+
+typedef struct st_user_stats {
+  char user[max(USERNAME_LENGTH, LIST_PROCESS_HOST_LEN) + 1];
+  // Account name the user is mapped to when this is a user from mapped_user.
+  // Otherwise, the same value as user.
+  char priv_user[max(USERNAME_LENGTH, LIST_PROCESS_HOST_LEN) + 1];
+  uint total_connections;
+  uint total_ssl_connections;
+  uint concurrent_connections;
+  size_t user_len;
+  size_t priv_user_len;
+  time_t connected_time;  // in seconds
+  double busy_time;       // in seconds
+  double cpu_time;        // in seconds
+  ulonglong bytes_received;
+  ulonglong bytes_sent;
+  ulonglong binlog_bytes_written;
+  ha_rows rows_fetched, rows_updated, rows_read;
+  ha_rows rows_read_first;
+  ha_rows rows_read_last;
+  ha_rows rows_read_key;
+  ha_rows rows_read_next;
+  ha_rows rows_read_prev;
+  ha_rows rows_read_rnd;
+  ha_rows rows_read_rnd_next;
+  ha_rows rows_delete;
+  ha_rows rows_update;
+  ha_rows rows_write;
+  ulonglong select_commands, update_commands, other_commands;
+  ulonglong commit_trans, rollback_trans;
+  ulonglong denied_connections, lost_connections;
+  ulonglong access_denied_errors;
+  ulonglong empty_queries;
+} USER_STATS;
+
+/* Lookup function for my_hash tables with USER_STATS entries */
+extern "C" uchar *get_key_user_stats(USER_STATS *user_stats, size_t *length,
+                                my_bool not_used __attribute__((unused)));
+
+/* Free all memory for a my_hash table with USER_STATS entries */
+extern void free_user_stats(USER_STATS* user_stats);
+
+/* Intialize an instance of USER_STATS */
+extern void
+init_user_stats(USER_STATS *user_stats,
+                const char *user,
+                const char *priv_user,
+                ulonglong denied_connections);
+
+typedef struct st_thread_stats {
+  my_thread_id id;
+  uint total_connections;
+  uint total_ssl_connections;
+  uint concurrent_connections;
+  time_t connected_time;  // in seconds
+  double busy_time;       // in seconds
+  double cpu_time;        // in seconds
+  ulonglong bytes_received;
+  ulonglong bytes_sent;
+  ulonglong binlog_bytes_written;
+  ha_rows rows_fetched, rows_updated, rows_read;
+  ha_rows rows_read_first;
+  ha_rows rows_read_last;
+  ha_rows rows_read_key;
+  ha_rows rows_read_next;
+  ha_rows rows_read_prev;
+  ha_rows rows_read_rnd;
+  ha_rows rows_read_rnd_next;
+  ha_rows rows_delete;
+  ha_rows rows_update;
+  ha_rows rows_write;
+  ulonglong select_commands, update_commands, other_commands;
+  ulonglong commit_trans, rollback_trans;
+  ulonglong denied_connections, lost_connections;
+  ulonglong access_denied_errors;
+  ulonglong empty_queries;
+} THREAD_STATS;
+
+/* Lookup function for my_hash tables with THREAD_STATS entries */
+extern "C" uchar *get_key_thread_stats(THREAD_STATS *thread_stats, size_t *length,
+                                my_bool not_used __attribute__((unused)));
+
+/* Free all memory for a my_hash table with THREAD_STATS entries */
+extern void free_thread_stats(THREAD_STATS* thread_stats);
+
+/* Intialize an instance of THREAD_STATS */
+extern void
+init_thread_stats(THREAD_STATS *thread_stats,
+                my_thread_id id,
+                ulonglong access_denied_errors);
+
+typedef struct st_table_stats {
+  char table[NAME_LEN * 2 + 2];  // [db] + '.' + [table] + '\0'
+  size_t table_len;
+  ulonglong rows_read, rows_changed;
+  ulonglong rows_changed_x_indexes;
+  ulonglong rows_read_first, rows_read_last, rows_read_key;
+  ulonglong rows_read_next, rows_read_prev;
+  ulonglong rows_read_rnd, rows_read_rnd_next;
+  ulonglong rows_delete, rows_update, rows_write;
+  /* Stores enum db_type, but forward declarations cannot be done */
+  int engine_type;
+} TABLE_STATS;
+
+typedef struct st_index_stats {
+  char index[NAME_LEN * 3 + 3];  // [db] + '.' + [table] + '.' + [index] + '\0'
+  size_t index_len;
+  ulonglong rows_read;
+  ulonglong rows_read_first, rows_read_last, rows_read_key;
+  ulonglong rows_read_next, rows_read_prev;
+  ulonglong rows_read_rnd, rows_read_rnd_next;
+  ulonglong rows_delete, rows_update, rows_write;
+} INDEX_STATS;
 
 	/* Bits in form->update */
 #define REG_MAKE_DUPP		1	/* Make a copy of record when read */

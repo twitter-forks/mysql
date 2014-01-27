@@ -1,0 +1,3 @@
+SELECT @@global.userstat;
+@@global.userstat
+0

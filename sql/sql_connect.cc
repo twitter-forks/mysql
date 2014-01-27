@@ -57,6 +57,24 @@
 #define MIN_HANDSHAKE_SIZE      6
 #endif /* HAVE_OPENSSL && !EMBEDDED_LIBRARY */
 
+// Increments connection count for user.
+static int increment_connection_count(THD* thd, bool use_lock);
+
+// Uses the THD to update the global stats by user name and client IP
+void update_global_user_stats(THD* thd, bool create_user, time_t now);
+
+HASH global_user_stats;
+HASH global_client_stats;
+HASH global_thread_stats;
+// Protects global_user_stats and global_client_stats
+extern mysql_mutex_t LOCK_global_user_client_stats;
+
+HASH global_table_stats;
+extern mysql_mutex_t LOCK_global_table_stats;
+
+HASH global_index_stats;
+extern mysql_mutex_t LOCK_global_index_stats;
+
 /*
   Get structure for logging connection data for the current user
 */
@@ -114,6 +132,427 @@ end:
 
 }
 
+extern "C" uchar *get_key_user_stats(USER_STATS *user_stats, size_t *length,
+                         my_bool not_used __attribute__((unused)))
+{
+  *length= user_stats->user_len;
+  return (uchar*) user_stats->user;
+}
+
+extern "C" uchar *get_key_thread_stats(THREAD_STATS *thread_stats, size_t *length,
+                         my_bool not_used __attribute__((unused)))
+{
+  *length= sizeof(my_thread_id);
+  return (uchar *) &(thread_stats->id);
+}
+
+void free_user_stats(USER_STATS* user_stats)
+{
+  my_free((char *) user_stats);
+}
+
+void free_thread_stats(THREAD_STATS* thread_stats)
+{
+  my_free((char *) thread_stats);
+}
+
+void init_user_stats(USER_STATS *user_stats,
+                     const char *user,
+                     const char *priv_user,
+                     ulonglong denied_connections)
+{
+  DBUG_ENTER("init_user_stats");
+  DBUG_PRINT("info",
+             ("Add user_stats entry for user %s - priv_user %s",
+              user, priv_user));
+  memset(user_stats, 0, sizeof(USER_STATS));
+
+  strncpy(user_stats->user, user, sizeof(user_stats->user));
+  strncpy(user_stats->priv_user, priv_user, sizeof(user_stats->priv_user));
+
+  user_stats->user_len=               strlen(user_stats->user);
+  user_stats->priv_user_len=          strlen(user_stats->priv_user);
+
+  user_stats->denied_connections=     denied_connections;
+
+  DBUG_VOID_RETURN;
+}
+
+void init_thread_stats(THREAD_STATS *thread_stats,
+                     my_thread_id id,
+                     ulonglong denied_connections)
+{
+  DBUG_ENTER("init_thread_stats");
+  DBUG_PRINT("info",
+             ("Add thread_stats entry for thread %lu",
+              id));
+
+  memset(thread_stats, 0, sizeof(THREAD_STATS));
+
+  thread_stats->id= id;
+  thread_stats->denied_connections=     denied_connections;
+
+  DBUG_VOID_RETURN;
+}
+
+void init_global_user_stats(void)
+{
+  if (my_hash_init(&global_user_stats, system_charset_info, max_connections,
+                0, 0, (my_hash_get_key)get_key_user_stats,
+                (my_hash_free_key)free_user_stats, 0)) {
+    sql_print_error("Initializing global_user_stats failed.");
+    exit(1);
+  }
+}
+
+void init_global_client_stats(void)
+{
+  if (my_hash_init(&global_client_stats, system_charset_info, max_connections,
+                0, 0, (my_hash_get_key)get_key_user_stats,
+                (my_hash_free_key)free_user_stats, 0)) {
+    sql_print_error("Initializing global_client_stats failed.");
+    exit(1);
+  }
+}
+
+void init_global_thread_stats(void)
+{
+  if (my_hash_init(&global_thread_stats, &my_charset_bin, max_connections,
+                0, 0, (my_hash_get_key) get_key_thread_stats,
+                (my_hash_free_key) free_thread_stats, 0))
+  {
+    sql_print_error("Initializing global_client_stats failed.");
+    exit(1);
+  }
+}
+
+extern "C" uchar *get_key_table_stats(TABLE_STATS *table_stats, size_t *length,
+                                     my_bool not_used __attribute__((unused)))
+{
+  *length= table_stats->table_len;
+  return (uchar*) table_stats->table;
+}
+
+extern "C" void free_table_stats(TABLE_STATS* table_stats)
+{
+  my_free((char*) table_stats);
+}
+
+void init_global_table_stats(void)
+{
+  if (my_hash_init(&global_table_stats, system_charset_info, max_connections,
+                0, 0, (my_hash_get_key)get_key_table_stats,
+                (my_hash_free_key)free_table_stats, 0)) {
+    sql_print_error("Initializing global_table_stats failed.");
+    exit(1);
+  }
+}
+
+extern "C" uchar *get_key_index_stats(INDEX_STATS *index_stats, size_t *length,
+                                     my_bool not_used __attribute__((unused)))
+{
+  *length= index_stats->index_len;
+  return (uchar*) index_stats->index;
+}
+
+extern "C" void free_index_stats(INDEX_STATS* index_stats)
+{
+  my_free((char*) index_stats);
+}
+
+void init_global_index_stats(void)
+{
+  if (my_hash_init(&global_index_stats, system_charset_info, max_connections,
+                0, 0, (my_hash_get_key)get_key_index_stats,
+                (my_hash_free_key)free_index_stats, 0)) {
+    sql_print_error("Initializing global_index_stats failed.");
+    exit(1);
+  }
+}
+
+void free_global_user_stats(void)
+{
+  my_hash_free(&global_user_stats);
+}
+
+void free_global_thread_stats(void)
+{
+  my_hash_free(&global_thread_stats);
+}
+
+void free_global_table_stats(void)
+{
+  my_hash_free(&global_table_stats);
+}
+
+void free_global_index_stats(void)
+{
+  my_hash_free(&global_index_stats);
+}
+
+void free_global_client_stats(void)
+{
+  my_hash_free(&global_client_stats);
+}
+
+// 'mysql_system_user' is used for when the user is not defined for a THD.
+static char mysql_system_user[] = "#mysql_system#";
+
+// Returns 'user' if it's not NULL.  Returns 'mysql_system_user' otherwise.
+static char* get_valid_user_string(char* user) {
+  return user ? user : mysql_system_user;
+}
+
+// Increments the global stats connection count for an entry from
+// global_client_stats or global_user_stats. Returns 0 on success
+// and 1 on error.
+static int increment_count_by_name(const char *name, const char *role_name,
+                                   HASH *users_or_clients, THD *thd)
+{
+  USER_STATS* user_stats;
+
+  if (!(user_stats = (USER_STATS *) my_hash_search(users_or_clients,
+                                                   (uchar*) name,
+                                                   strlen(name))))
+  {
+    // First connection for this user or client
+    if (!(user_stats = ((USER_STATS *)
+                        my_malloc(sizeof(USER_STATS), MYF(MY_WME | MY_ZEROFILL)))))
+    {
+      return 1; // Out of memory
+    }
+
+    init_user_stats(user_stats, name, role_name,
+                    thd->diff_denied_connections);        // empty queries
+
+    if (my_hash_insert(users_or_clients, (uchar *) user_stats))
+    {
+      my_free((char *) user_stats);
+      return 1; // Out of memory
+    }
+  }
+  user_stats->total_connections++;
+  if (thd->net.vio->type == VIO_TYPE_SSL)
+    user_stats->total_ssl_connections++;
+  return 0;
+}
+
+static int increment_count_by_id(my_thread_id id,
+                                 HASH *users_or_clients, THD *thd)
+{
+  THREAD_STATS* thread_stats;
+
+  if (!(thread_stats = (THREAD_STATS *) my_hash_search(users_or_clients,
+                                                       (uchar*) &id,
+                                                       sizeof(my_thread_id))))
+  {
+    // First connection for this user or client
+    if (!(thread_stats = ((THREAD_STATS *)
+                        my_malloc(sizeof(THREAD_STATS), MYF(MY_WME | MY_ZEROFILL)))))
+    {
+      return 1; // Out of memory
+    }
+
+    init_thread_stats(thread_stats, id,
+                    thd->diff_denied_connections);
+
+    if (my_hash_insert(users_or_clients, (uchar *) thread_stats))
+    {
+      my_free((char *) thread_stats);
+      return 1; // Out of memory
+    }
+  }
+  thread_stats->total_connections++;
+  if (thd->net.vio->type == VIO_TYPE_SSL)
+    thread_stats->total_ssl_connections++;
+  return 0;
+}
+
+/* Increments the global user and client stats connection count.  If 'use_lock'
+   is true, LOCK_global_user_client_stats will be locked/unlocked.  Returns
+   0 on success, 1 on error.
+*/
+static int increment_connection_count(THD* thd, bool use_lock)
+{
+  char* user_string=         get_valid_user_string(thd->main_security_ctx.user);
+  const char* client_string= get_client_host(thd);
+  int return_value=          0;
+
+  if (use_lock)
+    mysql_mutex_lock(&LOCK_global_user_client_stats);
+
+  if (increment_count_by_name(user_string, user_string,
+                              &global_user_stats, thd))
+  {
+    return_value= 1;
+    goto end;
+  }
+  if (increment_count_by_name(client_string,
+                              user_string,
+                              &global_client_stats, thd))
+  {
+    return_value= 1;
+    goto end;
+  }
+  if (opt_thread_statistics)
+  {
+    if (increment_count_by_id(thd->thread_id, &global_thread_stats, thd))
+    {
+      return_value= 1;
+      goto end;
+    }
+ }
+
+end:
+  if (use_lock)
+    mysql_mutex_unlock(&LOCK_global_user_client_stats);
+  return return_value;
+}
+
+// Used to update the global user and client stats.
+static void update_global_user_stats_with_user(THD* thd,
+                                               USER_STATS* user_stats,
+                                               time_t now)
+{
+  user_stats->connected_time+=       now - thd->last_global_update_time;
+//thd->last_global_update_time=      now;
+  user_stats->busy_time+=            thd->diff_total_busy_time;
+  user_stats->cpu_time+=             thd->diff_total_cpu_time;
+  user_stats->bytes_received+=       thd->diff_total_bytes_received;
+  user_stats->bytes_sent+=           thd->diff_total_bytes_sent;
+  user_stats->binlog_bytes_written+= thd->diff_total_binlog_bytes_written;
+  user_stats->rows_fetched+=         thd->diff_total_sent_rows;
+  user_stats->rows_updated+=         thd->diff_total_updated_rows;
+  user_stats->rows_read+=            thd->diff_total_read_rows;
+  user_stats->rows_read_first+=      thd->diff_total_read_rows_first;
+  user_stats->rows_read_last+=       thd->diff_total_read_rows_last;
+  user_stats->rows_read_key+=        thd->diff_total_read_rows_key;
+  user_stats->rows_read_next+=       thd->diff_total_read_rows_next;
+  user_stats->rows_read_prev+=       thd->diff_total_read_rows_prev;
+  user_stats->rows_read_rnd+=        thd->diff_total_read_rows_rnd;
+  user_stats->rows_read_rnd_next+=   thd->diff_total_read_rows_rnd_next;
+  user_stats->rows_delete+=          thd->diff_total_delete_rows;
+  user_stats->rows_update+=          thd->diff_total_update_rows;
+  user_stats->rows_write+=           thd->diff_total_write_rows;
+  user_stats->select_commands+=      thd->diff_select_commands;
+  user_stats->update_commands+=      thd->diff_update_commands;
+  user_stats->other_commands+=       thd->diff_other_commands;
+  user_stats->commit_trans+=         thd->diff_commit_trans;
+  user_stats->rollback_trans+=       thd->diff_rollback_trans;
+  user_stats->denied_connections+=   thd->diff_denied_connections;
+  user_stats->lost_connections+=     thd->diff_lost_connections;
+  user_stats->access_denied_errors+= thd->diff_access_denied_errors;
+  user_stats->empty_queries+=        thd->diff_empty_queries;
+}
+
+static void update_global_thread_stats_with_thread(THD* thd,
+                                               THREAD_STATS* thread_stats,
+                                               time_t now)
+{
+  thread_stats->connected_time+=       now - thd->last_global_update_time;
+//thd->last_global_update_time=        now;
+  thread_stats->busy_time+=            thd->diff_total_busy_time;
+  thread_stats->cpu_time+=             thd->diff_total_cpu_time;
+  thread_stats->bytes_received+=       thd->diff_total_bytes_received;
+  thread_stats->bytes_sent+=           thd->diff_total_bytes_sent;
+  thread_stats->binlog_bytes_written+= thd->diff_total_binlog_bytes_written;
+  thread_stats->rows_fetched+=         thd->diff_total_sent_rows;
+  thread_stats->rows_updated+=         thd->diff_total_updated_rows;
+  thread_stats->rows_read+=            thd->diff_total_read_rows;
+  thread_stats->rows_read_first+=      thd->diff_total_read_rows_first;
+  thread_stats->rows_read_last+=       thd->diff_total_read_rows_last;
+  thread_stats->rows_read_key+=        thd->diff_total_read_rows_key;
+  thread_stats->rows_read_next+=       thd->diff_total_read_rows_next;
+  thread_stats->rows_read_prev+=       thd->diff_total_read_rows_prev;
+  thread_stats->rows_read_rnd+=        thd->diff_total_read_rows_rnd;
+  thread_stats->rows_read_rnd_next+=   thd->diff_total_read_rows_rnd_next;
+  thread_stats->rows_delete+=          thd->diff_total_delete_rows;
+  thread_stats->rows_update+=          thd->diff_total_update_rows;
+  thread_stats->rows_write+=           thd->diff_total_write_rows;
+  thread_stats->select_commands+=      thd->diff_select_commands;
+  thread_stats->update_commands+=      thd->diff_update_commands;
+  thread_stats->other_commands+=       thd->diff_other_commands;
+  thread_stats->commit_trans+=         thd->diff_commit_trans;
+  thread_stats->rollback_trans+=       thd->diff_rollback_trans;
+  thread_stats->denied_connections+=   thd->diff_denied_connections;
+  thread_stats->lost_connections+=     thd->diff_lost_connections;
+  thread_stats->access_denied_errors+= thd->diff_access_denied_errors;
+  thread_stats->empty_queries+=        thd->diff_empty_queries;
+}
+
+// Updates the global stats of a user or client
+void update_global_user_stats(THD* thd, bool create_user, time_t now)
+{
+  char* user_string=         get_valid_user_string(thd->main_security_ctx.user);
+  const char* client_string= get_client_host(thd);
+
+  USER_STATS* user_stats;
+  THREAD_STATS* thread_stats;
+  mysql_mutex_lock(&LOCK_global_user_client_stats);
+
+  // Update by user name
+  if ((user_stats = (USER_STATS *) my_hash_search(&global_user_stats,
+                                                  (uchar *) user_string,
+                                                  strlen(user_string))))
+  {
+    // Found user.
+    update_global_user_stats_with_user(thd, user_stats, now);
+  }
+  else
+  {
+    // Create the entry
+    if (create_user)
+    {
+      increment_count_by_name(user_string, user_string,
+                              &global_user_stats, thd);
+    }
+  }
+
+  // Update by client IP
+  if ((user_stats = (USER_STATS *) my_hash_search(&global_client_stats,
+                                                  (uchar *) client_string,
+                                                  strlen(client_string))))
+  {
+    // Found by client IP
+    update_global_user_stats_with_user(thd, user_stats, now);
+  }
+  else
+  {
+    // Create the entry
+    if (create_user)
+    {
+      increment_count_by_name(client_string,
+                              user_string,
+                              &global_client_stats, thd);
+    }
+  }
+
+  if (opt_thread_statistics)
+  {
+    // Update by thread ID
+    if ((thread_stats = (THREAD_STATS *) my_hash_search(&global_thread_stats,
+                                                        (uchar *) &(thd->thread_id),
+                                                        sizeof(my_thread_id))))
+    {
+      // Found by thread ID
+      update_global_thread_stats_with_thread(thd, thread_stats, now);
+    }
+    else
+    {
+      // Create the entry
+      if (create_user)
+      {
+        increment_count_by_id(thd->thread_id,
+                              &global_thread_stats, thd);
+      }
+    }
+  }
+
+  thd->last_global_update_time = now;
+  thd->reset_diff_stats();
+
+  mysql_mutex_unlock(&LOCK_global_user_client_stats);
+}
 
 /*
   check if user has already too many connections
@@ -171,6 +610,7 @@ end:
   if (error)
   {
     thd->decrement_user_connections_counter();
+    statistic_increment(denied_connections, &LOCK_status);
     /*
       The thread may returned back to the pool and assigned to a user
       that doesn't have a limit. Ensure the user is not using resources
@@ -640,11 +1080,19 @@ bool login_connection(THD *thd)
       my_sleep(1000);				/* must wait after eof() */
 #endif
     statistic_increment(aborted_connects,&LOCK_status);
+    thd->diff_denied_connections++;
     DBUG_RETURN(1);
   }
   /* Connect completed, set read/write timeouts back to default */
   my_net_set_read_timeout(net, thd->variables.net_read_timeout);
   my_net_set_write_timeout(net, thd->variables.net_write_timeout);
+
+  thd->reset_stats();
+
+  // Updates global user connection stats.
+  if (opt_userstat && increment_connection_count(thd, true))
+    DBUG_RETURN(1);
+
   DBUG_RETURN(0);
 }
 
@@ -671,6 +1119,7 @@ void end_connection(THD *thd)
   if (thd->killed || (net->error && net->vio != 0))
   {
     statistic_increment(aborted_threads,&LOCK_status);
+    thd->diff_lost_connections++;
   }
 
   if (net->error && net->vio != 0)
@@ -851,10 +1300,14 @@ void do_handle_one_connection(THD *thd_arg)
   for (;;)
   {
     bool rc;
+    bool create_user= TRUE;
 
     rc= thd_prepare_connection(thd);
     if (rc)
+    {
+      create_user= FALSE;
       goto end_thread;
+    }
 
     while (thd_is_connection_alive(thd))
     {
@@ -866,6 +1319,13 @@ void do_handle_one_connection(THD *thd_arg)
    
 end_thread:
     close_connection(thd);
+
+    if (unlikely(opt_userstat))
+    {
+      thd->update_stats(false);
+      update_global_user_stats(thd, create_user, time(NULL));
+    }
+
     if (MYSQL_CALLBACK_ELSE(thread_scheduler, end_thread, (thd, 1), 0))
       return;                                 // Probably no-threads
 

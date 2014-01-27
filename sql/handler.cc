@@ -1354,6 +1354,8 @@ int ha_commit_trans(THD *thd, bool all)
         goto end;
       }
     DBUG_EXECUTE_IF("crash_commit_after", DBUG_SUICIDE(););
+    if (is_real_trans)
+      thd->diff_commit_trans++;
     RUN_HOOK(transaction, after_commit, (thd, FALSE));
 end:
     if (rw_trans && mdl_request.ticket)
@@ -1514,6 +1516,8 @@ int ha_rollback_trans(THD *thd, bool all)
   /* Always cleanup. Even if nht==0. There may be savepoints. */
   if (is_real_trans)
     thd->transaction.cleanup();
+
+  thd->diff_rollback_trans++;
   if (all)
     thd->transaction_rollback_request= FALSE;
 
@@ -1918,6 +1922,7 @@ int ha_rollback_to_savepoint(THD *thd, SAVEPOINT *sv)
     ha_info->reset(); /* keep it conveniently zero-filled */
   }
   trans->ha_list= sv->ha_list;
+  thd->diff_rollback_trans++;
   DBUG_RETURN(error);
 }
 
@@ -2225,15 +2230,9 @@ void handler::ha_statistic_increment(ulong HOS::*hos_offset,
                                      ulong SSV::*ssv_offset)
 {
   (ops_stats.*hos_offset)++;
+  if (active_index < MAX_KEY)
+    (ops_index_stats[active_index].*hos_offset)++;
   status_var_increment(table->in_use->status_var.*ssv_offset);
-}
-
-void handler::flush_ops_stats(void)
-{
-  if (table_share && table_share->tmp_table == NO_TMP_TABLE)
-    table_share->accrue_statistics(&ops_stats);
-
-  memset(&ops_stats, 0, sizeof(ops_stats));
 }
 
 void **handler::ha_data(THD *thd) const
@@ -2303,6 +2302,14 @@ int handler::ha_open(TABLE *table_arg, const char *name, int mode,
     else
       dup_ref=ref+ALIGN_SIZE(ref_length);
     cached_table_flags= table_flags();
+  }
+
+  if (unlikely(opt_userstat))
+  {
+    rows_read= rows_changed= 0;
+    memset(&ops_stats, 0, sizeof(ops_stats));
+    memset(ops_index_stats, 0, sizeof(ops_index_stats));
+    memset(index_rows_read, 0, sizeof(index_rows_read));
   }
   DBUG_RETURN(error);
 }
@@ -3853,6 +3860,162 @@ void handler::get_dynamic_partition_info(PARTITION_STATS *stat_info,
   return;
 }
 
+// Updates the global table stats with the TABLE this handler represents.
+void handler::update_global_table_stats()
+{
+  THD* thd;
+  if (!rows_read && !rows_changed)
+    return;  // Nothing to update.
+  // table_cache_key is db_name + '\0' + table_name + '\0'.
+  if (!table->s || !table->s->table_cache_key.str || !table->s->table_name.str)
+    return;
+
+  TABLE_STATS* table_stats;
+  char key[NAME_LEN * 2 + 2];
+  // [db] + '.' + [table]
+  sprintf(key, "%s.%s", table->s->table_cache_key.str, table->s->table_name.str);
+
+  mysql_mutex_lock(&LOCK_global_table_stats);
+  // Gets the global table stats, creating one if necessary.
+  if (!(table_stats = (TABLE_STATS *) my_hash_search(&global_table_stats,
+                                                     (uchar*)key,
+                                                     strlen(key))))
+  {
+    if (!(table_stats = ((TABLE_STATS *)
+                         my_malloc(sizeof(TABLE_STATS), MYF(MY_WME | MY_ZEROFILL)))))
+    {
+      // Out of memory.
+      sql_print_error("Allocating table stats failed.");
+      goto end;
+    }
+    strncpy(table_stats->table, key, sizeof(table_stats->table));
+    table_stats->table_len=              strlen(table_stats->table);
+    table_stats->rows_read=              0;
+    table_stats->rows_changed=           0;
+    table_stats->rows_changed_x_indexes= 0;
+    table_stats->rows_read_first=        0;
+    table_stats->rows_read_last=         0;
+    table_stats->rows_read_key=          0;
+    table_stats->rows_read_next=         0;
+    table_stats->rows_read_prev=         0;
+    table_stats->rows_read_rnd=          0;
+    table_stats->rows_read_rnd_next=     0;
+
+    table_stats->engine_type=            (int) ht->db_type;
+
+    if (my_hash_insert(&global_table_stats, (uchar *) table_stats))
+    {
+      // Out of memory.
+      sql_print_error("Inserting table stats failed.");
+      my_free((char *) table_stats);
+      goto end;
+    }
+  }
+  thd= current_thd;
+  // Updates the global table stats.
+  table_stats->rows_read+=              rows_read;
+  table_stats->rows_changed+=           rows_changed;
+  table_stats->rows_changed_x_indexes+=
+    rows_changed * (table->s->keys ? table->s->keys : 1);
+  table_stats->rows_read_first+=        ops_stats.ha_read_first_count;
+  table_stats->rows_read_last+=         ops_stats.ha_read_last_count;
+  table_stats->rows_read_key+=          ops_stats.ha_read_key_count;
+  table_stats->rows_read_next+=         ops_stats.ha_read_next_count;
+  table_stats->rows_read_prev+=         ops_stats.ha_read_prev_count;
+  table_stats->rows_read_rnd+=          ops_stats.ha_read_rnd_count;
+  table_stats->rows_read_rnd_next+=     ops_stats.ha_read_rnd_next_count;
+  table_stats->rows_delete+=            ops_stats.ha_delete_count;
+  table_stats->rows_update+=            ops_stats.ha_update_count;
+  table_stats->rows_write+=             ops_stats.ha_write_count;
+  thd->diff_total_read_rows+=           rows_read;
+  thd->diff_total_read_rows_first+=     ops_stats.ha_read_first_count;
+  thd->diff_total_read_rows_last+=      ops_stats.ha_read_last_count;
+  thd->diff_total_read_rows_key+=       ops_stats.ha_read_key_count;
+  thd->diff_total_read_rows_next+=      ops_stats.ha_read_next_count;
+  thd->diff_total_read_rows_prev+=      ops_stats.ha_read_prev_count;
+  thd->diff_total_read_rows_rnd+=       ops_stats.ha_read_rnd_count;
+  thd->diff_total_read_rows_rnd_next+=  ops_stats.ha_read_rnd_next_count;
+  thd->diff_total_delete_rows+=         ops_stats.ha_delete_count;
+  thd->diff_total_update_rows+=         ops_stats.ha_update_count;
+  thd->diff_total_write_rows+=          ops_stats.ha_write_count;
+  rows_read= rows_changed=              0;
+  memset(&ops_stats, 0, sizeof(ops_stats));
+end:
+  mysql_mutex_unlock(&LOCK_global_table_stats);
+}
+
+// Updates the global index stats with this handler's accumulated index reads.
+void handler::update_global_index_stats()
+{
+  // table_cache_key is db_name + '\0' + table_name + '\0'.
+  if (!table->s || !table->s->table_cache_key.str || !table->s->table_name.str)
+    return;
+
+  for (uint x = 0; x < table->s->keys; ++x)
+  {
+    if (index_rows_read[x])
+    {
+      // Rows were read using this index.
+      KEY* key_info = &table->key_info[x];
+
+      if (!key_info->name) continue;
+
+      INDEX_STATS* index_stats;
+      char key[NAME_LEN * 3 + 3];
+      // [db] + '.' + [table] + '.' + [index]
+      sprintf(key, "%s.%s.%s",  table->s->table_cache_key.str,
+              table->s->table_name.str, key_info->name);
+
+      mysql_mutex_lock(&LOCK_global_index_stats);
+      // Gets the global index stats, creating one if necessary.
+      if (!(index_stats = (INDEX_STATS *) my_hash_search(&global_index_stats,
+                                                         (uchar *) key,
+                                                         strlen(key))))
+      {
+        if (!(index_stats = ((INDEX_STATS *)
+                             my_malloc(sizeof(INDEX_STATS), MYF(MY_WME | MY_ZEROFILL)))))
+        {
+          // Out of memory.
+          sql_print_error("Allocating index stats failed.");
+          goto end;
+        }
+        strncpy(index_stats->index, key, sizeof(index_stats->index));
+        index_stats->index_len= strlen(index_stats->index);
+        index_stats->rows_read= 0;
+        index_stats->rows_read_first= 0;
+        index_stats->rows_read_last= 0;
+        index_stats->rows_read_key= 0;
+        index_stats->rows_read_next= 0;
+        index_stats->rows_read_prev= 0;
+        index_stats->rows_read_rnd= 0;
+        index_stats->rows_read_rnd_next= 0;
+
+        if (my_hash_insert(&global_index_stats, (uchar *) index_stats))
+        {
+          // Out of memory.
+          sql_print_error("Inserting index stats failed.");
+          my_free((char *) index_stats);
+          goto end;
+        }
+      }
+      // Updates the global index stats.
+      index_stats->rows_read+= index_rows_read[x];
+      index_stats->rows_read_first+=    ops_index_stats[x].ha_read_first_count;
+      index_stats->rows_read_last+=     ops_index_stats[x].ha_read_last_count;
+      index_stats->rows_read_key+=      ops_index_stats[x].ha_read_key_count;
+      index_stats->rows_read_next+=     ops_index_stats[x].ha_read_next_count;
+      index_stats->rows_read_prev+=     ops_index_stats[x].ha_read_prev_count;
+      index_stats->rows_read_rnd+=      ops_index_stats[x].ha_read_rnd_count;
+      index_stats->rows_read_rnd_next+= ops_index_stats[x].ha_read_rnd_next_count;
+
+
+      index_rows_read[x]=      0;
+      memset(ops_index_stats, 0, sizeof(ops_index_stats));
+  end:
+      mysql_mutex_unlock(&LOCK_global_index_stats);
+    }
+  }
+}
 
 /****************************************************************************
 ** Some general functions that isn't in the handler class

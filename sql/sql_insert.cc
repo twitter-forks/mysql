@@ -1070,13 +1070,14 @@ bool mysql_insert(THD *thd,TABLE_LIST *table_list,
 
   if (error)
     goto abort;
+  ha_rows row_count;
   if (values_list.elements == 1 && (!(thd->variables.option_bits & OPTION_WARNINGS) ||
 				    !thd->cuted_fields))
   {
-    my_ok(thd, info.copied + info.deleted +
+    row_count= info.copied + info.deleted +
                ((thd->client_capabilities & CLIENT_FOUND_ROWS) ?
-                info.touched : info.updated),
-          id);
+                info.touched : info.updated);
+    my_ok(thd, row_count, id);
   }
   else
   {
@@ -1092,8 +1093,10 @@ bool mysql_insert(THD *thd,TABLE_LIST *table_list,
       sprintf(buff, ER(ER_INSERT_INFO), (ulong) info.records,
 	      (ulong) (info.deleted + updated),
               (ulong) thd->warning_info->statement_warn_count());
-    ::my_ok(thd, info.copied + info.deleted + updated, id, buff);
+    row_count= info.copied + info.deleted + updated;
+    ::my_ok(thd, row_count, id, buff);
   }
+  thd->updated_row_count+= row_count;
   thd->abort_on_warning= 0;
   DBUG_RETURN(FALSE);
 
@@ -3546,6 +3549,7 @@ bool select_insert::send_eof()
      thd->first_successful_insert_id_in_prev_stmt :
      (info.copied ? autoinc_value_of_last_inserted_row : 0));
   ::my_ok(thd, row_count, id, buff);
+  thd->updated_row_count+= row_count;
   DBUG_RETURN(0);
 }
 

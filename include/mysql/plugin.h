@@ -556,6 +556,8 @@ char *thd_security_context(MYSQL_THD thd, char *buffer, unsigned int length,
 /* Increments the row counter, see THD::row_count */
 void thd_inc_row_count(MYSQL_THD thd);
 
+#define EXTENDED_FOR_USERSTAT
+
 /**
   Create a temporary file.
 

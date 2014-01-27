@@ -399,28 +399,6 @@ void init_tmp_table_share(THD *thd, TABLE_SHARE *share, const char *key,
 
 
 /**
-  Accumulate the handler operations counters.
-
-  @param  stats   Statistics counters from a handler instance.
-*/
-
-void TABLE_SHARE::accrue_statistics(const HOS *stats)
-{
-  /* Statistics counters need not be precise. */
-  m_handler_stats.ha_read_first_count+=     stats->ha_read_first_count;
-  m_handler_stats.ha_read_last_count+=      stats->ha_read_last_count;
-  m_handler_stats.ha_read_key_count+=       stats->ha_read_key_count;
-  m_handler_stats.ha_read_next_count+=      stats->ha_read_next_count;
-  m_handler_stats.ha_read_prev_count+=      stats->ha_read_prev_count;
-  m_handler_stats.ha_read_rnd_count+=       stats->ha_read_rnd_count;
-  m_handler_stats.ha_read_rnd_next_count+=  stats->ha_read_rnd_next_count;
-  m_handler_stats.ha_delete_count+=         stats->ha_delete_count;
-  m_handler_stats.ha_update_count+=         stats->ha_update_count;
-  m_handler_stats.ha_write_count+=          stats->ha_write_count;
-}
-
-
-/**
   Release resources (plugins) used by the share and free its memory.
   TABLE_SHARE is self-contained -- it's stored in its own MEM_ROOT.
   Free this MEM_ROOT.

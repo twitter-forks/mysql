@@ -692,6 +692,8 @@ The following options may be given as the first argument:
  Define threads usage for handling queries, one of
  one-thread-per-connection, no-threads, loaded-dynamically
  --thread-stack=#    The stack size for each thread
+ --thread-statistics Control TABLE_STATISTICS running, when userstat is
+ enabled
  --time-format=name  The TIME format (ignored)
  --timed-mutexes     Specify whether to time mutexes (only InnoDB mutexes are
  currently supported)
@@ -723,6 +725,9 @@ The following options may be given as the first argument:
  of the underlying table and the query uses a LIMIT clause
  (usually get from GUI tools)
  -u, --user=name     Run mysqld daemon as user.
+ --userstat          Control USER_STATISTICS, CLIENT_STATISTICS,
+ THREAD_STATISTICS, INDEX_STATISTICS and TABLE_STATISTICS
+ running
  -v, --verbose       Used with --help option for detailed help.
  -V, --version       Output version information and exit.
  --wait-timeout=#    The number of seconds the server waits for activity on a
@@ -934,6 +939,7 @@ tc-heuristic-recover COMMIT
 thread-cache-size 0
 thread-handling one-thread-per-connection
 thread-stack 262144
+thread-statistics FALSE
 time-format %H:%i:%s
 timed-mutexes FALSE
 tmp-table-size 16777216
@@ -944,6 +950,7 @@ twitter-audit-logging 0
 twitter-query-stats 0
 twitter-query-stats-max 10240
 updatable-views-with-limit YES
+userstat FALSE
 verbose TRUE
 wait-timeout 28800
 

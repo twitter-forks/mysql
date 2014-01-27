@@ -1599,6 +1599,8 @@ public:
   */
   enum enum_server_command command;
   uint32     server_id;
+  // Used to save the command, before it is set to COM_SLEEP.
+  enum enum_server_command old_command;
   uint32     file_id;			// for LOAD DATA INFILE
   /* remote (peer) port */
   uint16 peer_port;
@@ -2077,6 +2079,8 @@ public:
   */
   enum_tx_isolation tx_isolation;
   enum_check_fields count_cuted_fields;
+  ha_rows    updated_row_count;
+  ha_rows    sent_row_count_2; /* for userstat */
 
   DYNAMIC_ARRAY user_var_events;        /* For user variables replication */
   MEM_ROOT      *user_var_events_alloc; /* Allocate above array elements here */
@@ -2173,6 +2177,59 @@ public:
   */
   LOG_INFO*  current_linfo;
   NET*       slave_net;			// network connection from slave -> m.
+
+  /*
+    Used to update global user stats.  The global user stats are updated
+    occasionally with the 'diff' variables.  After the update, the 'diff'
+    variables are reset to 0.
+  */
+  // Time when the current thread connected to MySQL.
+  time_t current_connect_time;
+  // Last time when THD stats were updated in global_user_stats.
+  time_t last_global_update_time;
+  // Busy (non-idle) time for just one command.
+  double busy_time;
+  // Busy time not updated in global_user_stats yet.
+  double diff_total_busy_time;
+  // Cpu (non-idle) time for just one thread.
+  double cpu_time;
+  // Cpu time not updated in global_user_stats yet.
+  double diff_total_cpu_time;
+  /* bytes counting */
+  ulonglong bytes_received;
+  ulonglong diff_total_bytes_received;
+  ulonglong bytes_sent;
+  ulonglong diff_total_bytes_sent;
+  ulonglong binlog_bytes_written;
+  ulonglong diff_total_binlog_bytes_written;
+
+  // Number of rows not reflected in global_user_stats yet.
+  ha_rows diff_total_sent_rows, diff_total_updated_rows, diff_total_read_rows;
+  ha_rows diff_total_read_rows_first;
+  ha_rows diff_total_read_rows_last;
+  ha_rows diff_total_read_rows_key;
+  ha_rows diff_total_read_rows_next;
+  ha_rows diff_total_read_rows_prev;
+  ha_rows diff_total_read_rows_rnd;
+  ha_rows diff_total_read_rows_rnd_next;
+  ha_rows diff_total_delete_rows;
+  ha_rows diff_total_update_rows;
+  ha_rows diff_total_write_rows;
+  // Number of commands not reflected in global_user_stats yet.
+  ulonglong diff_select_commands, diff_update_commands, diff_other_commands;
+  // Number of transactions not reflected in global_user_stats yet.
+  ulonglong diff_commit_trans, diff_rollback_trans;
+  // Number of connection errors not reflected in global_user_stats yet.
+  ulonglong diff_denied_connections, diff_lost_connections;
+  // Number of db access denied, not reflected in global_user_stats yet.
+  ulonglong diff_access_denied_errors;
+  // Number of queries that return 0 rows
+  ulonglong diff_empty_queries;
+
+  // Per account query delay in miliseconds. When not 0, sleep this number of
+  // milliseconds before every SQL command.
+  ulonglong query_delay_millis;
+
   /* Used by the sys_var class to store temporary values */
   union
   {
@@ -2257,6 +2314,11 @@ public:
     alloc_root. 
   */
   void init_for_queries();
+  void reset_stats(void);
+  void reset_diff_stats(void);
+  // ran_command is true when this is called immediately after a
+  // command has been run.
+  void update_stats(bool ran_command);
   void change_user(void);
   void cleanup(void);
   void cleanup_after_query();
@@ -2736,6 +2798,15 @@ public:
   }
   thd_scheduler scheduler;
 
+  /* Returns string as 'IP:port' for the client-side
+     of the connnection represented
+     by 'client' as displayed by SHOW PROCESSLIST.
+     Allocates memory from the heap of
+     this THD and that is not reclaimed
+     immediately, so use sparingly. May return NULL.
+  */
+  char *get_client_host_port(THD *client);
+
 public:
   inline Internal_error_handler *get_internal_handler()
   { return m_internal_handler; }
@@ -2936,6 +3007,10 @@ private:
   LEX_STRING invoker_host;
 };
 
+/* Returns string as 'IP' for the client-side of the connection represented by
+   'client'. Does not allocate memory. May return "".
+*/
+const char *get_client_host(THD *client);
 
 /** A short cut for thd->stmt_da->set_ok_status(). */
 

@@ -1723,6 +1723,17 @@ static Sys_var_mybool Sys_readonly(
        NO_MUTEX_GUARD, NOT_IN_BINLOG,
        ON_CHECK(check_read_only), ON_UPDATE(fix_read_only));
 
+static Sys_var_mybool Sys_userstat(
+       "userstat",
+       "Control USER_STATISTICS, CLIENT_STATISTICS, THREAD_STATISTICS, "
+       "INDEX_STATISTICS and TABLE_STATISTICS running",
+       GLOBAL_VAR(opt_userstat), CMD_LINE(OPT_ARG), DEFAULT(FALSE));
+
+static Sys_var_mybool Sys_thread_statistics(
+       "thread_statistics",
+       "Control TABLE_STATISTICS running, when userstat is enabled",
+       GLOBAL_VAR(opt_thread_statistics), CMD_LINE(OPT_ARG), DEFAULT(FALSE));
+
 // Small lower limit to be able to test MRR
 static Sys_var_ulong Sys_read_rnd_buff_size(
        "read_rnd_buffer_size",

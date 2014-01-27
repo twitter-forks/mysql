@@ -192,6 +192,9 @@ enum enum_sql_command {
   SQLCOM_SHOW_PROFILE, SQLCOM_SHOW_PROFILES,
   SQLCOM_SIGNAL, SQLCOM_RESIGNAL,
   SQLCOM_SHOW_RELAYLOG_EVENTS, 
+  // TODO(mcallaghan): update status_vars in mysqld to export these
+  SQLCOM_SHOW_USER_STATS, SQLCOM_SHOW_TABLE_STATS, SQLCOM_SHOW_INDEX_STATS,
+  SQLCOM_SHOW_CLIENT_STATS, SQLCOM_SHOW_THREAD_STATS,
   /*
     When a command is added here, be sure it's also added in mysqld.cc
     in "struct show_var_st status_vars[]= {" ...

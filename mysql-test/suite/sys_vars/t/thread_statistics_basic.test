@@ -1,0 +1,4 @@
+SELECT @@global.thread_statistics;
+SET @old_thread_statistics= @@global.thread_statistics;
+SET GLOBAL thread_statistics= ON;
+SET GLOBAL thread_statistics= @old_thread_statistics;

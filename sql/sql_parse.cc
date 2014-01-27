@@ -120,6 +120,9 @@
 static bool execute_sqlcom_select(THD *thd, TABLE_LIST *all_tables);
 static void sql_kill(THD *thd, ulong id, bool only_kill_query);
 
+// Uses the THD to update the global stats by user name and client IP
+void update_global_user_stats(THD* thd, bool create_user, time_t now);
+
 const char *any_db="*any*";	// Special symbol for check_access
 
 const LEX_STRING command_name[]={
@@ -702,6 +705,12 @@ bool do_command(THD *thd)
   */
   thd->clear_error();				// Clear error message
   thd->stmt_da->reset_diagnostics_area();
+  thd->updated_row_count=    0;
+  thd->busy_time=            0;
+  thd->cpu_time=             0;
+  thd->bytes_received=       0;
+  thd->bytes_sent=           0;
+  thd->binlog_bytes_written= 0;
 
   net_new_transaction(net);
 
@@ -994,6 +1003,10 @@ bool dispatch_command(enum enum_server_command command, THD *thd,
                       (char *) thd->security_ctx->host_or_ip);
   
   thd->command=command;
+  /* To increment the corrent command counter for user stats, 'command' must
+     be saved because it is set to COM_SLEEP at the end of this function.
+  */
+  thd->old_command= command;
   /*
     Commands which always take a long time are logged into
     the slow log only if opt_log_slow_admin_statements is set.
@@ -1728,6 +1741,13 @@ int prepare_schema_table(THD *thd, LEX *lex, Table_ident *table_ident,
     thd->profiling.discard_current_query();
 #endif
     break;
+  case SCH_USER_STATS:
+  case SCH_CLIENT_STATS:
+  case SCH_THREAD_STATS:
+    if (check_global_access(thd, SUPER_ACL | PROCESS_ACL))
+      DBUG_RETURN(1);
+  case SCH_TABLE_STATS:
+  case SCH_INDEX_STATS:
   case SCH_OPEN_TABLES:
   case SCH_VARIABLES:
   case SCH_STATUS:
@@ -1739,7 +1759,6 @@ int prepare_schema_table(THD *thd, LEX *lex, Table_ident *table_ident,
   case SCH_USER_PRIVILEGES:
   case SCH_SCHEMA_PRIVILEGES:
   case SCH_TABLE_PRIVILEGES:
-  case SCH_TABLE_STATISTICS:
   case SCH_COLUMN_PRIVILEGES:
   case SCH_TABLE_CONSTRAINTS:
   case SCH_KEY_COLUMN_USAGE:
@@ -1902,6 +1921,7 @@ bool sp_process_definer(THD *thd)
                        thd->security_ctx->priv_host)) &&
         check_global_access(thd, SUPER_ACL))
     {
+      thd->diff_access_denied_errors++;
       my_error(ER_SPECIFIC_ACCESS_DENIED_ERROR, MYF(0), "SUPER");
       DBUG_RETURN(TRUE);
     }
@@ -4982,6 +5002,7 @@ check_access(THD *thd, ulong want_access, const char *db, ulong *save_priv,
       case ACL_INTERNAL_ACCESS_DENIED:
         if (! no_errors)
         {
+          thd->diff_access_denied_errors++;
           my_error(ER_DBACCESS_DENIED_ERROR, MYF(0),
                    sctx->priv_user, sctx->priv_host, db);
         }
@@ -5032,6 +5053,7 @@ check_access(THD *thd, ulong want_access, const char *db, ulong *save_priv,
     DBUG_PRINT("error",("No possible access"));
     if (!no_errors)
     {
+      thd->diff_access_denied_errors++;
       if (thd->password == 2)
         my_error(ER_ACCESS_DENIED_NO_PASSWORD_ERROR, MYF(0),
                  sctx->priv_user,
@@ -5146,6 +5168,7 @@ static bool check_show_access(THD *thd, TABLE_LIST *table)
 
     if (!thd->col_access && check_grant_db(thd, dst_db_name))
     {
+      thd->diff_access_denied_errors++;
       my_error(ER_DBACCESS_DENIED_ERROR, MYF(0),
                thd->security_ctx->priv_user,
                thd->security_ctx->priv_host,
@@ -5416,6 +5439,7 @@ bool check_global_access(THD *thd, ulong want_access)
   if ((thd->security_ctx->master_access & want_access))
     return 0;
   get_privilege_desc(command, sizeof(command), want_access);
+  thd->diff_access_denied_errors++;
   my_error(ER_SPECIFIC_ACCESS_DENIED_ERROR, MYF(0), command);
   return 1;
 #else
@@ -5797,6 +5821,32 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
   lex_start(thd);
   mysql_reset_thd_for_next_command(thd);
 
+  int start_time_error=   0;
+  int end_time_error=     0;
+  struct timeval start_time, end_time;
+  double start_usecs=     0;
+  double end_usecs=       0;
+  /* cpu time */
+  int cputime_error=      0;
+  struct timespec tp;
+  double start_cpu_nsecs= 0;
+  double end_cpu_nsecs=   0;
+
+  if (unlikely(opt_userstat))
+  {
+#ifdef HAVE_CLOCK_GETTIME
+    /* get start cputime */
+    if (!(cputime_error = clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tp)))
+      start_cpu_nsecs = tp.tv_sec*1000000000.0+tp.tv_nsec;
+#endif
+
+    // Gets the start time, in order to measure how long this command takes.
+    if (!(start_time_error = gettimeofday(&start_time, NULL)))
+    {
+      start_usecs = start_time.tv_sec * 1000000.0 + start_time.tv_usec;
+    }
+  }
+
   if (query_cache_send_result_to_client(thd, rawbuf, length) <= 0)
   {
     LEX *lex= thd->lex;
@@ -5869,6 +5919,56 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
     thd->end_statement();
     thd->cleanup_after_query();
     DBUG_ASSERT(thd->change_list.is_empty());
+  }
+
+  if (unlikely(opt_userstat))
+  {
+    // Gets the end time.
+    if (!(end_time_error= gettimeofday(&end_time, NULL)))
+    {
+      end_usecs= end_time.tv_sec * 1000000.0 + end_time.tv_usec;
+    }
+
+    // Calculates the difference between the end and start times.
+    if (start_usecs && end_usecs >= start_usecs && !start_time_error && !end_time_error)
+    {
+      thd->busy_time= (end_usecs - start_usecs) / 1000000;
+      // In case there are bad values, 2629743 is the #seconds in a month.
+      if (thd->busy_time > 2629743)
+      {
+        thd->busy_time= 0;
+      }
+    }
+    else
+    {
+      // end time went back in time, or gettimeofday() failed.
+      thd->busy_time= 0;
+    }
+
+#ifdef HAVE_CLOCK_GETTIME
+    /* get end cputime */
+    if (!cputime_error &&
+        !(cputime_error = clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tp)))
+      end_cpu_nsecs = tp.tv_sec*1000000000.0+tp.tv_nsec;
+#endif
+    if (start_cpu_nsecs && !cputime_error)
+    {
+      thd->cpu_time = (end_cpu_nsecs - start_cpu_nsecs) / 1000000000;
+      // In case there are bad values, 2629743 is the #seconds in a month.
+      if (thd->cpu_time > 2629743)
+      {
+        thd->cpu_time = 0;
+      }
+    }
+    else
+      thd->cpu_time = 0;
+  }
+
+  // Updates THD stats and the global user stats.
+  if (unlikely(opt_userstat))
+  {
+    thd->update_stats(true);
+    update_global_user_stats(thd, true, time(NULL));
   }
 
   DBUG_VOID_RETURN;

@@ -23,6 +23,7 @@
 #include "my_atomic.h"                     /* my_atomic_rwlock_t */
 #include "mysql/psi/mysql_file.h"          /* MYSQL_FILE */
 #include "sql_list.h"                      /* I_List */
+#include "hash.h"
 
 class THD;
 struct handlerton;
@@ -109,6 +110,7 @@ extern ulong slave_exec_mode_options;
 extern ulonglong slave_type_conversions_options;
 extern my_bool read_only, opt_readonly;
 extern my_bool lower_case_file_system;
+extern my_bool opt_userstat, opt_thread_statistics;
 extern my_bool opt_enable_named_pipe, opt_sync_frm, opt_allow_suspicious_udfs;
 extern my_bool opt_secure_auth;
 extern char* opt_secure_file_priv;
@@ -173,6 +175,7 @@ extern LEX_CSTRING reason_slave_blocked;
 extern ulong slave_trans_retries;
 extern uint  slave_net_timeout;
 extern uint max_user_connections;
+extern ulonglong denied_connections;
 extern ulong what_to_log,flush_time;
 extern ulong max_prepared_stmt_count, prepared_stmt_count;
 extern ulong open_files_limit;
@@ -200,6 +203,11 @@ extern SHOW_VAR status_vars[];
 extern struct system_variables max_system_variables;
 extern struct system_status_var global_status_var;
 extern struct rand_struct sql_rand;
+extern HASH global_user_stats;
+extern HASH global_client_stats;
+extern HASH global_thread_stats;
+extern HASH global_table_stats;
+extern HASH global_index_stats;
 extern const char *opt_date_time_formats[];
 extern handlerton *partition_hton;
 extern handlerton *myisam_hton;
@@ -247,6 +255,8 @@ extern PSI_mutex_key key_BINLOG_LOCK_index, key_BINLOG_LOCK_prep_xids,
   key_delayed_insert_mutex, key_hash_filo_lock, key_LOCK_active_mi,
   key_LOCK_connection_count, key_LOCK_crypt, key_LOCK_delayed_create,
   key_LOCK_delayed_insert, key_LOCK_delayed_status, key_LOCK_error_log,
+  key_LOCK_stats, key_LOCK_global_user_client_stats,
+  key_LOCK_global_table_stats, key_LOCK_global_index_stats,
   key_LOCK_gdl, key_LOCK_global_system_variables,
   key_LOCK_logger, key_LOCK_manager,
   key_LOCK_prepared_stmt_count,
@@ -352,7 +362,9 @@ extern mysql_mutex_t
        LOCK_delayed_status, LOCK_delayed_create, LOCK_crypt, LOCK_timezone,
        LOCK_slave_list, LOCK_active_mi, LOCK_manager,
        LOCK_global_system_variables, LOCK_user_conn,
-       LOCK_prepared_stmt_count, LOCK_error_messages, LOCK_connection_count;
+       LOCK_prepared_stmt_count, LOCK_error_messages, LOCK_connection_count,
+       LOCK_stats, LOCK_global_user_client_stats,
+       LOCK_global_table_stats, LOCK_global_index_stats;
 extern MYSQL_PLUGIN_IMPORT mysql_mutex_t LOCK_thread_count;
 #ifdef HAVE_OPENSSL
 extern mysql_mutex_t LOCK_des_key_file;
@@ -464,6 +476,16 @@ inline query_id_t get_query_id()
   return id;
 }
 
+void init_global_user_stats(void);
+void init_global_table_stats(void);
+void init_global_index_stats(void);
+void init_global_client_stats(void);
+void init_global_thread_stats(void);
+void free_global_user_stats(void);
+void free_global_table_stats(void);
+void free_global_index_stats(void);
+void free_global_client_stats(void);
+void free_global_thread_stats(void);
 
 /*
   TODO: Replace this with an inline function.

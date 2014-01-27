@@ -5901,6 +5901,12 @@ no_commit:
 
 	error = row_insert_for_mysql((byte*) record, prebuilt);
 
+#ifdef EXTENDED_FOR_USERSTAT
+	if (UNIV_LIKELY(error == DB_SUCCESS)) {
+		rows_changed++;
+	}
+#endif
+
 	/* Handle duplicate key errors */
 	if (auto_inc_used) {
 		ulint		err;
@@ -6253,6 +6259,12 @@ ha_innobase::update_row(
 		}
 	}
 
+#ifdef EXTENDED_FOR_USERSTAT
+	if (UNIV_LIKELY(error == DB_SUCCESS)) {
+		rows_changed++;
+	}
+#endif
+
 	innodb_srv_conc_exit_innodb(trx);
 
 	error = convert_error_code_to_mysql(error,
@@ -6305,6 +6317,12 @@ ha_innobase::delete_row(
 	innodb_srv_conc_enter_innodb(trx);
 
 	error = row_update_for_mysql((byte*) record, prebuilt);
+
+#ifdef EXTENDED_FOR_USERSTAT
+	if (UNIV_LIKELY(error == DB_SUCCESS)) {
+		rows_changed++;
+	}
+#endif
 
 	innodb_srv_conc_exit_innodb(trx);
 
@@ -6631,6 +6649,11 @@ ha_innobase::index_read(
 	case DB_SUCCESS:
 		error = 0;
 		table->status = 0;
+#ifdef EXTENDED_FOR_USERSTAT
+		rows_read++;
+		if (active_index < MAX_KEY)
+			index_rows_read[active_index]++;
+#endif
 		break;
 	case DB_RECORD_NOT_FOUND:
 		error = HA_ERR_KEY_NOT_FOUND;
@@ -6862,6 +6885,11 @@ ha_innobase::general_fetch(
 	case DB_SUCCESS:
 		error = 0;
 		table->status = 0;
+#ifdef EXTENDED_FOR_USERSTAT
+		rows_read++;
+		if (active_index < MAX_KEY)
+			index_rows_read[active_index]++;
+#endif
 		break;
 	case DB_RECORD_NOT_FOUND:
 		error = HA_ERR_END_OF_FILE;

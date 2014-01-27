@@ -26,7 +26,6 @@
 #include "sql_table.h"                        // filename_to_tablename,
                                               // primary_key_name,
                                               // build_table_filename
-#include "sql_base.h"                         // get_cached_table_stats
 #include "repl_failsafe.h"
 #include "sql_parse.h"             // check_access, check_table_access
 #include "sql_partition.h"         // partition_element
@@ -114,6 +113,43 @@ static void
 append_algorithm(TABLE_LIST *table, String *buff);
 
 static COND * make_cond_for_info_schema(COND *cond, TABLE_LIST *table);
+
+/*
+ * Solaris 10 does not have strsep().
+ *
+ * based on getToken from http://www.winehq.org/pipermail/wine-patches/2001-November/001322.html
+ *
+*/
+
+#ifndef HAVE_STRSEP
+static char* strsep(char** str, const char* delims)
+{
+  char *token;
+
+  if (*str == NULL)
+  {
+    /* No more tokens */
+    return NULL;
+  }
+
+  token= *str;
+  while (**str != '\0')
+  {
+    if (strchr(delims, **str) != NULL)
+    {
+      **str= '\0';
+      (*str)++;
+      return token;
+    }
+    (*str)++;
+  }
+
+  /* There is not another token */
+  *str= NULL;
+
+  return token;
+}
+#endif
 
 /***************************************************************************
 ** List all table types supported
@@ -802,6 +838,7 @@ bool mysqld_show_create_db(THD *thd, char *dbname,
                         sctx->priv_user, dbname, 0) | sctx->master_access);
   if (!(db_access & DB_ACLS) && check_grant_db(thd,dbname))
   {
+    thd->diff_access_denied_errors++;
     my_error(ER_DBACCESS_DENIED_ERROR, MYF(0),
              sctx->priv_user, sctx->host_or_ip, dbname);
     general_log_print(thd,COM_INIT_DB,ER(ER_DBACCESS_DENIED_ERROR),
@@ -2366,6 +2403,331 @@ static bool show_status_array(THD *thd, const char *wild,
 end:
   thd->count_cuted_fields= save_count_cuted_fields;
   DBUG_RETURN(res);
+}
+
+/*
+   Write result to network for SHOW USER_STATISTICS
+
+   SYNOPSIS
+     send_user_stats
+       all_user_stats - values to return
+       table - I_S table
+
+   RETURN
+     0 - OK
+     1 - error
+*/
+int send_user_stats(THD* thd, HASH *all_user_stats, TABLE *table)
+{
+  DBUG_ENTER("send_user_stats");
+  for (uint i = 0; i < all_user_stats->records; ++i)
+  {
+    restore_record(table, s->default_values);
+    USER_STATS *user_stats = (USER_STATS*) my_hash_element(all_user_stats, i);
+    table->field[0]->store(user_stats->user, strlen(user_stats->user),
+                           system_charset_info);
+    table->field[1]->store(user_stats->total_connections, true);
+    table->field[2]->store(user_stats->concurrent_connections, true);
+    table->field[3]->store(user_stats->connected_time, true);
+    table->field[4]->store((ulonglong)user_stats->busy_time, true);
+    table->field[5]->store((ulonglong)user_stats->cpu_time, true);
+    table->field[6]->store(user_stats->bytes_received, true);
+    table->field[7]->store(user_stats->bytes_sent, true);
+    table->field[8]->store(user_stats->binlog_bytes_written, true);
+    table->field[9]->store(user_stats->rows_fetched, true);
+    table->field[10]->store(user_stats->rows_updated, true);
+    table->field[11]->store(user_stats->rows_read, true);
+    table->field[12]->store(user_stats->rows_read_first, true);
+    table->field[13]->store(user_stats->rows_read_last, true);
+    table->field[14]->store(user_stats->rows_read_key, true);
+    table->field[15]->store(user_stats->rows_read_next, true);
+    table->field[16]->store(user_stats->rows_read_prev, true);
+    table->field[17]->store(user_stats->rows_read_rnd, true);
+    table->field[18]->store(user_stats->rows_read_rnd_next, true);
+    table->field[19]->store(user_stats->rows_delete, true);
+    table->field[20]->store(user_stats->rows_update, true);
+    table->field[21]->store(user_stats->rows_write, true);
+    table->field[22]->store(user_stats->select_commands, true);
+    table->field[23]->store(user_stats->update_commands, true);
+    table->field[24]->store(user_stats->other_commands, true);
+    table->field[25]->store(user_stats->commit_trans, true);
+    table->field[26]->store(user_stats->rollback_trans, true);
+    table->field[27]->store(user_stats->denied_connections, true);
+    table->field[28]->store(user_stats->lost_connections, true);
+    table->field[29]->store(user_stats->access_denied_errors, true);
+    table->field[30]->store(user_stats->empty_queries, true);
+    table->field[31]->store(user_stats->total_ssl_connections, true);
+    if (schema_table_store_record(thd, table))
+    {
+      DBUG_PRINT("error", ("store record error"));
+      DBUG_RETURN(1);
+    }
+  }
+  DBUG_RETURN(0);
+}
+
+int send_thread_stats(THD* thd, HASH *all_thread_stats, TABLE *table)
+{
+  DBUG_ENTER("send_thread_stats");
+  for (uint i = 0; i < all_thread_stats->records; ++i)
+  {
+    restore_record(table, s->default_values);
+    THREAD_STATS *user_stats
+      = (THREAD_STATS*)my_hash_element(all_thread_stats, i);
+    table->field[0]->store(user_stats->id, true);
+    table->field[1]->store(user_stats->total_connections, true);
+    table->field[2]->store(user_stats->concurrent_connections, true);
+    table->field[3]->store(user_stats->connected_time, true);
+    table->field[4]->store((ulonglong)user_stats->busy_time, true);
+    table->field[5]->store((ulonglong)user_stats->cpu_time, true);
+    table->field[6]->store(user_stats->bytes_received, true);
+    table->field[7]->store(user_stats->bytes_sent, true);
+    table->field[8]->store(user_stats->binlog_bytes_written, true);
+    table->field[9]->store(user_stats->rows_fetched, true);
+    table->field[10]->store(user_stats->rows_updated, true);
+    table->field[11]->store(user_stats->rows_read, true);
+    table->field[12]->store(user_stats->rows_read_first, true);
+    table->field[13]->store(user_stats->rows_read_last, true);
+    table->field[14]->store(user_stats->rows_read_key, true);
+    table->field[15]->store(user_stats->rows_read_next, true);
+    table->field[16]->store(user_stats->rows_read_prev, true);
+    table->field[17]->store(user_stats->rows_read_rnd, true);
+    table->field[18]->store(user_stats->rows_read_rnd_next, true);
+    table->field[19]->store(user_stats->rows_delete, true);
+    table->field[20]->store(user_stats->rows_update, true);
+    table->field[21]->store(user_stats->rows_write, true);
+    table->field[22]->store(user_stats->select_commands, true);
+    table->field[23]->store(user_stats->update_commands, true);
+    table->field[24]->store(user_stats->other_commands, true);
+    table->field[25]->store(user_stats->commit_trans, true);
+    table->field[26]->store(user_stats->rollback_trans, true);
+    table->field[27]->store(user_stats->denied_connections, true);
+    table->field[28]->store(user_stats->lost_connections, true);
+    table->field[29]->store(user_stats->access_denied_errors, true);
+    table->field[30]->store(user_stats->empty_queries, true);
+    table->field[31]->store(user_stats->total_ssl_connections, true);
+    if (schema_table_store_record(thd, table))
+    {
+      DBUG_PRINT("error", ("store record error"));
+      DBUG_RETURN(1);
+    }
+  }
+  DBUG_RETURN(0);
+}
+
+/*
+   Process SHOW USER_STATISTICS
+
+   SYNOPSIS
+     mysqld_show_user_stats
+       thd - current thread
+       wild - limit results to the entry for this user
+       with_roles - when true, display role for mapped users
+
+   RETURN
+     0 - OK
+     1 - error
+*/
+
+
+int fill_schema_user_stats(THD* thd, TABLE_LIST* tables, COND* cond)
+{
+  TABLE *table= tables->table;
+  DBUG_ENTER("fill_schema_user_stats");
+
+  if (check_global_access(thd, SUPER_ACL | PROCESS_ACL))
+          DBUG_RETURN(1);
+
+  // Iterates through all the global stats and sends them to the client.
+  // Pattern matching on the client IP is supported.
+
+  mysql_mutex_lock(&LOCK_global_user_client_stats);
+  int result= send_user_stats(thd, &global_user_stats, table);
+  mysql_mutex_unlock(&LOCK_global_user_client_stats);
+  if (result)
+    goto err;
+
+  DBUG_PRINT("exit", ("fill_schema_user_stats result is 0"));
+  DBUG_RETURN(0);
+
+ err:
+  DBUG_PRINT("exit", ("fill_schema_user_stats result is 1"));
+  DBUG_RETURN(1);
+}
+
+/*
+   Process SHOW CLIENT_STATISTICS
+
+   SYNOPSIS
+     mysqld_show_client_stats
+       thd - current thread
+       wild - limit results to the entry for this client
+
+   RETURN
+     0 - OK
+     1 - error
+*/
+
+
+int fill_schema_client_stats(THD* thd, TABLE_LIST* tables, COND* cond)
+{
+  TABLE *table= tables->table;
+  DBUG_ENTER("fill_schema_client_stats");
+
+  if (check_global_access(thd, SUPER_ACL | PROCESS_ACL))
+          DBUG_RETURN(1);
+
+  // Iterates through all the global stats and sends them to the client.
+  // Pattern matching on the client IP is supported.
+
+  mysql_mutex_lock(&LOCK_global_user_client_stats);
+  int result= send_user_stats(thd, &global_client_stats, table);
+  mysql_mutex_unlock(&LOCK_global_user_client_stats);
+  if (result)
+    goto err;
+
+  DBUG_PRINT("exit", ("mysqld_show_client_stats result is 0"));
+  DBUG_RETURN(0);
+
+ err:
+  DBUG_PRINT("exit", ("mysqld_show_client_stats result is 1"));
+  DBUG_RETURN(1);
+}
+
+int fill_schema_thread_stats(THD* thd, TABLE_LIST* tables, COND* cond)
+{
+  TABLE *table= tables->table;
+  DBUG_ENTER("fill_schema_thread_stats");
+
+  if (check_global_access(thd, SUPER_ACL | PROCESS_ACL))
+          DBUG_RETURN(1);
+
+  // Iterates through all the global stats and sends them to the client.
+  // Pattern matching on the client IP is supported.
+
+  mysql_mutex_lock(&LOCK_global_user_client_stats);
+  int result= send_thread_stats(thd, &global_thread_stats, table);
+  mysql_mutex_unlock(&LOCK_global_user_client_stats);
+  if (result)
+    goto err;
+
+  DBUG_PRINT("exit", ("mysqld_show_thread_stats result is 0"));
+  DBUG_RETURN(0);
+
+ err:
+  DBUG_PRINT("exit", ("mysqld_show_thread_stats result is 1"));
+  DBUG_RETURN(1);
+}
+
+// Sends the global table stats back to the client.
+int fill_schema_table_stats(THD* thd, TABLE_LIST* tables, COND* cond)
+{
+  TABLE *table= tables->table;
+  DBUG_ENTER("fill_schema_table_stats");
+  char *table_full_name, *table_schema;
+
+  mysql_mutex_lock(&LOCK_global_table_stats);
+  for (uint i = 0; i < global_table_stats.records; ++i)
+  {
+    restore_record(table, s->default_values);
+    TABLE_STATS *table_stats =
+      (TABLE_STATS *) my_hash_element(&global_table_stats, i);
+
+    table_full_name= thd->strdup(table_stats->table);
+    table_schema= strsep(&table_full_name, ".");
+
+    TABLE_LIST tmp_table;
+    bzero((char *) &tmp_table,sizeof(tmp_table));
+    tmp_table.table_name= table_full_name;
+    tmp_table.db= table_schema;
+    tmp_table.grant.privilege= 0;
+    if (check_access(thd, SELECT_ACL, tmp_table.db,
+                      &tmp_table.grant.privilege, 0, 0,
+                      is_infoschema_db(table_schema)) ||
+         check_grant(thd, SELECT_ACL, &tmp_table, 1, UINT_MAX, 1))
+        continue;
+
+    table->field[0]->store(table_schema, strlen(table_schema), system_charset_info);
+    table->field[1]->store(table_full_name, strlen(table_full_name), system_charset_info);
+    table->field[2]->store(table_stats->rows_read, true);
+    table->field[3]->store(table_stats->rows_changed, true);
+    table->field[4]->store(table_stats->rows_changed_x_indexes, true);
+
+    table->field[5]->store(table_stats->rows_read_first, true);
+    table->field[6]->store(table_stats->rows_read_last, true);
+    table->field[7]->store(table_stats->rows_read_key, true);
+    table->field[8]->store(table_stats->rows_read_next, true);
+    table->field[9]->store(table_stats->rows_read_prev, true);
+    table->field[10]->store(table_stats->rows_read_rnd, true);
+    table->field[11]->store(table_stats->rows_read_rnd_next, true);
+    table->field[12]->store(table_stats->rows_delete, true);
+    table->field[13]->store(table_stats->rows_update, true);
+    table->field[14]->store(table_stats->rows_write, true);
+
+    if (schema_table_store_record(thd, table))
+    {
+      mysql_mutex_unlock(&LOCK_global_table_stats);
+      DBUG_RETURN(1);
+    }
+  }
+  mysql_mutex_unlock(&LOCK_global_table_stats);
+  DBUG_RETURN(0);
+}
+
+// Sends the global index stats back to the client.
+int fill_schema_index_stats(THD* thd, TABLE_LIST* tables, COND* cond)
+{
+  TABLE *table= tables->table;
+  DBUG_ENTER("fill_schema_index_stats");
+  char *index_full_name, *table_schema, *table_name;
+
+  mysql_mutex_lock(&LOCK_global_index_stats);
+  for (uint i = 0; i < global_index_stats.records; ++i)
+  {
+    restore_record(table, s->default_values);
+    INDEX_STATS *index_stats =
+      (INDEX_STATS *) my_hash_element(&global_index_stats, i);
+
+    index_full_name= thd->strdup(index_stats->index);
+    table_schema= strsep(&index_full_name, ".");
+    table_name= strsep(&index_full_name, ".");
+
+    TABLE_LIST tmp_table;
+    bzero((char *) &tmp_table,sizeof(tmp_table));
+    tmp_table.table_name= table_name;
+    tmp_table.db= table_schema;
+    tmp_table.grant.privilege= 0;
+    if (check_access(thd, SELECT_ACL, tmp_table.db,
+                      &tmp_table.grant.privilege, 0, 0,
+                      is_infoschema_db(table_schema)) ||
+         check_grant(thd, SELECT_ACL, &tmp_table, 1, UINT_MAX, 1))
+        continue;
+
+    table->field[0]->store(table_schema, strlen(table_schema), system_charset_info);
+    table->field[1]->store(table_name, strlen(table_name), system_charset_info);
+    table->field[2]->store(index_full_name, strlen(index_full_name), system_charset_info);
+    table->field[3]->store(index_stats->rows_read, true);
+
+    table->field[4]->store(index_stats->rows_read_first, true);
+    table->field[5]->store(index_stats->rows_read_last, true);
+    table->field[6]->store(index_stats->rows_read_key, true);
+    table->field[7]->store(index_stats->rows_read_next, true);
+    table->field[8]->store(index_stats->rows_read_prev, true);
+    table->field[9]->store(index_stats->rows_read_rnd, true);
+    table->field[10]->store(index_stats->rows_read_rnd_next, true);
+    table->field[11]->store(index_stats->rows_delete, true);
+    table->field[12]->store(index_stats->rows_update, true);
+    table->field[13]->store(index_stats->rows_write, true);
+
+
+    if (schema_table_store_record(thd, table))
+    {
+      mysql_mutex_unlock(&LOCK_global_index_stats);
+      DBUG_RETURN(1);
+    }
+  }
+  mysql_mutex_unlock(&LOCK_global_index_stats);
+  DBUG_RETURN(0);
 }
 
 
@@ -7038,101 +7400,6 @@ int hton_fill_schema_table(THD *thd, TABLE_LIST *tables, COND *cond)
   DBUG_RETURN(0);
 }
 
-enum enum_table_stats_fields
-{
-  IS_TS_DB_NAME,
-  IS_TS_TABLE_NAME,
-  IS_TS_HA_READ_FIRST,
-  IS_TS_HA_READ_LAST,
-  IS_TS_HA_READ_KEY,
-  IS_TS_HA_READ_NEXT,
-  IS_TS_HA_READ_PREV,
-  IS_TS_HA_READ_RND,
-  IS_TS_HA_READ_RND_NEXT,
-  IS_TS_HA_DELETE,
-  IS_TS_HA_UPDATE,
-  IS_TS_HA_WRITE
-};
-
-/**
-  Fill in and store a record of the TABLE_STATISTICS table.
-
-  @param thd    Thread context.
-  @param table  The I_S table object.
-  @param info   Statistics counters for a table.
-
-  @return TRUE on success, FALSE otherwise.
-*/
-static bool table_stats_fill_record(THD *thd, TABLE *table,
-                                    const TABLE_STATS_INFO *info)
-{
-  CHARSET_INFO *cs= system_charset_info;
-  const HOS *stats= &info->handler_stats;
-
-  restore_record(table, s->default_values);
-
-  table->field[IS_TS_DB_NAME]->store(info->db_name, info->db_name_len, cs);
-  table->field[IS_TS_TABLE_NAME]->store(info->table_name,
-                                        info->table_name_len, cs);
-  table->field[IS_TS_HA_READ_FIRST]->store(stats->ha_read_first_count, true);
-  table->field[IS_TS_HA_READ_LAST]->store(stats->ha_read_last_count, true);
-  table->field[IS_TS_HA_READ_KEY]->store(stats->ha_read_key_count, true);
-  table->field[IS_TS_HA_READ_NEXT]->store(stats->ha_read_next_count, true);
-  table->field[IS_TS_HA_READ_PREV]->store(stats->ha_read_prev_count, true);
-  table->field[IS_TS_HA_READ_RND]->store(stats->ha_read_rnd_count, true);
-  table->field[IS_TS_HA_READ_RND_NEXT]->store(stats->ha_read_rnd_next_count,
-                                              true);
-  table->field[IS_TS_HA_DELETE]->store(stats->ha_delete_count, true);
-  table->field[IS_TS_HA_UPDATE]->store(stats->ha_update_count, true);
-  table->field[IS_TS_HA_WRITE]->store(stats->ha_write_count, true);
-
-  for (uint i= 0; i < table->s->fields; i++)
-    table->field[i]->set_notnull();
-
-  return schema_table_store_record(thd, table);
-}
-
-/**
-  Collect handler statistics and fill in the TABLE_STATISTICS table.
-
-  @param thd    Thread context.
-  @param tables The I_S table.
-
-  @return 0 on success, non-zero otherwise.
-*/
-static int fill_table_stats(THD *thd, TABLE_LIST *tables, COND *)
-{
-  TABLE_STATS_INFO info[80];
-  uint cursor= 0, count= 0, size= array_elements(info);
-  DBUG_ENTER("fill_table_stats");
-
-  if (check_global_access(thd, PROCESS_ACL))
-    DBUG_RETURN(1);
-
-  /* Collect the statistics in batches. */
-  while (!thd->killed)
-  {
-    uint idx;
-
-    count= get_cached_table_stats(&cursor, info, size);
-
-    if (!count)
-      break;
-
-    for (idx= 0; idx < count; idx++)
-    {
-      if (table_stats_fill_record(thd, tables->table, &info[idx]))
-        break;
-    }
-
-    /* Bail out if storing a record fails. */
-    if (idx < count)
-      break;
-  }
-
-  DBUG_RETURN(test(count));
-}
-
 
 ST_FIELD_INFO schema_fields_info[]=
 {
@@ -7598,6 +7865,281 @@ ST_FIELD_INFO variables_fields_info[]=
 };
 
 
+ST_FIELD_INFO user_stats_fields_info[]=
+{
+  {"USER", USERNAME_LENGTH, MYSQL_TYPE_STRING, 0, 0, "User", SKIP_OPEN_TABLE},
+  {"TOTAL_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Total_connections", SKIP_OPEN_TABLE},
+  {"CONCURRENT_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Concurrent_connections", SKIP_OPEN_TABLE},
+  {"CONNECTED_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Connected_time", SKIP_OPEN_TABLE},
+  {"BUSY_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Busy_time", SKIP_OPEN_TABLE},
+  {"CPU_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Cpu_time", SKIP_OPEN_TABLE},
+  {"BYTES_RECEIVED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Bytes_received", SKIP_OPEN_TABLE},
+  {"BYTES_SENT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Bytes_sent", SKIP_OPEN_TABLE},
+  {"BINLOG_BYTES_WRITTEN", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Binlog_bytes_written", SKIP_OPEN_TABLE},
+  {"ROWS_FETCHED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_fetched", SKIP_OPEN_TABLE},
+  {"ROWS_UPDATED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_updated", SKIP_OPEN_TABLE},
+  {"TABLE_ROWS_READ", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Table_rows_read", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_FIRST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_first", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_LAST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_last", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_KEY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_key", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_next", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_PREV", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_prev", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_rnd", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_rnd_next", SKIP_OPEN_TABLE},
+  {"HANDLER_DELETE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_delete", SKIP_OPEN_TABLE},
+  {"HANDLER_UPDATE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_update", SKIP_OPEN_TABLE},
+  {"HANDLER_WRITE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_write", SKIP_OPEN_TABLE},
+  {"SELECT_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Select_commands", SKIP_OPEN_TABLE},
+  {"UPDATE_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Update_commands", SKIP_OPEN_TABLE},
+  {"OTHER_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Other_commands", SKIP_OPEN_TABLE},
+  {"COMMIT_TRANSACTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Commit_transactions", SKIP_OPEN_TABLE},
+  {"ROLLBACK_TRANSACTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Rollback_transactions", SKIP_OPEN_TABLE},
+  {"DENIED_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Denied_connections", SKIP_OPEN_TABLE},
+  {"LOST_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Lost_connections", SKIP_OPEN_TABLE},
+  {"ACCESS_DENIED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Access_denied", SKIP_OPEN_TABLE},
+  {"EMPTY_QUERIES", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Empty_queries", SKIP_OPEN_TABLE},
+  {"TOTAL_SSL_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Total_ssl_connections", SKIP_OPEN_TABLE},
+  {0, 0, MYSQL_TYPE_STRING, 0, 0, 0, 0}
+};
+
+ST_FIELD_INFO client_stats_fields_info[]=
+{
+  {"CLIENT", LIST_PROCESS_HOST_LEN, MYSQL_TYPE_STRING, 0, 0, "Client",
+   SKIP_OPEN_TABLE},
+  {"TOTAL_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Total_connections", SKIP_OPEN_TABLE},
+  {"CONCURRENT_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Concurrent_connections", SKIP_OPEN_TABLE},
+  {"CONNECTED_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Connected_time", SKIP_OPEN_TABLE},
+  {"BUSY_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Busy_time", SKIP_OPEN_TABLE},
+  {"CPU_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Cpu_time", SKIP_OPEN_TABLE},
+  {"BYTES_RECEIVED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Bytes_received", SKIP_OPEN_TABLE},
+  {"BYTES_SENT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Bytes_sent", SKIP_OPEN_TABLE},
+  {"BINLOG_BYTES_WRITTEN", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Binlog_bytes_written", SKIP_OPEN_TABLE},
+  {"ROWS_FETCHED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_fetched", SKIP_OPEN_TABLE},
+  {"ROWS_UPDATED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_updated", SKIP_OPEN_TABLE},
+  {"TABLE_ROWS_READ", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Table_rows_read", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_FIRST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_first", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_LAST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_last", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_KEY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_key", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_next", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_PREV", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_prev", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_rnd", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_rnd_next", SKIP_OPEN_TABLE},
+  {"HANDLER_DELETE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_delete", SKIP_OPEN_TABLE},
+  {"HANDLER_UPDATE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_update", SKIP_OPEN_TABLE},
+  {"HANDLER_WRITE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_write", SKIP_OPEN_TABLE},
+  {"SELECT_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Select_commands", SKIP_OPEN_TABLE},
+  {"UPDATE_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Update_commands", SKIP_OPEN_TABLE},
+  {"OTHER_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Other_commands", SKIP_OPEN_TABLE},
+  {"COMMIT_TRANSACTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Commit_transactions", SKIP_OPEN_TABLE},
+  {"ROLLBACK_TRANSACTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Rollback_transactions", SKIP_OPEN_TABLE},
+  {"DENIED_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Denied_connections", SKIP_OPEN_TABLE},
+  {"LOST_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Lost_connections", SKIP_OPEN_TABLE},
+  {"ACCESS_DENIED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Access_denied", SKIP_OPEN_TABLE},
+  {"EMPTY_QUERIES", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Empty_queries", SKIP_OPEN_TABLE},
+  {"TOTAL_SSL_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Total_ssl_connections", SKIP_OPEN_TABLE},
+  {0, 0, MYSQL_TYPE_STRING, 0, 0, 0, 0}
+};
+
+ST_FIELD_INFO thread_stats_fields_info[]=
+{
+  {"THREAD_ID", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Thread_id", SKIP_OPEN_TABLE},
+  {"TOTAL_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Total_connections", SKIP_OPEN_TABLE},
+  {"CONCURRENT_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Concurrent_connections", SKIP_OPEN_TABLE},
+  {"CONNECTED_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Connected_time", SKIP_OPEN_TABLE},
+  {"BUSY_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Busy_time", SKIP_OPEN_TABLE},
+  {"CPU_TIME", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Cpu_time", SKIP_OPEN_TABLE},
+  {"BYTES_RECEIVED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Bytes_received", SKIP_OPEN_TABLE},
+  {"BYTES_SENT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Bytes_sent", SKIP_OPEN_TABLE},
+  {"BINLOG_BYTES_WRITTEN", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Binlog_bytes_written", SKIP_OPEN_TABLE},
+  {"ROWS_FETCHED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_fetched", SKIP_OPEN_TABLE},
+  {"ROWS_UPDATED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_updated", SKIP_OPEN_TABLE},
+  {"TABLE_ROWS_READ", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Table_rows_read", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_FIRST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_first", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_LAST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_last", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_KEY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_key", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_next", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_PREV", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_prev", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_rnd", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_read_rnd_next", SKIP_OPEN_TABLE},
+  {"HANDLER_DELETE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_delete", SKIP_OPEN_TABLE},
+  {"HANDLER_UPDATE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_update", SKIP_OPEN_TABLE},
+  {"HANDLER_WRITE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_write", SKIP_OPEN_TABLE},
+  {"SELECT_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Select_commands", SKIP_OPEN_TABLE},
+  {"UPDATE_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Update_commands", SKIP_OPEN_TABLE},
+  {"OTHER_COMMANDS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Other_commands", SKIP_OPEN_TABLE},
+  {"COMMIT_TRANSACTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Commit_transactions", SKIP_OPEN_TABLE},
+  {"ROLLBACK_TRANSACTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Rollback_transactions", SKIP_OPEN_TABLE},
+  {"DENIED_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Denied_connections", SKIP_OPEN_TABLE},
+  {"LOST_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Lost_connections", SKIP_OPEN_TABLE},
+  {"ACCESS_DENIED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Access_denied", SKIP_OPEN_TABLE},
+  {"EMPTY_QUERIES", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Empty_queries", SKIP_OPEN_TABLE},
+  {"TOTAL_SSL_CONNECTIONS", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Total_ssl_connections", SKIP_OPEN_TABLE},
+  {0, 0, MYSQL_TYPE_STRING, 0, 0, 0, 0}
+};
+
+ST_FIELD_INFO table_stats_fields_info[]=
+{
+  {"TABLE_SCHEMA", NAME_LEN, MYSQL_TYPE_STRING, 0, 0, "Table_schema",
+   SKIP_OPEN_TABLE},
+  {"TABLE_NAME", NAME_LEN, MYSQL_TYPE_STRING, 0, 0, "Table_name",
+   SKIP_OPEN_TABLE},
+  {"ROWS_READ", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read", SKIP_OPEN_TABLE},
+  {"ROWS_CHANGED", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_changed", SKIP_OPEN_TABLE},
+  {"ROWS_CHANGED_X_INDEXES", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG,
+   0, MY_I_S_UNSIGNED, "Rows_changed_x_#indexes", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_FIRST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_first", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_LAST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_last", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_KEY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_key", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_next", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_PREV", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_prev", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_rnd", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_rnd_next", SKIP_OPEN_TABLE},
+  {"HANDLER_DELETE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_delete", SKIP_OPEN_TABLE},
+  {"HANDLER_UPDATE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_update", SKIP_OPEN_TABLE},
+  {"HANDLER_WRITE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_write", SKIP_OPEN_TABLE},
+  {0, 0, MYSQL_TYPE_STRING, 0, 0, 0, 0}
+};
+
+ST_FIELD_INFO index_stats_fields_info[]=
+{
+  {"TABLE_SCHEMA", NAME_LEN, MYSQL_TYPE_STRING, 0, 0, "Table_schema",
+   SKIP_OPEN_TABLE},
+  {"TABLE_NAME", NAME_LEN, MYSQL_TYPE_STRING, 0, 0, "Table_name",
+   SKIP_OPEN_TABLE},
+  {"INDEX_NAME", NAME_LEN, MYSQL_TYPE_STRING, 0, 0, "Index_name",
+   SKIP_OPEN_TABLE},
+  {"ROWS_READ", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_FIRST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_first", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_LAST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_last", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_KEY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_key", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_next", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_PREV", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_prev", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_rnd", SKIP_OPEN_TABLE},
+  {"HANDLER_READ_RND_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Rows_read_rnd_next", SKIP_OPEN_TABLE},
+  {"HANDLER_DELETE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_delete", SKIP_OPEN_TABLE},
+  {"HANDLER_UPDATE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_update", SKIP_OPEN_TABLE},
+  {"HANDLER_WRITE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
+   MY_I_S_UNSIGNED, "Handler_write", SKIP_OPEN_TABLE},
+  {0, 0, MYSQL_TYPE_STRING, 0, 0, 0, 0}
+};
+
+
 ST_FIELD_INFO processlist_fields_info[]=
 {
   {"ID", 4, MYSQL_TYPE_LONGLONG, 0, 0, "Id", SKIP_OPEN_TABLE},
@@ -7766,34 +8308,6 @@ ST_FIELD_INFO tablespaces_fields_info[]=
 };
 
 
-ST_FIELD_INFO table_stats_fields_info[]=
-{
-  {"TABLE_SCHEMA", NAME_CHAR_LEN, MYSQL_TYPE_STRING, 0, 0, 0, SKIP_OPEN_TABLE},
-  {"TABLE_NAME", NAME_CHAR_LEN, MYSQL_TYPE_STRING, 0, 0, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_READ_FIRST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_READ_LAST", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_READ_KEY", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_READ_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_READ_PREV", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_READ_RND", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_READ_RND_NEXT", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_DELETE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_UPDATE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {"HANDLER_WRITE", MY_INT64_NUM_DECIMAL_DIGITS, MYSQL_TYPE_LONGLONG, 0,
-   MY_I_S_UNSIGNED, 0, SKIP_OPEN_TABLE},
-  {NULL, 0, MYSQL_TYPE_STRING, 0, 0, 0, 0}
-};
-
-
 /*
   Description of ST_FIELD_INFO in table.h
 
@@ -7805,6 +8319,8 @@ ST_SCHEMA_TABLE schema_tables[]=
 {
   {"CHARACTER_SETS", charsets_fields_info, create_schema_table, 
    fill_schema_charsets, make_character_sets_old_format, 0, -1, -1, 0, 0},
+  {"CLIENT_STATISTICS", client_stats_fields_info, create_schema_table,
+    fill_schema_client_stats, make_old_format, 0, -1, -1, 0, 0},
   {"COLLATIONS", collation_fields_info, create_schema_table, 
    fill_schema_collation, make_old_format, 0, -1, -1, 0, 0},
   {"COLLATION_CHARACTER_SET_APPLICABILITY", coll_charset_app_fields_info,
@@ -7814,6 +8330,8 @@ ST_SCHEMA_TABLE schema_tables[]=
    OPTIMIZE_I_S_TABLE|OPEN_VIEW_FULL},
   {"COLUMN_PRIVILEGES", column_privileges_fields_info, create_schema_table,
    fill_schema_column_privileges, 0, 0, -1, -1, 0, 0},
+  {"INDEX_STATISTICS", index_stats_fields_info, create_schema_table,
+   fill_schema_index_stats, make_old_format, 0, -1, -1, 0, 0},
   {"ENGINES", engines_fields_info, create_schema_table,
    fill_schema_engines, make_old_format, 0, -1, -1, 0, 0},
 #ifdef HAVE_EVENT_SCHEDULER
@@ -7879,12 +8397,16 @@ ST_SCHEMA_TABLE schema_tables[]=
   {"TABLE_PRIVILEGES", table_privileges_fields_info, create_schema_table,
    fill_schema_table_privileges, 0, 0, -1, -1, 0, 0},
   {"TABLE_STATISTICS", table_stats_fields_info, create_schema_table,
-   fill_table_stats, NULL, NULL, -1, -1, 0, 0},
+   fill_schema_table_stats, make_old_format, NULL, -1, -1, 0, 0},
+  {"THREAD_STATISTICS", thread_stats_fields_info, create_schema_table,
+   fill_schema_thread_stats, make_old_format, 0, -1, -1, 0, 0},
   {"TRIGGERS", triggers_fields_info, create_schema_table,
    get_all_tables, make_old_format, get_schema_triggers_record, 5, 6, 0,
    OPEN_TRIGGER_ONLY|OPTIMIZE_I_S_TABLE},
   {"USER_PRIVILEGES", user_privileges_fields_info, create_schema_table, 
    fill_schema_user_privileges, 0, 0, -1, -1, 0, 0},
+  {"USER_STATISTICS", user_stats_fields_info, create_schema_table,
+   fill_schema_user_stats, make_old_format, 0, -1, -1, 0, 0},
   {"VARIABLES", variables_fields_info, create_schema_table, fill_variables,
    make_old_format, 0, 0, -1, 1, 0},
   {"VIEWS", view_fields_info, create_schema_table, 

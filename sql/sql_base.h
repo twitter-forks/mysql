@@ -321,17 +321,6 @@ TABLE *find_table_for_mdl_upgrade(THD *thd, const char *db,
 void mark_tmp_table_for_reuse(TABLE *table);
 bool check_if_table_exists(THD *thd, TABLE_LIST *table, bool *exists);
 
-struct TABLE_STATS_INFO
-{
-  uint db_name_len;
-  char db_name[NAME_LEN];
-  uint table_name_len;
-  char table_name[NAME_LEN];
-  HOS  handler_stats;
-};
-
-uint get_cached_table_stats(uint *cursor, TABLE_STATS_INFO *info, uint size);
-
 extern TABLE *unused_tables;
 extern Item **not_found_item;
 extern Field *not_found_field;

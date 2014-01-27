@@ -31,6 +31,7 @@
 
 #define SERVER_VERSION_LENGTH 60
 #define SQLSTATE_LENGTH 5
+#define LIST_PROCESS_HOST_LEN 64
 
 /*
   Maximum length of comments
@@ -145,6 +146,11 @@ enum enum_server_command
 #define REFRESH_QUERY_CACHE_FREE 0x20000L /* pack query cache */
 #define REFRESH_DES_KEY_FILE	0x40000L
 #define REFRESH_USER_RESOURCES	0x80000L
+#define REFRESH_TABLE_STATS    0x200000L /* Refresh table stats my_hash table */
+#define REFRESH_INDEX_STATS    0x400000L /* Refresh index stats my_hash table */
+#define REFRESH_USER_STATS     0x800000L /* Refresh user stats my_hash table */
+#define REFRESH_CLIENT_STATS   0x1000000L /* Refresh client stats my_hash table */
+#define REFRESH_THREAD_STATS   0x2000000L /* Refresh thread stats my_hash table */
 
 #define CLIENT_LONG_PASSWORD	1	/* new more secure passwords */
 #define CLIENT_FOUND_ROWS	2	/* Found instead of affected rows */

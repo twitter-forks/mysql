@@ -1,0 +1,79 @@
+#
+#   Counting ssl connections test.
+#
+#   CLIENT_STATISTICS, THREAD_STATISTICS, and USER_STATISTICS have
+#   a column TOTAL_CONNECTIONS_SSL to distinguish between these two types of
+#   connections.
+#   
+
+--source include/have_ssl_communication.inc
+
+# Save the initial number of concurrent sessions
+--source include/count_sessions.inc
+--disable_query_log
+--disable_result_log
+
+
+SET @old_userstat= @@global.userstat;
+SET @old_thread_statistics= @@global.thread_statistics;
+SET GLOBAL userstat= ON;
+SET GLOBAL thread_statistics= ON;
+
+--let $sessions_count=3
+
+#create users
+--let $i=$sessions_count
+while ($i) {
+--dec $i
+--eval CREATE USER 'user_$i'@'localhost' IDENTIFIED BY 'mypass';
+}
+
+#create ssl and non-ssl connections
+--let $i=$sessions_count
+while ($i) {
+--dec $i
+--connect (connection_ssl_$i,localhost,user_$i,mypass,,,,SSL)
+  SELECT 1;
+--connect (connection_$i,localhost,user_$i,mypass,,,,)
+  SELECT 1;
+}
+
+#get statistics
+--enable_query_log
+--enable_result_log
+--connection default
+
+SELECT TOTAL_CONNECTIONS, TOTAL_SSL_CONNECTIONS FROM
+INFORMATION_SCHEMA.USER_STATISTICS ORDER BY USER;
+
+SELECT TOTAL_CONNECTIONS, TOTAL_SSL_CONNECTIONS FROM
+INFORMATION_SCHEMA.CLIENT_STATISTICS;
+
+SELECT TOTAL_CONNECTIONS, TOTAL_SSL_CONNECTIONS FROM
+INFORMATION_SCHEMA.THREAD_STATISTICS ORDER BY THREAD_ID;
+
+--disable_query_log
+--disable_result_log
+
+#close connections
+--let $i=$sessions_count
+while ($i) {
+--dec $i
+--disconnect connection_$i
+--disconnect connection_ssl_$i
+}
+
+--connection default
+
+--source include/wait_until_count_sessions.inc
+
+#remove users
+--let $i=$sessions_count
+while ($i) {
+--dec $i
+--eval DROP USER 'user_$i'@'localhost';
+}
+
+SET GLOBAL userstat= @old_userstat;
+SET GLOBAL thread_statistics= @old_thread_statistics;
+

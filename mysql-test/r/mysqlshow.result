@@ -80,10 +80,12 @@ Database: information_schema
 |                Tables                 |
 +---------------------------------------+
 | CHARACTER_SETS                        |
+| CLIENT_STATISTICS                     |
 | COLLATIONS                            |
 | COLLATION_CHARACTER_SET_APPLICABILITY |
 | COLUMNS                               |
 | COLUMN_PRIVILEGES                     |
+| INDEX_STATISTICS                      |
 | ENGINES                               |
 | EVENTS                                |
 | FILES                                 |
@@ -108,8 +110,10 @@ Database: information_schema
 | TABLE_CONSTRAINTS                     |
 | TABLE_PRIVILEGES                      |
 | TABLE_STATISTICS                      |
+| THREAD_STATISTICS                     |
 | TRIGGERS                              |
 | USER_PRIVILEGES                       |
+| USER_STATISTICS                       |
 | VIEWS                                 |
 | INNODB_BUFFER_POOL_STATS              |
 | INNODB_TRX                            |
@@ -129,10 +133,12 @@ Database: INFORMATION_SCHEMA
 |                Tables                 |
 +---------------------------------------+
 | CHARACTER_SETS                        |
+| CLIENT_STATISTICS                     |
 | COLLATIONS                            |
 | COLLATION_CHARACTER_SET_APPLICABILITY |
 | COLUMNS                               |
 | COLUMN_PRIVILEGES                     |
+| INDEX_STATISTICS                      |
 | ENGINES                               |
 | EVENTS                                |
 | FILES                                 |
@@ -157,8 +163,10 @@ Database: INFORMATION_SCHEMA
 | TABLE_CONSTRAINTS                     |
 | TABLE_PRIVILEGES                      |
 | TABLE_STATISTICS                      |
+| THREAD_STATISTICS                     |
 | TRIGGERS                              |
 | USER_PRIVILEGES                       |
+| USER_STATISTICS                       |
 | VIEWS                                 |
 | INNODB_BUFFER_POOL_STATS              |
 | INNODB_TRX                            |
