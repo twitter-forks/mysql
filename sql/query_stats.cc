@@ -222,7 +222,7 @@ static size_t sql_literal_replace(const char *query,
     *to++ = *from++;              \
   } while (--num > 0);            \
 
-  while (*s != '\0')
+  while (*s != '\0' && (s - query) < query_length)
   {
     int rsl = 0;
     char expect = '\0';
@@ -244,7 +244,7 @@ static size_t sql_literal_replace(const char *query,
       COPY_NCHAR(ns, s, rsl);
       if (expect == '\0')
         expect = ' ';
-      while (*s != expect && *s != SQL_TERM)
+      while (*s != expect && *s != SQL_TERM && (s - query) < query_length)
         ++s;
       *ns++ = '?';
     }

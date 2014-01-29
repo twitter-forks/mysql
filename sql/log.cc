@@ -6860,9 +6860,11 @@ void LOGGER::twitter_log_write(THD *thd, enum enum_server_command command,
 
     if (qry_ptr)
     {
+      uint qry_len;
       char *qry;
       const char *q;
-      for (q = query, qry = qry_ptr; *q != '\0'; ++q, ++qry)
+      for (q = query, qry = qry_ptr, qry_len = 0;
+           qry_len < query_length && *q != '\0'; ++q, ++qry, ++qry_len)
       {
         if (*q == '\t' || *q == '\n' || *q == '\r')
           *qry = ' ';
