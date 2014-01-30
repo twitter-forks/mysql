@@ -463,6 +463,7 @@ uint lower_case_table_names;
 ulong tc_heuristic_recover= 0;
 uint volatile thread_count;
 int32 thread_running;
+int32 thread_running_max;
 ulong thread_created;
 ulong back_log, connect_timeout, concurrency, server_id;
 ulong table_cache_size, table_def_size;
@@ -6241,6 +6242,17 @@ static int show_starttime(THD *thd, SHOW_VAR *var, char *buff)
   return 0;
 }
 
+static int show_thread_running_max(THD *thd, SHOW_VAR *var, char *buff)
+{
+  var->type= SHOW_LONG;
+  var->value= buff;
+
+  my_atomic_rwlock_wrlock(&thread_running_lock);
+  *((long *)buff)= (long) (thread_running_max);
+  my_atomic_store32(&thread_running_max, 0);
+  my_atomic_rwlock_wrunlock(&thread_running_lock);
+  return 0;
+}
 #ifdef ENABLED_PROFILING
 static int show_flushstatustime(THD *thd, SHOW_VAR *var, char *buff)
 {
@@ -6746,6 +6758,7 @@ SHOW_VAR status_vars[]= {
   {"Threads_connected",        (char*) &connection_count,       SHOW_INT},
   {"Threads_created",	       (char*) &thread_created,		SHOW_LONG_NOFLUSH},
   {"Threads_running",          (char*) &thread_running,         SHOW_INT},
+  {"Threads_running_max",      (char*) &show_thread_running_max,SHOW_FUNC},
   {"Uptime",                   (char*) &show_starttime,         SHOW_FUNC},
 #ifdef ENABLED_PROFILING
   {"Uptime_since_flush_status",(char*) &show_flushstatustime,   SHOW_FUNC},
@@ -6898,6 +6911,7 @@ static int mysql_init_variables(void)
   server_id_supplied= 0;
   test_flags= select_errors= dropping_tables= ha_open_options=0;
   thread_count= thread_running= kill_cached_threads= wake_thread=0;
+  thread_running_max=0;
   slave_open_temp_tables= 0;
   cached_thread_count= 0;
   opt_endinfo= using_udf_functions= 0;

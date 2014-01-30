@@ -376,6 +376,7 @@ extern mysql_rwlock_t LOCK_system_variables_hash;
 extern mysql_cond_t COND_thread_count;
 extern mysql_cond_t COND_manager;
 extern int32 thread_running;
+extern int32 thread_running_max;
 extern my_atomic_rwlock_t thread_running_lock;
 
 extern char *opt_ssl_ca, *opt_ssl_capath, *opt_ssl_cert, *opt_ssl_cipher,
@@ -516,8 +517,12 @@ inline int32
 inc_thread_running()
 {
   int32 num_thread_running;
+  int32 max_threads;
   my_atomic_rwlock_wrlock(&thread_running_lock);
   num_thread_running= my_atomic_add32(&thread_running, 1);
+  max_threads= my_atomic_load32(&thread_running_max);
+  if (max_threads < (num_thread_running + 1))
+    my_atomic_store32(&thread_running_max, (num_thread_running + 1));
   my_atomic_rwlock_wrunlock(&thread_running_lock);
   return (num_thread_running+1);
 }
