@@ -57,9 +57,9 @@ SET(WITHOUT_PERFSCHEMA_STORAGE_ENGINE TRUE BOOL)
 #
 
 SET(WITH_ZLIB system CACHE STRING "Use system zlib")
-
 SET(WITH_LIBEDIT OFF CACHE BOOL "Disable bundled libedit")
 SET(WITH_READLINE OFF CACHE BOOL "Disable bundled readline")
+SET(WITH_SSL system CACHE STRING "Use system openssl")
 
 #
 # Linux-native asynchronous I/O access.
