@@ -57,6 +57,9 @@
 #include <io.h>
 #endif
 
+#define ER_PK_COLUMN_NULL_MSG \
+  "Primary key column %s is internally changed to NOT NULL"
+
 const char *primary_key_name="PRIMARY";
 
 static bool check_if_keyname_exists(const char *name,KEY *start, KEY *end);
@@ -3483,6 +3486,16 @@ mysql_prepare_create_table(THD *thd, HA_CREATE_INFO *create_info,
 	{
 	  if (key->type == Key::PRIMARY)
 	  {
+            /* show a warning of attempt to modify PK column to nullable */
+            if (thd->lex && thd->lex->sql_command == SQLCOM_ALTER_TABLE &&
+                (thd->lex->alter_info.flags & ALTER_MODIFY_COLUMN_NULL))
+            {
+              char warn_buff[MYSQL_ERRMSG_SIZE];
+              my_snprintf(warn_buff, sizeof(warn_buff), ER_PK_COLUMN_NULL_MSG,
+                          sql_field->field_name);
+              push_warning(thd, MYSQL_ERROR::WARN_LEVEL_WARN, ER_PRIMARY_CANT_HAVE_NULL,
+                           warn_buff);
+            }
 	    /* Implicitly set primary key fields to NOT NULL for ISO conf. */
 	    sql_field->flags|= NOT_NULL_FLAG;
 	    sql_field->pack_flag&= ~FIELDFLAG_MAYBE_NULL;

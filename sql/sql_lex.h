@@ -987,6 +987,7 @@ inline bool st_select_lex_unit::is_union ()
 #define ALTER_FOREIGN_KEY        (1L << 22)
 #define ALTER_TRUNCATE_PARTITION (1L << 23)
 #define ALTER_NO_WAIT            (1L << 24)
+#define ALTER_MODIFY_COLUMN_NULL (1L << 25)
 
 enum enum_alter_table_lock
 {

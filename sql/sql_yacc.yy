@@ -5739,7 +5739,9 @@ opt_attribute_list:
         ;
 
 attribute:
-          NULL_SYM { Lex->type&= ~ NOT_NULL_FLAG; }
+          NULL_SYM { Lex->type&= ~ NOT_NULL_FLAG;
+                     Lex->alter_info.flags|= ALTER_MODIFY_COLUMN_NULL;
+                   }
         | not NULL_SYM { Lex->type|= NOT_NULL_FLAG; }
         | DEFAULT now_or_signed_literal { Lex->default_value=$2; }
         | ON UPDATE_SYM NOW_SYM optional_braces
