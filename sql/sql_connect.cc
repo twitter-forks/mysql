@@ -332,7 +332,7 @@ static int increment_count_by_name(const char *name, const char *role_name,
     }
   }
   user_stats->total_connections++;
-  if (thd->net.vio->type == VIO_TYPE_SSL)
+  if (thd->net.vio && thd->net.vio->type == VIO_TYPE_SSL)
     user_stats->total_ssl_connections++;
   return 0;
 }
@@ -363,7 +363,7 @@ static int increment_count_by_id(my_thread_id id,
     }
   }
   thread_stats->total_connections++;
-  if (thd->net.vio->type == VIO_TYPE_SSL)
+  if (thd->net.vio && thd->net.vio->type == VIO_TYPE_SSL)
     thread_stats->total_ssl_connections++;
   return 0;
 }
