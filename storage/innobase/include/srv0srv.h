@@ -403,6 +403,9 @@ extern ulint srv_n_semaphore_stalls;
 /** print all user-level transactions deadlocks to mysqld stderr */
 extern my_bool srv_print_all_deadlocks;
 
+/** Perform deadlock detection check. */
+extern my_bool srv_deadlock_check;
+
 /** Status variables to be passed to MySQL */
 typedef struct export_var_struct export_struc;
 

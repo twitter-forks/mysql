@@ -12598,6 +12598,11 @@ static MYSQL_SYSVAR_BOOL(print_all_deadlocks, srv_print_all_deadlocks,
   "Print all deadlocks to MySQL error log (off by default)",
   NULL, NULL, FALSE);
 
+static MYSQL_SYSVAR_BOOL(deadlock_check, srv_deadlock_check,
+  PLUGIN_VAR_NOCMDARG,
+  "Enableds deadlock checking.",
+  NULL, NULL, TRUE);
+
 static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(additional_mem_pool_size),
   MYSQL_SYSVAR(autoextend_increment),
@@ -12613,6 +12618,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
   MYSQL_SYSVAR(concurrency_tickets),
   MYSQL_SYSVAR(data_file_path),
   MYSQL_SYSVAR(data_home_dir),
+  MYSQL_SYSVAR(deadlock_check),
   MYSQL_SYSVAR(doublewrite),
   MYSQL_SYSVAR(fast_shutdown),
   MYSQL_SYSVAR(file_io_threads),

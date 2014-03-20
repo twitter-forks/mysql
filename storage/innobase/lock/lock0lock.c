@@ -1820,7 +1820,7 @@ lock_rec_enqueue_waiting(
 	/* Check if a deadlock occurs: if yes, remove the lock request and
 	return an error code */
 
-	if (UNIV_UNLIKELY(lock_deadlock_occurs(lock, trx))) {
+	if (srv_deadlock_check && lock_deadlock_occurs(lock, trx)) {
 
 		lock_reset_lock_and_trx_wait(lock);
 		lock_rec_reset_nth_bit(lock, heap_no);
@@ -3919,7 +3919,7 @@ lock_table_enqueue_waiting(
 	/* Check if a deadlock occurs: if yes, remove the lock request and
 	return an error code */
 
-	if (lock_deadlock_occurs(lock, trx)) {
+	if (srv_deadlock_check && lock_deadlock_occurs(lock, trx)) {
 
 		/* The order here is important, we don't want to
 		lose the state of the lock before calling remove. */

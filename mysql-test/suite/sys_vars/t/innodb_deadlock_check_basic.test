@@ -1,0 +1,65 @@
+--source include/have_innodb.inc
+
+SET @start_global_value = @@global.innodb_deadlock_check;
+SELECT @start_global_value;
+
+#
+# exists as global only
+#
+--echo Valid values are 'ON' and 'OFF' 
+select @@global.innodb_deadlock_check in (0, 1);
+select @@global.innodb_deadlock_check;
+--error ER_INCORRECT_GLOBAL_LOCAL_VAR
+select @@session.innodb_deadlock_check;
+show global variables like 'innodb_deadlock_check';
+show session variables like 'innodb_deadlock_check';
+select * from information_schema.global_variables where variable_name='innodb_deadlock_check';
+select * from information_schema.session_variables where variable_name='innodb_deadlock_check';
+
+#
+# show that it's writable
+#
+set global innodb_deadlock_check='OFF';
+select @@global.innodb_deadlock_check;
+select * from information_schema.global_variables where variable_name='innodb_deadlock_check';
+select * from information_schema.session_variables where variable_name='innodb_deadlock_check';
+set @@global.innodb_deadlock_check=1;
+select @@global.innodb_deadlock_check;
+select * from information_schema.global_variables where variable_name='innodb_deadlock_check';
+select * from information_schema.session_variables where variable_name='innodb_deadlock_check';
+set global innodb_deadlock_check=0;
+select @@global.innodb_deadlock_check;
+select * from information_schema.global_variables where variable_name='innodb_deadlock_check';
+select * from information_schema.session_variables where variable_name='innodb_deadlock_check';
+set @@global.innodb_deadlock_check='ON';
+select @@global.innodb_deadlock_check;
+select * from information_schema.global_variables where variable_name='innodb_deadlock_check';
+select * from information_schema.session_variables where variable_name='innodb_deadlock_check';
+--error ER_GLOBAL_VARIABLE
+set session innodb_deadlock_check='OFF';
+--error ER_GLOBAL_VARIABLE
+set @@session.innodb_deadlock_check='ON';
+
+#
+# incorrect types
+#
+--error ER_WRONG_TYPE_FOR_VAR
+set global innodb_deadlock_check=1.1;
+--error ER_WRONG_TYPE_FOR_VAR
+set global innodb_deadlock_check=1e1;
+--error ER_WRONG_VALUE_FOR_VAR
+set global innodb_deadlock_check=2;
+--echo NOTE: The following should fail with ER_WRONG_VALUE_FOR_VAR (BUG#50643)
+set global innodb_deadlock_check=-3;
+select @@global.innodb_deadlock_check;
+select * from information_schema.global_variables where variable_name='innodb_deadlock_check';
+select * from information_schema.session_variables where variable_name='innodb_deadlock_check';
+--error ER_WRONG_VALUE_FOR_VAR
+set global innodb_deadlock_check='AUTO';
+
+#
+# Cleanup
+#
+
+SET @@global.innodb_deadlock_check = @start_global_value;
+SELECT @@global.innodb_deadlock_check;
