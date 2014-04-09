@@ -231,8 +231,14 @@ extern char *opt_minidump_dir;
 extern uint opt_twitter_audit_log;
 extern uint opt_twitter_query_stats;
 extern uint opt_twitter_query_stats_max;
+extern uint opt_twitter_query_throttling_limit;
+extern uint opt_twitter_write_throttling_limit;
 extern ulonglong rows_sent, rows_examined;
 extern ulonglong com_insert_noop;
+extern ulonglong read_queries, write_queries;
+extern ulonglong total_query_rejected, write_query_rejected;
+extern int32 write_query_running;
+extern my_atomic_rwlock_t write_query_running_lock;
 void init_sql_statement_names();
 
 /*
@@ -545,6 +551,26 @@ get_thread_running()
   num_thread_running= my_atomic_load32(&thread_running);
   my_atomic_rwlock_wrunlock(&thread_running_lock);
   return num_thread_running;
+}
+
+inline int32
+inc_write_query_running()
+{
+  int32 num_writes_running;
+  my_atomic_rwlock_wrlock(&write_query_running_lock);
+  num_writes_running= my_atomic_add32(&write_query_running, 1);
+  my_atomic_rwlock_wrunlock(&write_query_running_lock);
+  return (num_writes_running+1);
+}
+
+inline int32
+dec_write_query_running()
+{
+  int32 num_writes_running;
+  my_atomic_rwlock_wrlock(&write_query_running_lock);
+  num_writes_running= my_atomic_add32(&write_query_running, -1);
+  my_atomic_rwlock_wrunlock(&write_query_running_lock);
+  return (num_writes_running-1);
 }
 
 #if defined(MYSQL_DYNAMIC_PLUGIN) && defined(_WIN32)

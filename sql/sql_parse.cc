@@ -5775,6 +5775,10 @@ void mysql_init_multi_delete(LEX *lex)
   lex->query_tables_last= &lex->query_tables;
 }
 
+/** Twitter write query throttling apply to mutations only */
+#define TWITTER_QUERY_THROTTLE_WRITES(sqlcmd) \
+  (sqlcmd == SQLCOM_UPDATE || sqlcmd == SQLCOM_INSERT || sqlcmd == SQLCOM_DELETE || \
+   sqlcmd == SQLCOM_INSERT_SELECT || sqlcmd == SQLCOM_REPLACE || sqlcmd == SQLCOM_REPLACE_SELECT)
 
 /*
   When you modify mysql_parse(), you may need to mofify
@@ -5831,6 +5835,8 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
   struct timespec tp;
   double start_cpu_nsecs= 0;
   double end_cpu_nsecs=   0;
+  uint32 writes_running=  -1;
+  bool write_query=       false;
 
   if (unlikely(opt_userstat))
   {
@@ -5853,7 +5859,42 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
 
     bool err= parse_sql(thd, parser_state, NULL);
 
-    if (!err)
+    write_query= TWITTER_QUERY_THROTTLE_WRITES(lex->sql_command);
+    if (write_query)
+    {
+      my_atomic_add64((longlong*)&write_queries, 1);
+      writes_running= inc_write_query_running();
+    }
+    else if (lex->sql_command == SQLCOM_SELECT)
+      my_atomic_add64((longlong*)&read_queries, 1);
+
+    /* throttle the server by denying non-superuser query */
+    bool query_throttled= FALSE;
+    if (!(thd->security_ctx->master_access & SUPER_ACL)) {
+      /* general query throttling applies to select and mutation queries */
+      if (opt_twitter_query_throttling_limit &&
+          (lex->sql_command == SQLCOM_SELECT || write_query))
+      {
+        uint32 running_threads= get_thread_running();
+        if (running_threads > opt_twitter_query_throttling_limit)
+        {
+          query_throttled= TRUE;
+          my_atomic_add64((longlong*)&total_query_rejected, 1);
+          my_error(ER_QUERY_THROTTLED, MYF(0));
+        }
+      }
+      /* write throttling applies to mutation queries only */
+      if (opt_twitter_write_throttling_limit && write_query && !query_throttled &&
+          writes_running > opt_twitter_write_throttling_limit)
+      {
+        query_throttled= TRUE;
+        my_atomic_add64((longlong*)&total_query_rejected, 1);
+        my_atomic_add64((longlong*)&write_query_rejected, 1);
+        my_error(ER_QUERY_THROTTLED, MYF(0));
+      }
+    }
+
+    if (!err && !query_throttled)
     {
 #ifndef NO_EMBEDDED_ACCESS_CHECKS
       if (mqh_used && thd->get_user_connect() &&
@@ -5904,8 +5945,10 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
     else
     {
       DBUG_ASSERT(thd->is_error());
-      DBUG_PRINT("info",("Command aborted. Fatal_error: %d",
-			 thd->is_fatal_error));
+      /* no need of logging throttled query in error log */
+      if (!query_throttled)
+        DBUG_PRINT("info",("Command aborted. Fatal_error: %d",
+                           thd->is_fatal_error));
 
       query_cache_abort(&thd->query_cache_tls);
     }
@@ -5920,6 +5963,9 @@ void mysql_parse(THD *thd, char *rawbuf, uint length,
     thd->cleanup_after_query();
     DBUG_ASSERT(thd->change_list.is_empty());
   }
+
+  if (write_query)
+    dec_write_query_running();
 
   if (unlikely(opt_userstat))
   {

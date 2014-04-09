@@ -6518,6 +6518,9 @@ ER_UNSUPPORTED_ENGINE
 ER_BINLOG_UNSAFE_AUTOINC_NOT_FIRST
   eng "INSERT into autoincrement field which is not the first part in the composed primary key is unsafe."
 
+ER_QUERY_THROTTLED 70101
+ eng "Query execution was throttled"
+
 #
 #  End of 5.5 error messages.
 #

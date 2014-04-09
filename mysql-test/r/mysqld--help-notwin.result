@@ -717,6 +717,10 @@ The following options may be given as the first argument:
  Collect user query stats.
  --twitter-query-stats-max[=#] 
  User query stats hash table size.
+ --twitter-query-throttling-limit[=#] 
+ Start throttling queries if running threads high.
+ --twitter-write-throttling-limit[=#] 
+ Start throttling writes if running mutation queries high.
  --updatable-views-with-limit=name 
  YES = Don't issue an error message (warning only) if a
  VIEW without presence of a key of the underlying table is
@@ -949,6 +953,8 @@ transaction-prealloc-size 4096
 twitter-audit-logging 0
 twitter-query-stats 0
 twitter-query-stats-max 10240
+twitter-query-throttling-limit 0
+twitter-write-throttling-limit 0
 updatable-views-with-limit YES
 userstat FALSE
 verbose TRUE

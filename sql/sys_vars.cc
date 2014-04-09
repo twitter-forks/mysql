@@ -3189,6 +3189,18 @@ static Sys_var_uint Sys_twitter_query_stats_max(
        VALID_RANGE(0, QUERY_STATS_CACHE_MAX), DEFAULT(QUERY_STATS_CACHE_SIZE),
        BLOCK_SIZE(1), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(0));
 
+static Sys_var_uint Sys_twitter_query_throttling_limit(
+       "twitter_query_throttling_limit", "Start throttling queries if running threads high.",
+       GLOBAL_VAR(opt_twitter_query_throttling_limit), CMD_LINE(OPT_ARG),
+       VALID_RANGE(0, 10000), DEFAULT(0),
+       BLOCK_SIZE(1), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(0));
+
+static Sys_var_uint Sys_twitter_write_throttling_limit(
+       "twitter_write_throttling_limit", "Start throttling writes if running mutation queries high.",
+       GLOBAL_VAR(opt_twitter_write_throttling_limit), CMD_LINE(OPT_ARG),
+       VALID_RANGE(0, 5000), DEFAULT(0),
+       BLOCK_SIZE(1), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(0), ON_UPDATE(0));
+
 #ifdef HAVE_REPLICATION
 static Sys_var_mybool Sys_log_slave_updates(
        "log_slave_updates", "Tells the slave to log the updates from "

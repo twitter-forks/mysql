@@ -485,6 +485,7 @@ ulong refresh_version;  /* Increments on each reload */
 query_id_t global_query_id;
 my_atomic_rwlock_t global_query_id_lock;
 my_atomic_rwlock_t thread_running_lock;
+my_atomic_rwlock_t write_query_running_lock;
 ulong aborted_threads, aborted_connects;
 ulong delayed_insert_timeout, delayed_insert_limit, delayed_queue_size;
 ulong delayed_insert_threads, delayed_insert_writes, delayed_rows_in_use;
@@ -529,8 +530,13 @@ ulong stored_program_cache_size= 0;
 uint opt_twitter_audit_log= 0;
 uint opt_twitter_query_stats= 0;
 uint opt_twitter_query_stats_max= 0;
+uint opt_twitter_query_throttling_limit=0;
+uint opt_twitter_write_throttling_limit=0;
 ulonglong rows_sent= 0, rows_examined= 0;
 ulonglong com_insert_noop= 0;
+int32 write_query_running;
+ulonglong read_queries, write_queries;
+ulonglong total_query_rejected, write_query_rejected;
 
 const double log_10[] = {
   1e000, 1e001, 1e002, 1e003, 1e004, 1e005, 1e006, 1e007, 1e008, 1e009,
@@ -1558,6 +1564,7 @@ void clean_up(bool print_message)
   logger.cleanup_end();
   my_atomic_rwlock_destroy(&global_query_id_lock);
   my_atomic_rwlock_destroy(&thread_running_lock);
+  my_atomic_rwlock_destroy(&write_query_running_lock);
   free_charsets();
   mysql_mutex_lock(&LOCK_thread_count);
   DBUG_PRINT("quit", ("got thread count lock"));
@@ -6697,6 +6704,7 @@ SHOW_VAR status_vars[]= {
 #endif /*HAVE_QUERY_CACHE*/
   {"Queries",                  (char*) &show_queries,            SHOW_FUNC},
   {"Questions",                (char*) offsetof(STATUS_VAR, questions), SHOW_LONG_STATUS},
+  {"Read_queries",             (char*) &read_queries,        SHOW_LONG},
   {"Rows_examined",            (char*) &rows_examined,        SHOW_LONG},
   {"Rows_sent",                (char*) &rows_sent,        SHOW_LONG},
 #ifdef HAVE_REPLICATION
@@ -6759,10 +6767,14 @@ SHOW_VAR status_vars[]= {
   {"Threads_created",	       (char*) &thread_created,		SHOW_LONG_NOFLUSH},
   {"Threads_running",          (char*) &thread_running,         SHOW_INT},
   {"Threads_running_max",      (char*) &show_thread_running_max,SHOW_FUNC},
+  {"Total_queries_rejected",   (char*) &total_query_rejected,   SHOW_LONG},
   {"Uptime",                   (char*) &show_starttime,         SHOW_FUNC},
 #ifdef ENABLED_PROFILING
   {"Uptime_since_flush_status",(char*) &show_flushstatustime,   SHOW_FUNC},
 #endif
+  {"Write_queries",            (char*) &write_queries,          SHOW_LONG},
+  {"Write_queries_rejected",   (char*) &write_query_rejected,   SHOW_LONG},
+  {"Write_queries_running",    (char*) &write_query_running,    SHOW_INT},
   {NullS, NullS, SHOW_LONG}
 };
 
@@ -6912,6 +6924,11 @@ static int mysql_init_variables(void)
   test_flags= select_errors= dropping_tables= ha_open_options=0;
   thread_count= thread_running= kill_cached_threads= wake_thread=0;
   thread_running_max=0;
+  write_query_running= 0;
+  write_queries= 0;
+  read_queries= 0;
+  write_query_rejected= 0;
+  total_query_rejected= 0;
   slave_open_temp_tables= 0;
   cached_thread_count= 0;
   opt_endinfo= using_udf_functions= 0;
@@ -6956,6 +6973,7 @@ static int mysql_init_variables(void)
   global_query_id= thread_id= 1L;
   my_atomic_rwlock_init(&global_query_id_lock);
   my_atomic_rwlock_init(&thread_running_lock);
+  my_atomic_rwlock_init(&write_query_running_lock);
   strmov(server_version, MYSQL_SERVER_VERSION);
   threads.empty();
   thread_cache.empty();
