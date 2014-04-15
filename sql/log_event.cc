@@ -1959,7 +1959,6 @@ Rows_log_event::print_verbose_one_row(IO_CACHE *file, table_def *td,
     }
     else
     {
-      my_b_printf(file, "###   @%d=", i + 1);
       size_t fsize= td->calc_field_size((uint)i, (uchar*) value);
       if (value + fsize > m_rows_end)
       {
