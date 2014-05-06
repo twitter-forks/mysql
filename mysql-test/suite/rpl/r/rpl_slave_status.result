@@ -2,10 +2,10 @@ include/master-slave.inc
 [connection master]
 ==== Create new replication user ====
 [on master]
-GRANT REPLICATION SLAVE ON *.* TO rpl@127.0.0.1 IDENTIFIED BY 'rpl';
+GRANT REPLICATION SLAVE ON *.* TO rplrplrplrplrplrplrplrplrplrpl@127.0.0.1 IDENTIFIED BY 'rpl';
 [on slave]
 include/stop_slave.inc
-CHANGE MASTER TO master_user='rpl', master_password='rpl';
+CHANGE MASTER TO master_user='rplrplrplrplrplrplrplrplrplrpl', master_password='rpl';
 include/start_slave.inc
 ==== Do replication as new user ====
 [on master]
@@ -17,7 +17,7 @@ n
 1
 ==== Delete new replication user ====
 [on master]
-DROP USER rpl@127.0.0.1;
+DROP USER rplrplrplrplrplrplrplrplrplrpl@127.0.0.1;
 FLUSH PRIVILEGES;
 [on slave]
 ==== Restart slave without privileges =====
