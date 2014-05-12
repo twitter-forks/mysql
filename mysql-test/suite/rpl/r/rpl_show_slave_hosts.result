@@ -12,4 +12,5 @@ include/stop_slave_io.inc
 SHOW SLAVE HOSTS;
 Server_id	Host	Port	Master_id
 2		SLAVE_PORT	1
+include/reset_slave_all.inc
 include/rpl_end.inc

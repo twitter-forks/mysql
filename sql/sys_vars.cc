@@ -3656,6 +3656,12 @@ static Sys_var_mybool Sys_pseudo_slave_mode(
        NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(check_pseudo_slave_mode));
 
 
+// MYSQL-312
+static Sys_var_ulong Sys_master_server_id(
+       "master_server_id", "master server id",
+       READ_ONLY GLOBAL_VAR(master_server_id), NO_CMD_LINE,
+       VALID_RANGE(0, UINT_MAX32), DEFAULT(0), BLOCK_SIZE(1));
+
 /****************************************************************************
   Used templates
 ****************************************************************************/

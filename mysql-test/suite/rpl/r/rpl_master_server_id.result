@@ -1,0 +1,28 @@
+include/master-slave.inc
+[connection master]
+SELECT @@GLOBAL.server_id;
+@@GLOBAL.server_id
+1
+SELECT @@GLOBAL.master_server_id;
+@@GLOBAL.master_server_id
+1
+SET @@GLOBAL.server_id= 123;
+SELECT @@GLOBAL.server_id;
+@@GLOBAL.server_id
+123
+SELECT @@GLOBAL.master_server_id;
+@@GLOBAL.master_server_id
+1
+include/stop_slave.inc
+SELECT @@GLOBAL.master_server_id;
+@@GLOBAL.master_server_id
+1
+include/start_slave.inc
+SELECT @@GLOBAL.master_server_id;
+@@GLOBAL.master_server_id
+123
+include/stop_slave.inc
+RESET SLAVE ALL;
+SELECT @@GLOBAL.master_server_id;
+@@GLOBAL.master_server_id
+0

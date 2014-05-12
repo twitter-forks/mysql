@@ -44,4 +44,7 @@ source include/wait_show_condition.inc;
 --replace_result $SLAVE_MYPORT SLAVE_PORT
 SHOW SLAVE HOSTS;
 
+--connection slave2
+--source include/reset_slave_all.inc
+
 --source include/rpl_end.inc

@@ -1433,6 +1433,8 @@ static int get_master_version_and_clock(MYSQL* mysql, Master_info* mi)
       (master_res= mysql_store_result(mysql)) &&
       (master_row= mysql_fetch_row(master_res)))
   {
+    // MYSQL-312
+    master_server_id= strtoul(master_row[1], 0, 10);
     if ((::server_id == (mi->master_id= strtoul(master_row[1], 0, 10))) &&
         !mi->rli.replicate_same_server_id)
     {

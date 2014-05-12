@@ -60,4 +60,5 @@ A heartbeat has been received by the slave
 drop table t1;
 set @@global.slave_net_timeout= @restore_slave_net_timeout;
 include/stop_slave.inc
+include/reset_slave_all.inc
 End of tests

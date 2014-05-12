@@ -1299,7 +1299,10 @@ int reset_slave(THD *thd, Master_info* mi)
 
   /* Clear master's log coordinates and associated information */
   mi->clear_in_memory_info(thd->lex->reset_slave_info.all);
-
+  if (thd->lex->reset_slave_info.all) {
+	  // MYSQL-312
+	  master_server_id= 0;
+  }
   /*
      Reset errors (the idea is that we forget about the
      old master).

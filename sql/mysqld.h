@@ -385,6 +385,9 @@ extern int32 thread_running;
 extern int32 thread_running_max;
 extern my_atomic_rwlock_t thread_running_lock;
 
+// MYSQL-312
+extern ulong master_server_id;
+
 extern char *opt_ssl_ca, *opt_ssl_capath, *opt_ssl_cert, *opt_ssl_cipher,
             *opt_ssl_key;
 

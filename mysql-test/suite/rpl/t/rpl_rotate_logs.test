@@ -235,3 +235,4 @@ purge master logs before now();
 
 --echo End of 5.0 tests
 --source include/stop_slave.inc
+--source include/reset_slave_all.inc

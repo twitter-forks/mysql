@@ -1,0 +1,44 @@
+#
+# SHOW SLAVE STATUS can return the master_server_id.
+# We add another method to get master_server_id:
+#   select @@GLOBAL.master_server_id.
+#
+# master_server_id is an integer system variable.
+# The default value is 0.
+#
+# It maintains the same semantics as SHOW SLAVE STAUTS;
+# Each time the slave connects to master, it starts the slave
+# IO thread and refreshes master information. The master_server_id
+# is updated at that time and cached.
+# STOP SLAVE, RESET SLAVE cannot reset the value (as in SHOW SLAVE STATUS).
+# RESET SLAVE ALL will reset the value to 0.
+
+
+--source include/master-slave.inc
+
+# By default master server id is 1
+--connection master
+SELECT @@GLOBAL.server_id;
+# slave should have the master_server_id since it has connected.
+--connection slave
+SELECT @@GLOBAL.master_server_id;
+# Change the master's server_id.
+--connection master
+SET @@GLOBAL.server_id= 123;
+SELECT @@GLOBAL.server_id;
+# Note that the slave still caches the stale master_server_id.
+--connection slave
+SELECT @@GLOBAL.master_server_id;
+# To update the master_server_id, you need to do a reconnect.
+# As discussed, STOP SLAVE, RESET SLAVE should not clean the master_server_id.
+--source include/stop_slave.inc
+SELECT @@GLOBAL.master_server_id;
+# master_server_id is refreshed when you reconnect the master.
+--source include/start_slave.inc
+SELECT @@GLOBAL.master_server_id;
+# The only way to reset master_server_id to default is RESET SLAVE ALL.
+--source include/stop_slave.inc
+RESET SLAVE ALL;
+SELECT @@GLOBAL.master_server_id;
+
+--source include/force_restart.inc

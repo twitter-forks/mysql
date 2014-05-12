@@ -166,5 +166,5 @@ sync_slave_with_master;
 set @@global.slave_net_timeout= @restore_slave_net_timeout;
 
 --source include/stop_slave.inc
-
+--source include/reset_slave_all.inc
 --echo End of tests

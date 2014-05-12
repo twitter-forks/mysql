@@ -1,0 +1,9 @@
+--source include/load_sysvars.inc
+
+SELECT @@GLOBAL.master_server_id;
+
+--error ER_INCORRECT_GLOBAL_LOCAL_VAR
+SELECT @@SESSION.master_server_id= 0;
+
+--error ER_INCORRECT_GLOBAL_LOCAL_VAR
+SET @@GLOBAL.master_server_id= 1;

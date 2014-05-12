@@ -1,0 +1,7 @@
+SELECT @@GLOBAL.master_server_id;
+@@GLOBAL.master_server_id
+0
+SELECT @@SESSION.master_server_id= 0;
+ERROR HY000: Variable 'master_server_id' is a GLOBAL variable
+SET @@GLOBAL.master_server_id= 1;
+ERROR HY000: Variable 'master_server_id' is a read only variable

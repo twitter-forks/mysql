@@ -95,3 +95,4 @@ ERROR HY000: Error when executing command SHOW BINLOG EVENTS: Could not find tar
 purge master logs before now();
 End of 5.0 tests
 include/stop_slave.inc
+include/reset_slave_all.inc
