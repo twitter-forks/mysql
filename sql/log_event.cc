@@ -2417,7 +2417,7 @@ bool Query_log_event::write(IO_CACHE* file)
     memset(&user, 0, sizeof(user));
     memset(&host, 0, sizeof(host));
 
-    if (thd->slave_thread && thd->has_invoker())
+    if (thd->slave_thread && thd->need_binlog_invoker())
     {
       /* user will be null, if master is older than this patch */
       user= thd->get_invoker_user();
