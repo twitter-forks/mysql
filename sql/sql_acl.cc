@@ -8464,31 +8464,13 @@ static bool find_mpvio_user(MPVIO_EXT *mpvio)
   if (!mpvio->acl_user)
   {
     /*
-      A matching user was not found. Fake it. Take any user, make the
-      authentication fail later.
-      This way we get a realistically looking failure, with occasional
-      "change auth plugin" requests even for nonexistent users. The ratio
-      of "change auth plugin" request will be the same for real and
-      nonexistent users.
-      Note, that we cannot pick any user at random, it must always be
-      the same user account for the incoming sctx->user name.
+      Pretend the user exists; let the plugin decide how to handle
+      bad credentials.
     */
-    ulong nr1=1, nr2=4;
-    CHARSET_INFO *cs= &my_charset_latin1;
-    cs->coll->hash_sort(cs, (uchar*) mpvio->auth_info.user_name,
-                        mpvio->auth_info.user_name_length, &nr1, &nr2);
-
-    mysql_mutex_lock(&acl_cache->lock);
-    uint i= nr1 % acl_users.elements;
-    ACL_USER *acl_user_tmp= dynamic_element(&acl_users, i, ACL_USER*);
-    mpvio->acl_user= acl_user_tmp->copy(mpvio->mem_root);
-    make_lex_string_root(mpvio->mem_root, 
-                         &mpvio->acl_user_plugin, 
-                         acl_user_tmp->plugin.str, 
-                         acl_user_tmp->plugin.length, 0);
-    mysql_mutex_unlock(&acl_cache->lock);
-
-    mpvio->make_it_fail= true;
+    LEX_STRING usr= { mpvio->auth_info.user_name,
+                      mpvio->auth_info.user_name_length };
+    mpvio->acl_user= decoy_user(usr, mpvio->mem_root);
+    mpvio->acl_user_plugin= mpvio->acl_user->plugin;
   }
 
   /* user account requires non-default plugin and the client is too old */
