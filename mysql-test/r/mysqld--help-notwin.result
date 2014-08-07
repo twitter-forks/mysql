@@ -695,8 +695,8 @@ The following options may be given as the first argument:
  --thread-statistics Control TABLE_STATISTICS running, when userstat is
  enabled
  --time-format=name  The TIME format (ignored)
- --timed-mutexes     Specify whether to time mutexes (only InnoDB mutexes are
- currently supported)
+ --timed-mutexes     Specify whether to time mutexes. Deprecated, has no
+ effect.
  --tmp-table-size=#  If an internal in-memory temporary table exceeds this
  size, MySQL will automatically convert it to an on-disk
  MyISAM table
