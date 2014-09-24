@@ -2566,7 +2566,7 @@ static bool check_sql_log_bin(sys_var *self, THD *thd, set_var *var)
     return TRUE;
 
   if (var->type == OPT_GLOBAL)
-    return FALSE;
+    return TRUE;
 
   /* If in a stored function/trigger, it's too late to change sql_log_bin. */
   if (thd->in_sub_stmt)

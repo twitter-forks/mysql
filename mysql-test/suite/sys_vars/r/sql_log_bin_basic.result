@@ -57,6 +57,9 @@ ERROR 42000: Variable 'sql_log_bin' can't be set to the value of '¹'
 SET @@session.sql_log_bin = NO;
 ERROR 42000: Variable 'sql_log_bin' can't be set to the value of 'NO'
 '#-------------------FN_DYNVARS_156_05----------------------------#'
+SELECT @@global.sql_log_bin;
+@@global.sql_log_bin
+1
 SET @@global.sql_log_bin = 0;
 ERROR HY000: Variable 'sql_log_bin' is a SESSION variable and can't be used with SET GLOBAL
 SELECT @@global.sql_log_bin;
