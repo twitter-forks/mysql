@@ -669,6 +669,23 @@ DROP TABLE tmp_proxies_priv;
 --
 ALTER TABLE user ADD max_statement_time int(11) unsigned DEFAULT 0 NOT NULL;
 
+-- Checking for any duplicate hostname and username combination are exists.
+-- If exits we will throw error.
+DROP PROCEDURE IF EXISTS mysql.count_duplicate_host_names;
+DELIMITER //
+CREATE PROCEDURE mysql.count_duplicate_host_names()
+BEGIN
+  SET @duplicate_hosts=(SELECT count(*) FROM mysql.user GROUP BY user, lower(host) HAVING count(*) > 1 LIMIT 1);
+  IF @duplicate_hosts > 1 THEN
+    SIGNAL SQLSTATE '45000'  SET MESSAGE_TEXT = 'Multiple accounts exist for @user_name, @host_name that differ only in Host lettercase; remove all except one of them';
+  END IF;
+END //
+DELIMITER ;
+CALL mysql.count_duplicate_host_names();
+-- Get warnings (if any)
+SHOW WARNINGS;
+DROP PROCEDURE mysql.count_duplicate_host_names;
+
 # Convering the host name to lower case for existing users
 UPDATE user SET host=LOWER( host ) WHERE LOWER( host ) <> host;
 
