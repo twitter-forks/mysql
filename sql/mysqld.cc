@@ -6238,6 +6238,89 @@ struct my_option my_long_options[]=
   {"table_cache", 0, "Deprecated; use --table-open-cache instead.",
    &table_cache_size, &table_cache_size, 0, GET_ULONG,
    REQUIRED_ARG, TABLE_OPEN_CACHE_DEFAULT, 1, 512*1024L, 0, 1, 0},
+  {"table_definition_cache", OPT_TABLE_DEF_CACHE,
+   "The number of cached table definitions.",
+   &table_def_size, &table_def_size,
+   0, GET_ULONG, REQUIRED_ARG, TABLE_DEF_CACHE_DEFAULT, TABLE_DEF_CACHE_MIN,
+   512*1024L, 0, 1, 0},
+  {"table_open_cache", OPT_TABLE_OPEN_CACHE,
+   "The number of cached open tables.",
+   &table_cache_size, &table_cache_size, 0, GET_ULONG,
+   REQUIRED_ARG, TABLE_OPEN_CACHE_DEFAULT, 1, 512*1024L, 0, 1, 0},
+  {"table_lock_wait_timeout", OPT_TABLE_LOCK_WAIT_TIMEOUT,
+   "Timeout in seconds to wait for a table level lock before returning an "
+   "error. Used only if the connection has active cursors.",
+   &table_lock_wait_timeout, &table_lock_wait_timeout,
+   0, GET_ULONG, REQUIRED_ARG, 50, 1, 1024 * 1024 * 1024, 0, 1, 0},
+  {"thread_cache_size", OPT_THREAD_CACHE_SIZE,
+   "How many threads we should keep in a cache for reuse.",
+   &thread_cache_size, &thread_cache_size, 0, GET_ULONG,
+   REQUIRED_ARG, 0, 0, 16384, 0, 1, 0},
+  {"thread_concurrency", OPT_THREAD_CONCURRENCY,
+   "Permits the application to give the threads system a hint for the "
+   "desired number of threads that should be run at the same time.",
+   &concurrency, &concurrency, 0, GET_ULONG, REQUIRED_ARG,
+   DEFAULT_CONCURRENCY, 1, 512, 0, 1, 0},
+#if HAVE_POOL_OF_THREADS == 1
+  {"thread_pool_size", OPT_THREAD_CACHE_SIZE,
+   "How many threads we should create to handle query requests in case of "
+   "'thread_handling=pool-of-threads'.",
+   &thread_pool_size, &thread_pool_size, 0, GET_ULONG,
+   REQUIRED_ARG, 20, 1, 16384, 0, 1, 0},
+#endif
+  {"thread_stack", OPT_THREAD_STACK,
+   "The stack size for each thread.", &my_thread_stack_size,
+   &my_thread_stack_size, 0, GET_ULONG, REQUIRED_ARG,DEFAULT_THREAD_STACK,
+   1024L*128L, ULONG_MAX, 0, 1024, 0},
+  { "time_format", OPT_TIME_FORMAT,
+    "The TIME format (for future).",
+    &opt_date_time_formats[MYSQL_TIMESTAMP_TIME],
+    &opt_date_time_formats[MYSQL_TIMESTAMP_TIME],
+    0, GET_STR, REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
+  {"tmp_table_size", OPT_TMP_TABLE_SIZE,
+   "If an internal in-memory temporary table exceeds this size, MySQL will"
+   " automatically convert it to an on-disk MyISAM table.",
+   &global_system_variables.tmp_table_size,
+   &max_system_variables.tmp_table_size, 0, GET_ULL,
+   REQUIRED_ARG, 16*1024*1024L, 1024, MAX_MEM_TABLE_SIZE, 0, 1, 0},
+  {"transaction_alloc_block_size", OPT_TRANS_ALLOC_BLOCK_SIZE,
+   "Allocation block size for transactions to be stored in binary log.",
+   &global_system_variables.trans_alloc_block_size,
+   &max_system_variables.trans_alloc_block_size, 0, GET_ULONG,
+   REQUIRED_ARG, QUERY_ALLOC_BLOCK_SIZE, 1024, 128 * 1024, 0, 1024, 0},
+  {"transaction_prealloc_size", OPT_TRANS_PREALLOC_SIZE,
+   "Persistent buffer for transactions to be stored in binary log.",
+   &global_system_variables.trans_prealloc_size,
+   &max_system_variables.trans_prealloc_size, 0, GET_ULONG,
+   REQUIRED_ARG, TRANS_ALLOC_PREALLOC_SIZE, 1024, 128 * 1024, 0, 1024, 0},
+  {"thread_handling", OPT_THREAD_HANDLING,
+   "Define threads usage for handling queries: "
+   "one-thread-per-connection or no-threads.", 0, 0,
+   0, GET_STR, REQUIRED_ARG, 0, 0, 0, 0, 0, 0},
+  {"updatable_views_with_limit", OPT_UPDATABLE_VIEWS_WITH_LIMIT,
+   "1 = YES = Don't issue an error message (warning only) if a VIEW without "
+   "presence of a key of the underlying table is used in queries with a "
+   "LIMIT clause for updating. 0 = NO = Prohibit update of a VIEW, which "
+   "does not contain a key of the underlying table and the query uses a "
+   "LIMIT clause (usually get from GUI tools).",
+   &global_system_variables.updatable_views_with_limit,
+   &max_system_variables.updatable_views_with_limit,
+   0, GET_ULONG, REQUIRED_ARG, 1, 0, 1, 0, 1, 0},
+  {"wait_timeout", OPT_WAIT_TIMEOUT,
+   "The number of seconds the server waits for activity on a connection before closing it.",
+   &global_system_variables.net_wait_timeout,
+   &max_system_variables.net_wait_timeout, 0, GET_ULONG,
+   REQUIRED_ARG, NET_WAIT_TIMEOUT, 1, IF_WIN(INT_MAX32/1000, LONG_TIMEOUT),
+   0, 1, 0},
+  {"binlog-direct-non-transactional-updates", OPT_BINLOG_DIRECT_NON_TRANS_UPDATE,
+   "Causes updates to non-transactional engines using statement format to be "
+   "written directly to binary log. Before using this option, make sure that "
+   "there are no dependencies between transactional and non-transactional "
+   "tables such as in the statement INSERT INTO t_myisam SELECT * FROM "
+   "t_innodb; otherwise, slaves may diverge from the master.",
+   &global_system_variables.binlog_direct_non_trans_update,
+   &max_system_variables.binlog_direct_non_trans_update,
+   0, GET_BOOL, NO_ARG, 0, 0, 0, 0, 0, 0},
   {0, 0, 0, 0, 0, 0, GET_NO_ARG, NO_ARG, 0, 0, 0, 0, 0, 0}
 };
 
