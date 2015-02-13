@@ -34,14 +34,28 @@ ENDIF()
 # Compiler options.
 #
 
-IF(CMAKE_COMPILER_IS_GNUCC AND CMAKE_COMPILER_IS_GNUCXX)
-  SET(COMMON_FLAGS "-g -fno-omit-frame-pointer -fno-strict-aliasing")
-  SET(CMAKE_C_FLAGS_DEBUG "-O ${COMMON_FLAGS}")
-  SET(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 ${COMMON_FLAGS}")
-  SET(CMAKE_CXX_FLAGS_DEBUG "-O ${COMMON_FLAGS}")
-  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 ${COMMON_FLAGS}")
-ELSE()
-  MESSAGE(WARNING "There are no specific compiler options.")
+# Default GCC flags
+IF(CMAKE_COMPILER_IS_GNUCC)
+  SET(COMMON_C_FLAGS               "-g -static-libgcc -fno-omit-frame-pointer -fno-strict-aliasing")
+  SET(CMAKE_C_FLAGS_DEBUG          "-O ${COMMON_C_FLAGS}")
+  SET(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 ${COMMON_C_FLAGS}")
+ENDIF()
+IF(CMAKE_COMPILER_IS_GNUCXX)
+  SET(COMMON_CXX_FLAGS               "-g -static-libgcc -fno-omit-frame-pointer -fno-strict-aliasing")
+  SET(CMAKE_CXX_FLAGS_DEBUG          "-O ${COMMON_CXX_FLAGS}")
+  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 ${COMMON_CXX_FLAGS}")
+ENDIF()
+
+# Default Clang flags
+IF(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  SET(COMMON_C_FLAGS               "-g -fno-omit-frame-pointer -fno-strict-aliasing")
+  SET(CMAKE_C_FLAGS_DEBUG          "${COMMON_C_FLAGS}")
+  SET(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 ${COMMON_C_FLAGS}")
+ENDIF()
+IF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  SET(COMMON_CXX_FLAGS               "-g -fno-omit-frame-pointer -fno-strict-aliasing")
+  SET(CMAKE_CXX_FLAGS_DEBUG          "${COMMON_CXX_FLAGS}")
+  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O3 ${COMMON_CXX_FLAGS}")
 ENDIF()
 
 #

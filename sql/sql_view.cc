@@ -1098,7 +1098,7 @@ bool mysql_make_view(THD *thd, File_parser *parser, TABLE_LIST *table,
   LEX *old_lex, *lex;
   Query_arena *arena, backup;
   TABLE_LIST *top_view= table->top_table();
-  bool parse_status;
+  bool parse_status= false;
   bool UNINIT_VAR(result), view_is_mergeable;
   TABLE_LIST *UNINIT_VAR(view_main_select_tables);
 

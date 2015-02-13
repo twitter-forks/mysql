@@ -1702,7 +1702,6 @@ row_ins_scan_sec_index_for_duplicate(
 	do {
 		const rec_t*		rec	= btr_pcur_get_rec(&pcur);
 		const buf_block_t*	block	= btr_pcur_get_block(&pcur);
-		const ulint		lock_type = LOCK_ORDINARY;
 
 		if (page_rec_is_infimum(rec)) {
 
