@@ -2586,8 +2586,8 @@ static bool check_sql_log_bin(sys_var *self, THD *thd, set_var *var)
 
 static Sys_var_mybool Sys_log_binlog(
        "sql_log_bin", "Controls whether logging to the binary log is done",
-       SESSION_ONLY(sql_log_bin), NO_CMD_LINE,
-       DEFAULT(TRUE), NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(check_sql_log_bin),
+       SESSION_VAR(sql_log_bin), NO_CMD_LINE, DEFAULT(TRUE),
+       NO_MUTEX_GUARD, NOT_IN_BINLOG, ON_CHECK(check_sql_log_bin),
        ON_UPDATE(fix_sql_log_bin_after_update));
 
 static Sys_var_bit Sys_sql_warnings(
