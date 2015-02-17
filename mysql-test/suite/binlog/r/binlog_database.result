@@ -163,11 +163,7 @@ Tables_in_db1
 t2
 show binlog events from <binlog_start>;
 Log_name	Pos	Event_type	Server_id	End_log_pos	Info
-<<<<<<< HEAD
-master-bin.000001	#	Query	#	#	use `db1`; drop table `t1`
-=======
 master-bin.000001	#	Query	#	#	use `db1`; DROP TABLE IF EXISTS `t1`
->>>>>>> 5da083e... Bug#20041860: SLAVE ERROR WHEN DROP DATABASE
 DROP TABLE t3;
 DROP DATABASE db1;
 set binlog_format=row;
@@ -252,11 +248,7 @@ Tables_in_db1
 t2
 show binlog events from <binlog_start>;
 Log_name	Pos	Event_type	Server_id	End_log_pos	Info
-<<<<<<< HEAD
-master-bin.000001	#	Query	#	#	use `db1`; drop table `t1`
-=======
 master-bin.000001	#	Query	#	#	use `db1`; DROP TABLE IF EXISTS `t1`
->>>>>>> 5da083e... Bug#20041860: SLAVE ERROR WHEN DROP DATABASE
 DROP TABLE t3;
 DROP DATABASE db1;
 show databases;
