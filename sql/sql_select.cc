@@ -14687,7 +14687,7 @@ SORT_FIELD *make_unireg_sortorder(ORDER *order, uint *length,
       pos->field= item->get_tmp_table_field();
     }
     else if (real_item->type() == Item::COPY_STR_ITEM)
-    {                                           // Blob patch
+    {// Blob patch
       pos->item= static_cast<Item_copy*>(real_item)->get_item();
     }
     else
