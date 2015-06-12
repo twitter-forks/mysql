@@ -387,7 +387,7 @@ DROP TABLE t1;
 create table t1 (a int) engine=innodb partition by hash(a) ;
 # Data_free for InnoDB tablespace varies depending on which
 # tests have been run before this one
---replace_column 10 #
+--replace_column 10 # 12 #
 show table status like 't1';
 drop table t1;
 
@@ -399,12 +399,12 @@ engine = innodb
 partition by key (a);
 # Data_free for InnoDB tablespace varies depending on which
 # tests have been run before this one
---replace_column 10 #
+--replace_column 10 # 12 #
 show table status;
 insert into t1 values (0), (1), (2), (3);
 # Data_free for InnoDB tablespace varies depending on which
 # tests have been run before this one
---replace_column 10 #
+--replace_column 10 # 12 #
 show table status;
 drop table t1;
 
@@ -413,17 +413,17 @@ engine = innodb
 partition by key (a);
 # Data_free for InnoDB tablespace varies depending on which
 # tests have been run before this one
---replace_column 10 #
+--replace_column 10 # 12 #
 show table status;
 insert into t1 values (NULL), (NULL), (NULL), (NULL);
 # Data_free for InnoDB tablespace varies depending on which
 # tests have been run before this one
---replace_column 10 #
+--replace_column 10 # 12 #
 show table status;
 insert into t1 values (NULL), (NULL), (NULL), (NULL);
 # Data_free for InnoDB tablespace varies depending on which
 # tests have been run before this one
---replace_column 10 #
+--replace_column 10 # 12 #
 show table status;
 drop table t1;
 
@@ -660,25 +660,15 @@ ALTER TABLE t1 ADD UNIQUE KEY (b);
 SHOW CREATE TABLE t1;
 SELECT * FROM t1;
 DROP TABLE t1;
-
 --echo #
---echo # Bug#65310: Crash with partition pruning and impossible condition
+--echo # Bug #17299181  CREATE_TIME AND UPDATE_TIME ARE
+--echo #                WRONG FOR PARTITIONED TABLES
 --echo #
 
---disable_warnings
-DROP TABLE IF EXISTS t1;
---enable_warnings
+CREATE TABLE t1 (a int, PRIMARY KEY (a)) ENGINE=InnoDB
+PARTITION BY HASH (a) PARTITIONS 2;
 
-CREATE TABLE t1 (a INT PRIMARY KEY) ENGINE=InnoDB
-  PARTITION BY LIST (a) (PARTITION p0 VALUES IN (0));
-SELECT * FROM t1 WHERE a > 1;
-SELECT * FROM t1 WHERE a < 0;
-SELECT * FROM t1 WHERE a BETWEEN 1 AND 2;
-DROP TABLE t1;
+SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE
+CREATE_TIME IS NOT NULL AND TABLE_NAME='t1';
 
-CREATE TABLE t1 (a INT PRIMARY KEY) ENGINE=InnoDB
-  PARTITION BY RANGE (a) (PARTITION p0 VALUES LESS THAN (0));
-SELECT * FROM t1 WHERE a > 1;
-SELECT * FROM t1 WHERE a < 0;
-SELECT * FROM t1 WHERE a BETWEEN 1 AND 2;
 DROP TABLE t1;
