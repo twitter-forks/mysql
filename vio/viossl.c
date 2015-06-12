@@ -197,7 +197,6 @@ static int ssl_do(struct st_VioSSLFd *ptr, Vio *vio, long timeout,
       }
   }
 #endif
-#endif
 
   if ((r= connect_accept_func(ssl)) < 1)
   {
