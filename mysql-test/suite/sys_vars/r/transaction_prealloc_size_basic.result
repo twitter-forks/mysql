@@ -37,6 +37,8 @@ SELECT @@global.transaction_prealloc_size;
 @@global.transaction_prealloc_size
 1024
 SET @@global.transaction_prealloc_size = 60020;
+Warnings:
+Warning	1292	Truncated incorrect transaction_prealloc_size value: '60020'
 SELECT @@global.transaction_prealloc_size;
 @@global.transaction_prealloc_size
 59392
@@ -46,6 +48,8 @@ SELECT @@session.transaction_prealloc_size;
 @@session.transaction_prealloc_size
 1024
 SET @@session.transaction_prealloc_size = 65535;
+Warnings:
+Warning	1292	Truncated incorrect transaction_prealloc_size value: '65535'
 SELECT @@session.transaction_prealloc_size;
 @@session.transaction_prealloc_size
 64512
@@ -145,6 +149,8 @@ SELECT @@local.transaction_prealloc_size = @@session.transaction_prealloc_size;
 1
 '#---------------------FN_DYNVARS_001_11----------------------#'
 SET transaction_prealloc_size = 1027;
+Warnings:
+Warning	1292	Truncated incorrect transaction_prealloc_size value: '1027'
 SELECT @@transaction_prealloc_size;
 @@transaction_prealloc_size
 1024

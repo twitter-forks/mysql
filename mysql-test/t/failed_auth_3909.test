@@ -11,7 +11,7 @@ insert mysql.user (user,plugin) values ('foo','bar'),('bar','bar'),('baz','bar')
 flush privileges;
 
 --replace_result $MASTER_MYSOCK MASTER_SOCKET $MASTER_MYPORT MASTER_PORT
---error ER_PLUGIN_IS_NOT_LOADED
+--error ER_ACCESS_DENIED_ERROR
 connect (fail,localhost,u1);
 
 --replace_result $MASTER_MYSOCK MASTER_SOCKET $MASTER_MYPORT MASTER_PORT
@@ -22,7 +22,7 @@ connect (fail,localhost,u2);
 --error ER_ACCESS_DENIED_ERROR
 connect (fail,localhost,u2,password);
 
---error ER_PLUGIN_IS_NOT_LOADED
+--error ER_ACCESS_DENIED_ERROR
 change_user u1;
 
 --error ER_ACCESS_DENIED_ERROR
