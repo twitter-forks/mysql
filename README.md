@@ -35,3 +35,5 @@ On most recent multi-processor systems, a [non-uniform memory access NUMA](http:
 ## Optimization for solid-state drives (SSDs) ##
 
 * Optimize MySQL for SSD-based machines, including page-flushing behavior and reduction in writes to disk to improve lifespan.
+## What is MySQL ##
+* Basically, MySQL is a Relational DataBase Management System(RDBMS). All DBMS work as an interface between DataBase and Client. It uses Structured Query Language(SQL) which is mostly used in other DBMS softwares also. MySQL is written in C and C++. Its SQL parser is written in yacc, but it uses a home-brewed lexical analyzer. MySQL works on many system platforms, including AIX, BSDi, FreeBSD, HP-UX, eComStation, i5/OS, IRIX, Linux, OS X, Microsoft Windows, NetBSD, Novell NetWare, OpenBSD, OpenSolaris, OS/2 Warp, QNX, Oracle Solaris, Symbian, SunOS, SCO OpenServer, SCO UnixWare, Sanos and Tru64. A port of MySQL to OpenVMS also exists. It is not a Case Sensitive software. We can fire queries in any of the cases.
