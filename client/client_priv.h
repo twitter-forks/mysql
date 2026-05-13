@@ -111,3 +111,4 @@ enum options_client
 */
 #define PERFORMANCE_SCHEMA_DB_NAME "performance_schema"
 
+#define MYSQL
